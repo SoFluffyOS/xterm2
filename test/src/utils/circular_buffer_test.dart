@@ -46,6 +46,21 @@ void main() {
       expect(cl.maxLength, 3000);
     });
 
+    test('shrinking capacity retains the newest attached items', () {
+      final cl = IndexAwareCircularBuffer<IndexedValue<int>>(5);
+      final items = List.generate(5, IndexedValue<int>.new);
+      cl.pushAll(items);
+
+      cl.maxLength = 3;
+
+      expect(cl.toList().map((item) => item.value), [2, 3, 4]);
+      expect(cl.length, 3);
+      expect(items[0].attached, isFalse);
+      expect(items[1].attached, isFalse);
+      expect(cl[0].index, 0);
+      expect(cl[2].index, 2);
+    });
+
     test("circle works", () {
       final cl = IndexAwareCircularBuffer<IndexedValue<int>>(10);
       expect(cl.maxLength, 10);
@@ -313,6 +328,7 @@ void main() {
       expect(cl[0], 5.indexed);
       expect(cl[1], 6.indexed);
       expect(cl[4], 9.indexed);
+      expect(cl[0].index, 0);
     });
 
     test("trim start with more than length works", () {

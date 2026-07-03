@@ -74,15 +74,22 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
 
     if (value == _array.length) return;
 
-    // Reconstruct array, starting at index 0. Only transfer values from the
-    // indexes 0 to length.
-    final newArray = List<T?>.generate(
-      value,
-      (index) => index < _length ? _getChild(index) : null,
+    final retainedStart = _length > value ? _length - value : 0;
+    final retained = List<T>.generate(
+      _length - retainedStart,
+      (index) => _getChild(retainedStart + index)!,
     );
+    for (var i = 0; i < _length; i++) {
+      _getChild(i)?._detach();
+    }
 
+    _absoluteStartIndex += retainedStart;
     _startIndex = 0;
-    _array = newArray;
+    _length = retained.length;
+    _array = List<T?>.filled(value, null);
+    for (var i = 0; i < retained.length; i++) {
+      _array[i] = retained[i].._attach(this, i);
+    }
   }
 
   /// Number of elements in the list.
@@ -220,12 +227,14 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
   /// Removes [count] elements starting at [index], shifting all elements after
   /// [index] to the left.
   ///
-  /// This method is cheap since it does not actually modify the list, but
-  /// instead just adjusts the start index and length.
   void trimStart(int count) {
     if (count > _length) count = _length;
+    for (var i = 0; i < count; i++) {
+      _dropChild(i);
+    }
     _startIndex += count;
     _startIndex %= _array.length;
+    _absoluteStartIndex += count;
     _length -= count;
   }
 
