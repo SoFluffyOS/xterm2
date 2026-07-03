@@ -254,6 +254,8 @@ class TerminalPainter {
     if (charCode == 0) return;
 
     final cellFlags = cellData.flags;
+    if (cellFlags & CellFlags.invisible != 0) return;
+
     final isHyperlink = cellData.hyperlinkId != 0;
     var color = switch (cellFlags & CellFlags.inverse) {
       0 => resolveForegroundColor(cellData.foreground),

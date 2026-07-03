@@ -7,6 +7,28 @@ import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('paintLine skips invisible cell foregrounds', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(1);
+    final style = CursorStyle()..setInvisible();
+    line.setCell(0, 'X'.codeUnitAt(0), 1, style);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    expect(_hasAnyAlpha(byteData, image.width, image.height), isFalse);
+
+    image.dispose();
+  });
+
   test('paintLine batches same-color backgrounds without seams', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -158,4 +180,15 @@ bool _hasAlphaInColumn(ByteData byteData, int width, int x, int startY) {
 
 int _alphaAt(ByteData byteData, int width, int x, int y) {
   return byteData.getUint8((y * width + x) * 4 + 3);
+}
+
+bool _hasAnyAlpha(ByteData byteData, int width, int height) {
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      if (_alphaAt(byteData, width, x, y) != 0) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
