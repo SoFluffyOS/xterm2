@@ -13,6 +13,10 @@ import 'package:xterm/src/utils/lookup_table.dart';
 ///  * Zero object allocation during processing.
 ///  * No internal state. Same input will always produce same output.
 class EscapeParser {
+  static const _maxOscRawLength = 1024;
+
+  static const _maxOscParams = 16;
+
   final EscapeHandler handler;
 
   EscapeParser(this.handler);
@@ -33,6 +37,12 @@ class EscapeParser {
 
   void _process() {
     while (_queue.isNotEmpty) {
+      if (_discardingOsc) {
+        _discardOscInput();
+        if (_discardingOsc) return;
+        continue;
+      }
+
       tokenBegin = _queue.totalConsumed;
       final char = _queue.consume();
 
@@ -1069,6 +1079,8 @@ class EscapeParser {
       return false;
     }
 
+    if (_oscOverflowed) return true;
+
     if (_osc.isEmpty) {
       return true;
     }
@@ -1100,9 +1112,17 @@ class EscapeParser {
 
   final _osc = <String>[];
 
+  bool _oscOverflowed = false;
+
+  bool _discardingOsc = false;
+
+  bool _discardOscSawEscape = false;
+
   bool _consumeOsc() {
     _osc.clear();
+    _oscOverflowed = false;
     final param = StringBuffer();
+    var rawLength = 0;
 
     while (true) {
       if (_queue.isEmpty) {
@@ -1110,6 +1130,16 @@ class EscapeParser {
       }
 
       final char = _queue.consume();
+      rawLength++;
+
+      if (rawLength > _maxOscRawLength) {
+        _osc.clear();
+        _oscOverflowed = true;
+        _discardingOsc = true;
+        _discardOscSawEscape = char == Ascii.ESC;
+        _discardOscInput();
+        return true;
+      }
 
       // OSC terminates with BEL
       if (char == Ascii.BEL) {
@@ -1132,12 +1162,37 @@ class EscapeParser {
 
       /// Parse next parameter
       if (char == Ascii.semicolon) {
-        _osc.add(param.toString());
+        if (_osc.length < _maxOscParams - 1) {
+          _osc.add(param.toString());
+        }
         param.clear();
         continue;
       }
 
       param.writeCharCode(char);
+    }
+  }
+
+  void _discardOscInput() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+
+      if (_discardOscSawEscape) {
+        _discardOscSawEscape = false;
+        if (char == Ascii.backslash) {
+          _discardingOsc = false;
+          return;
+        }
+      }
+
+      if (char == Ascii.BEL) {
+        _discardingOsc = false;
+        return;
+      }
+
+      if (char == Ascii.ESC) {
+        _discardOscSawEscape = true;
+      }
     }
   }
 }

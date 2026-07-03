@@ -258,6 +258,29 @@ void main() {
     expect(terminal.applicationCursorType, TerminalCursorType.block);
     expect(terminal.cursorBlinkMode, isFalse);
   });
+
+  test('Terminal bounds oversized OSC payloads across chunks', () {
+    final privateOsc = <String>[];
+    final terminal = Terminal(
+      onPrivateOSC: (code, args) => privateOsc.add('$code;${args.join(';')}'),
+    );
+
+    terminal.write('\x1b]999;${'x' * 700}');
+    terminal.write('y' * 700);
+    terminal.write('\x07safe');
+
+    expect(privateOsc, isEmpty);
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
+
+  test('Terminal terminates oversized OSC discard state with split ST', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]999;${'x' * 1100}\x1b');
+    terminal.write('\\safe');
+
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {
