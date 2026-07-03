@@ -87,6 +87,18 @@ void main() {
     expect(terminal.cursor.isBlink, isTrue);
   });
 
+  test('Terminal applies overline SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[53mover\x1b[55mplain');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.overline,
+      isNot(0),
+    );
+    expect(terminal.cursor.isOverline, isFalse);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);

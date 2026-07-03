@@ -512,6 +512,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCursorOverline() {
+    onCommand('setCursorOverline');
+  }
+
+  @override
   void unsetCursorBold() {
     onCommand('unsetCursorBold');
   }
@@ -549,6 +554,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void unsetCursorStrikethrough() {
     onCommand('unsetCursorStrikethrough');
+  }
+
+  @override
+  void unsetCursorOverline() {
+    onCommand('unsetCursorOverline');
   }
 
   @override

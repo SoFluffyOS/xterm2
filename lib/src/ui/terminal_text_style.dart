@@ -58,15 +58,16 @@ class TerminalStyle {
     bool italic = false,
     bool underline = false,
     bool strikethrough = false,
+    bool overline = false,
   }) {
-    final decoration = switch ((underline, strikethrough)) {
-      (true, true) => TextDecoration.combine(const [
-          TextDecoration.underline,
-          TextDecoration.lineThrough,
-        ]),
-      (true, false) => TextDecoration.underline,
-      (false, true) => TextDecoration.lineThrough,
-      (false, false) => TextDecoration.none,
+    final decorations = [
+      if (underline) TextDecoration.underline,
+      if (strikethrough) TextDecoration.lineThrough,
+      if (overline) TextDecoration.overline,
+    ];
+    final decoration = switch (decorations.isEmpty) {
+      true => TextDecoration.none,
+      false => TextDecoration.combine(decorations),
     };
 
     return TextStyle(
@@ -76,8 +77,14 @@ class TerminalStyle {
       fontFamilyFallback: fontFamilyFallback,
       color: color,
       backgroundColor: backgroundColor,
-      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-      fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+      fontWeight: switch (bold) {
+        true => FontWeight.bold,
+        false => FontWeight.normal,
+      },
+      fontStyle: switch (italic) {
+        true => FontStyle.italic,
+        false => FontStyle.normal,
+      },
       decoration: decoration,
     );
   }

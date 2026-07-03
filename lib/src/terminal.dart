@@ -955,6 +955,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setCursorOverline() {
+    _cursorStyle.setOverline();
+  }
+
+  @override
   void unsetCursorBold() {
     _cursorStyle.unsetBold();
   }
@@ -992,6 +997,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unsetCursorStrikethrough() {
     _cursorStyle.unsetStrikethrough();
+  }
+
+  @override
+  void unsetCursorOverline() {
+    _cursorStyle.unsetOverline();
   }
 
   @override

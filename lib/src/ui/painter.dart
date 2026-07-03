@@ -322,6 +322,13 @@ class TerminalPainter {
           _foregroundPaint,
         );
       }
+      if (cellFlags & CellAttr.overline != 0) {
+        canvas.drawLine(
+          offset,
+          offset.translate(_cellSize.width, 0),
+          _foregroundPaint,
+        );
+      }
       return;
     }
 
@@ -347,6 +354,7 @@ class TerminalPainter {
         italic: cellFlags & CellFlags.italic != 0,
         underline: cellFlags & CellFlags.underline != 0 || isHyperlink,
         strikethrough: cellFlags & CellAttr.strikethrough != 0,
+        overline: cellFlags & CellAttr.overline != 0,
       );
 
       // Flutter does not draw an underline below a space which is not between

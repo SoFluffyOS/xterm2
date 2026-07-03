@@ -84,10 +84,11 @@ void main() {
     combinedImage.dispose();
   });
 
-  test('TerminalStyle combines underline and strikethrough', () {
+  test('TerminalStyle combines text decorations', () {
     final style = const TerminalStyle().toTextStyle(
       underline: true,
       strikethrough: true,
+      overline: true,
     );
     final decoration = style.decoration;
     if (decoration == null) {
@@ -96,6 +97,7 @@ void main() {
 
     expect(decoration.contains(TextDecoration.underline), isTrue);
     expect(decoration.contains(TextDecoration.lineThrough), isTrue);
+    expect(decoration.contains(TextDecoration.overline), isTrue);
   });
 
   test('paintLine strikes through procedural glyphs', () async {

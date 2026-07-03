@@ -56,6 +56,10 @@ class CursorStyle {
     attrs |= CellAttr.strikethrough;
   }
 
+  void setOverline() {
+    attrs |= CellAttr.overline;
+  }
+
   void unsetBold() {
     attrs &= ~CellAttr.bold;
   }
@@ -88,6 +92,10 @@ class CursorStyle {
     attrs &= ~CellAttr.strikethrough;
   }
 
+  void unsetOverline() {
+    attrs &= ~CellAttr.overline;
+  }
+
   bool get isBold => (attrs & CellAttr.bold) != 0;
 
   bool get isFaint => (attrs & CellAttr.faint) != 0;
@@ -101,6 +109,8 @@ class CursorStyle {
   bool get isInverse => (attrs & CellAttr.inverse) != 0;
 
   bool get isInvisible => (attrs & CellAttr.invisible) != 0;
+
+  bool get isOverline => (attrs & CellAttr.overline) != 0;
 
   void setForegroundColor16(int color) {
     foreground = color | CellColor.named;
