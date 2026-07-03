@@ -50,6 +50,20 @@ void main() {
     expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
   });
 
+  test('Terminal dispose clears listeners and stops deferred updates',
+      () async {
+    var updates = 0;
+    final terminal = Terminal()..addListener(() => updates++);
+
+    terminal.write('\x1b[?2026h');
+    terminal.dispose();
+    terminal.write('ignored');
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    expect(updates, 0);
+    expect(terminal.buffer.currentLine.toString(), isEmpty);
+  });
+
   test('Terminal applies partial and zero cursor positions', () {
     final terminal = Terminal()..resize(20, 10);
 

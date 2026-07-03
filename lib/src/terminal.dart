@@ -169,6 +169,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   Timer? _synchronizedUpdateTimer;
 
+  bool _isDisposed = false;
+
   /* State getters */
 
   /// Number of cells in a terminal row.
@@ -255,9 +257,21 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// updates the states of the terminal and emits events such as [onBell] or
   /// [onTitleChange] when the escape sequences in [data] request it.
   void write(String data) {
+    if (_isDisposed) return;
     _parser.write(data);
     if (_synchronizedUpdateMode) return;
     notifyListeners();
+  }
+
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    _synchronizedUpdateTimer?.cancel();
+    _synchronizedUpdateTimer = null;
+    _synchronizedUpdateMode = false;
+    clearListeners();
+    _hyperlinks.clear();
+    _explicitHyperlinkIds.clear();
   }
 
   /// Sends a key event to the underlying program.
@@ -272,6 +286,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     bool alt = false,
     bool ctrl = false,
   }) {
+    if (_isDisposed) return false;
     final output = inputHandler?.call(
       TerminalKeyboardEvent(
         key: key,
@@ -304,6 +319,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     bool alt = false,
     bool ctrl = false,
   }) {
+    if (_isDisposed) return false;
     if (ctrl) {
       // a(97) ~ z(122)
       if (charCode >= Ascii.a && charCode <= Ascii.z) {
@@ -339,6 +355,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [charInput]
   /// - [paste]
   void textInput(String text) {
+    if (_isDisposed) return;
     onOutput?.call(text);
   }
 
@@ -350,6 +367,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// See also:
   /// - [textInput]
   void paste(String text) {
+    if (_isDisposed) return;
     if (_bracketedPasteMode) {
       onOutput?.call(_emitter.bracketedPaste(text));
     } else {
@@ -359,6 +377,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   /// Reports a terminal viewport focus change to the underlying application.
   void focusInput(bool focused) {
+    if (_isDisposed) return;
     if (!_reportFocusMode) return;
     onOutput?.call(switch (focused) {
       true => _emitter.focusIn(),
@@ -375,6 +394,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     TerminalMouseModifiers modifiers = TerminalMouseModifiers.none,
     CellOffset? pixelPosition,
   }) {
+    if (_isDisposed) return false;
     final output = mouseHandler?.call(TerminalMouseEvent(
       button: button,
       buttonState: buttonState,
@@ -402,6 +422,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     int? pixelWidth,
     int? pixelHeight,
   ]) {
+    if (_isDisposed) return;
     newWidth = max(newWidth, 1);
     newHeight = max(newHeight, 1);
 
