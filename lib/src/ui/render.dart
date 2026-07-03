@@ -526,7 +526,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    final canvas = context.canvas;
+    canvas.save();
+    canvas.clipRect(offset & size);
     _paint(context, offset);
+    canvas.restore();
     context.setWillChangeHint();
   }
 
