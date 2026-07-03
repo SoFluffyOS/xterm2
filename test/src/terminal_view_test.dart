@@ -14,6 +14,19 @@ import '../_fixture/_fixture.dart';
 import 'terminal_view_test.mocks.dart';
 
 void main() {
+  testWidgets('terminal writes avoid layout when geometry is unchanged', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    await tester.pumpWidget(MaterialApp(home: TerminalView(terminal)));
+    await tester.pump();
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+
+    terminal.write('text');
+
+    expect(state.renderTerminal.debugNeedsLayout, isFalse);
+  });
+
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(

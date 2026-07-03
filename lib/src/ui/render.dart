@@ -56,6 +56,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     if (_terminal == terminal) return;
     if (attached) _terminal.removeListener(_onTerminalChange);
     _terminal = terminal;
+    _recordTerminalLayoutState();
     if (attached) _terminal.addListener(_onTerminalChange);
     _resizeTerminalIfNeeded();
     markNeedsLayout();
@@ -168,6 +169,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   bool get isCursorBlinkVisible => _cursorBlinkVisible;
 
+  var _lastTerminalLineCount = 0;
+
+  var _lastTerminalWidth = 0;
+
+  var _lastTerminalHeight = 0;
+
   void _onScroll() {
     _stickToBottom = _scrollOffset >= _maxScrollExtent;
     markNeedsLayout();
@@ -181,8 +188,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
-    markNeedsLayout();
+    final needsLayout =
+        _terminal.buffer.lines.length != _lastTerminalLineCount ||
+            _terminal.viewWidth != _lastTerminalWidth ||
+            _terminal.viewHeight != _lastTerminalHeight;
+    _recordTerminalLayoutState();
+    if (needsLayout) {
+      markNeedsLayout();
+    } else {
+      markNeedsPaint();
+    }
     _notifyEditableRect();
+  }
+
+  void _recordTerminalLayoutState() {
+    _lastTerminalLineCount = _terminal.buffer.lines.length;
+    _lastTerminalWidth = _terminal.viewWidth;
+    _lastTerminalHeight = _terminal.viewHeight;
   }
 
   void _onControllerUpdate() {
@@ -195,6 +217,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
+    _recordTerminalLayoutState();
     _offset.addListener(_onScroll);
     _terminal.addListener(_onTerminalChange);
     _controller.addListener(_onControllerUpdate);
@@ -291,6 +314,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     size = constraints.biggest;
 
     _updateViewportSize();
+    _recordTerminalLayoutState();
 
     _updateScrollOffset();
 
