@@ -211,6 +211,36 @@ void main() {
     image.dispose();
   });
 
+  test('paintLine renders dotted underlines for procedural glyphs', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(1);
+    final style = CursorStyle()..setDottedUnderline();
+    line.setCell(0, 0x2500, 1, style);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final underlineY = painter.cellSize.height.round() - 1;
+    final paintedColumns = _paintedColumnCount(
+      byteData,
+      image.width,
+      underlineY,
+      painter.cellSize.width.floor(),
+    );
+    expect(paintedColumns, greaterThan(0));
+    expect(paintedColumns, lessThan(painter.cellSize.width.floor()));
+
+    image.dispose();
+  });
+
   test('paintLine skips invisible cell foregrounds', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -406,4 +436,14 @@ bool _hasAlphaNear(ByteData byteData, int width, int x, int y) {
     }
   }
   return false;
+}
+
+int _paintedColumnCount(ByteData byteData, int width, int y, int endX) {
+  var count = 0;
+  for (var x = 0; x < endX; x++) {
+    if (_alphaAt(byteData, width, x, y) != 0) {
+      count++;
+    }
+  }
+  return count;
 }

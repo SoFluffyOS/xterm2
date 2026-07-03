@@ -351,11 +351,12 @@ class TerminalPainter {
                       CellAttr.dottedUnderline |
                       CellAttr.dashedUnderline) !=
               0) {
-        _foregroundPaint.color = decorationColor;
-        canvas.drawLine(
-          offset.translate(0, _cellSize.height - 1),
-          offset.translate(_cellSize.width, _cellSize.height - 1),
-          _foregroundPaint,
+        _paintUnderlineDecoration(
+          canvas,
+          offset,
+          decorationColor,
+          cellFlags,
+          isHyperlink: isHyperlink,
         );
       }
       if (cellFlags & CellAttr.doubleUnderline != 0) {
@@ -460,6 +461,104 @@ class TerminalPainter {
       return TextDecorationStyle.dashed;
     }
     return TextDecorationStyle.solid;
+  }
+
+  void _paintUnderlineDecoration(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    int cellFlags, {
+    required bool isHyperlink,
+  }) {
+    if (cellFlags & CellAttr.undercurl != 0) {
+      _paintWavyUnderline(canvas, offset, color);
+      return;
+    }
+    if (cellFlags & CellAttr.dottedUnderline != 0) {
+      _paintDottedUnderline(canvas, offset, color);
+      return;
+    }
+    if (cellFlags & CellAttr.dashedUnderline != 0) {
+      _paintDashedUnderline(canvas, offset, color);
+      return;
+    }
+    if (cellFlags & CellFlags.underline == 0 && !isHyperlink) {
+      return;
+    }
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      offset.translate(0, _cellSize.height - 1),
+      offset.translate(_cellSize.width, _cellSize.height - 1),
+      paint,
+    );
+  }
+
+  void _paintWavyUnderline(Canvas canvas, Offset offset, Color color) {
+    final baseline = offset.dy + _cellSize.height - 2;
+    final amplitude = (_cellSize.height / 12).clamp(1.0, 2.0).toDouble();
+    final segmentWidth = (_cellSize.width / 2).clamp(3.0, 6.0).toDouble();
+    final path = Path()..moveTo(offset.dx, baseline);
+    var x = offset.dx;
+    var waveUp = true;
+    while (x < offset.dx + _cellSize.width) {
+      final controlY = switch (waveUp) {
+        true => baseline - amplitude,
+        false => baseline + amplitude,
+      };
+      final nextX = (x + segmentWidth)
+          .clamp(offset.dx, offset.dx + _cellSize.width)
+          .toDouble();
+      path.quadraticBezierTo(
+        x + segmentWidth / 2,
+        controlY,
+        nextX,
+        baseline,
+      );
+      x = nextX;
+      waveUp = !waveUp;
+    }
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawPath(path, paint);
+  }
+
+  void _paintDottedUnderline(Canvas canvas, Offset offset, Color color) {
+    final y = offset.dy + _cellSize.height - 1;
+    final radius = (_cellSize.height / 18).clamp(0.75, 1.25).toDouble();
+    final step = (radius * 4).clamp(3.0, 5.0).toDouble();
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    var x = offset.dx + radius;
+    while (x < offset.dx + _cellSize.width) {
+      canvas.drawCircle(Offset(x, y), radius, paint);
+      x += step;
+    }
+  }
+
+  void _paintDashedUnderline(Canvas canvas, Offset offset, Color color) {
+    final y = offset.dy + _cellSize.height - 1;
+    final dashWidth = (_cellSize.width / 3).clamp(3.0, 6.0).toDouble();
+    final gapWidth = (dashWidth / 2).clamp(1.0, 3.0).toDouble();
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+
+    var x = offset.dx;
+    while (x < offset.dx + _cellSize.width) {
+      final endX = (x + dashWidth)
+          .clamp(offset.dx, offset.dx + _cellSize.width)
+          .toDouble();
+      canvas.drawLine(Offset(x, y), Offset(endX, y), paint);
+      x = endX + gapWidth;
+    }
   }
 
   /// Paints the background of a cell represented by [cellData] to [canvas] at
