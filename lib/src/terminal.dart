@@ -1050,6 +1050,21 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setUnderlineColor256(int index) {
+    _cursorStyle.setUnderlineColor256(index);
+  }
+
+  @override
+  void setUnderlineColorRgb(int r, int g, int b) {
+    _cursorStyle.setUnderlineColorRgb(r, g, b);
+  }
+
+  @override
+  void resetUnderlineColor() {
+    _cursorStyle.resetUnderlineColor();
+  }
+
+  @override
   void unsupportedStyle(int param) {
     // no-op
   }

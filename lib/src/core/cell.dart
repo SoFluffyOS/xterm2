@@ -4,6 +4,7 @@ class CellData {
   CellData({
     required this.foreground,
     required this.background,
+    required this.underlineColor,
     required this.flags,
     required this.content,
   });
@@ -12,6 +13,7 @@ class CellData {
     return CellData(
       foreground: 0,
       background: 0,
+      underlineColor: 0,
       flags: 0,
       content: 0,
     );
@@ -20,6 +22,8 @@ class CellData {
   int foreground;
 
   int background;
+
+  int underlineColor;
 
   int flags;
 
@@ -31,6 +35,7 @@ class CellData {
     return hashValues(
       foreground,
       background,
+      underlineColor,
       visualFlags | hyperlinkFlag,
       content,
     );

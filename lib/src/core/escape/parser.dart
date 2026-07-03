@@ -683,6 +683,35 @@ class EscapeParser {
         case 49:
           handler.resetBackground();
           continue;
+        case 58:
+          if (i + 1 >= params.length) {
+            continue;
+          }
+          final mode = params[i + 1];
+          switch (mode) {
+            case 2:
+              if (i + 4 >= params.length) {
+                continue;
+              }
+              final r = params[i + 2];
+              final g = params[i + 3];
+              final b = params[i + 4];
+              handler.setUnderlineColorRgb(r, g, b);
+              i += 4;
+              break;
+            case 5:
+              if (i + 2 >= params.length) {
+                continue;
+              }
+              final index = params[i + 2];
+              handler.setUnderlineColor256(index);
+              i += 2;
+              break;
+          }
+          continue;
+        case 59:
+          handler.resetUnderlineColor();
+          continue;
 
         case 90:
           handler.setForegroundColor16(NamedColor.brightBlack);

@@ -298,6 +298,10 @@ class TerminalPainter {
     if (cellFlags & CellFlags.faint != 0) {
       color = color.withValues(alpha: 0.5);
     }
+    final decorationColor = switch (cellData.underlineColor) {
+      0 => color,
+      _ => resolveForegroundColor(cellData.underlineColor),
+    };
 
     _foregroundPaint.color = color;
     if (combiningCharacters == null &&
@@ -309,6 +313,7 @@ class TerminalPainter {
           _foregroundPaint,
         )) {
       if (isHyperlink || cellFlags & CellFlags.underline != 0) {
+        _foregroundPaint.color = decorationColor;
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
           offset.translate(_cellSize.width, _cellSize.height - 1),
@@ -316,6 +321,7 @@ class TerminalPainter {
         );
       }
       if (cellFlags & CellAttr.doubleUnderline != 0) {
+        _foregroundPaint.color = decorationColor;
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 3),
           offset.translate(_cellSize.width, _cellSize.height - 3),
@@ -352,6 +358,7 @@ class TerminalPainter {
     final cacheKey = (
       cellData.foreground,
       cellData.background,
+      cellData.underlineColor,
       visualFlags | hyperlinkFlag,
       cellData.content,
       _textScaler,
@@ -362,6 +369,7 @@ class TerminalPainter {
     if (paragraph == null) {
       final style = _textStyle.toTextStyle(
         color: color,
+        decorationColor: decorationColor,
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
         underline: cellFlags & CellFlags.underline != 0 || isHyperlink,

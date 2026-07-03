@@ -111,6 +111,18 @@ void main() {
     expect(terminal.cursor.isDoubleUnderline, isFalse);
   });
 
+  test('Terminal applies underline color SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4;58;2;12;34;56mcolor\x1b[59mplain');
+
+    expect(
+      terminal.buffer.lines[0].getUnderlineColor(0),
+      equals(0x0c2238 | CellColor.rgb),
+    );
+    expect(terminal.cursor.underlineColor, 0);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);

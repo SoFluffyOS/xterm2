@@ -11,6 +11,8 @@ class CursorStyle {
 
   int background;
 
+  int underlineColor;
+
   int attrs;
 
   int hyperlinkId;
@@ -18,6 +20,7 @@ class CursorStyle {
   CursorStyle({
     this.foreground = 0,
     this.background = 0,
+    this.underlineColor = 0,
     this.attrs = 0,
     this.hyperlinkId = 0,
   });
@@ -153,9 +156,22 @@ class CursorStyle {
     background = 0; // | CellColor.normal;
   }
 
+  void setUnderlineColor256(int color) {
+    underlineColor = color | CellColor.palette;
+  }
+
+  void setUnderlineColorRgb(int r, int g, int b) {
+    underlineColor = (r << 16) | (g << 8) | b | CellColor.rgb;
+  }
+
+  void resetUnderlineColor() {
+    underlineColor = 0;
+  }
+
   void reset() {
     foreground = 0;
     background = 0;
+    underlineColor = 0;
     attrs = 0;
   }
 }

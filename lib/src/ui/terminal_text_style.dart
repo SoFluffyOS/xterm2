@@ -54,6 +54,7 @@ class TerminalStyle {
   TextStyle toTextStyle({
     Color? color,
     Color? backgroundColor,
+    Color? decorationColor,
     bool bold = false,
     bool italic = false,
     bool underline = false,
@@ -92,6 +93,7 @@ class TerminalStyle {
       },
       decoration: decoration,
       decorationStyle: decorationStyle,
+      decorationColor: decorationColor,
     );
   }
 

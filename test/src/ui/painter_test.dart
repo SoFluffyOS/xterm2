@@ -87,6 +87,7 @@ void main() {
 
   test('TerminalStyle combines text decorations', () {
     final style = const TerminalStyle().toTextStyle(
+      decorationColor: const ui.Color(0xFFFF0000),
       underline: true,
       doubleUnderline: true,
       strikethrough: true,
@@ -101,6 +102,7 @@ void main() {
     expect(decoration.contains(TextDecoration.lineThrough), isTrue);
     expect(decoration.contains(TextDecoration.overline), isTrue);
     expect(style.decorationStyle, TextDecorationStyle.double);
+    expect(style.decorationColor, const ui.Color(0xFFFF0000));
   });
 
   test('paintLine strikes through procedural glyphs', () async {

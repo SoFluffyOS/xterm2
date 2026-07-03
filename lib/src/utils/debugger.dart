@@ -607,6 +607,21 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setUnderlineColor256(int index) {
+    onCommand('setUnderlineColor256($index)');
+  }
+
+  @override
+  void setUnderlineColorRgb(int r, int g, int b) {
+    onCommand('setUnderlineColorRgb($r, $g, $b)');
+  }
+
+  @override
+  void resetUnderlineColor() {
+    onCommand('resetUnderlineColor');
+  }
+
+  @override
   void unsupportedStyle(int param) {
     onCommand('unsupportedStyle($param)', error: true);
   }

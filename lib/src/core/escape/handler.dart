@@ -217,6 +217,12 @@ abstract class EscapeHandler {
 
   void resetBackground();
 
+  void setUnderlineColor256(int index);
+
+  void setUnderlineColorRgb(int r, int g, int b);
+
+  void resetUnderlineColor();
+
   void unsupportedStyle(int param);
 
   /* OSC */
