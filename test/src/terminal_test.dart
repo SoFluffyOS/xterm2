@@ -67,6 +67,20 @@ void main() {
 
       expect(output, ['\x1B[M +,']);
     });
+
+    test('ignores invalid collapsed mouse mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?10061000h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(10, 10),
+      );
+
+      expect(output, isEmpty);
+    });
   });
 
   group('Terminal.reflowEnabled', () {
