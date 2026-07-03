@@ -489,15 +489,18 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
     _paintHighlights(
       canvas,
+      offset,
       _controller.highlights,
       effectFirstLine,
       effectLastLine,
     );
 
-    if (_controller.selection != null) {
+    final selection = _controller.selection;
+    if (selection != null) {
       _paintSelection(
         canvas,
-        _controller.selection!,
+        offset,
+        selection,
         effectFirstLine,
         effectLastLine,
       );
@@ -537,6 +540,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _paintSelection(
     Canvas canvas,
+    Offset offset,
     BufferRange selection,
     int firstLine,
     int lastLine,
@@ -554,12 +558,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         break;
       }
 
-      _paintSegment(canvas, segment, _painter.theme.selection);
+      _paintSegment(canvas, offset, segment, _painter.theme.selection);
     }
   }
 
   void _paintHighlights(
     Canvas canvas,
+    Offset offset,
     List<TerminalHighlight> highlights,
     int firstLine,
     int lastLine,
@@ -582,21 +587,32 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
           break;
         }
 
-        _paintSegment(canvas, segment, highlight.color);
+        _paintSegment(canvas, offset, segment, highlight.color);
       }
     }
   }
 
   @pragma('vm:prefer-inline')
-  void _paintSegment(Canvas canvas, BufferSegment segment, Color color) {
+  void _paintSegment(
+    Canvas canvas,
+    Offset offset,
+    BufferSegment segment,
+    Color color,
+  ) {
     final start = segment.start ?? 0;
     final end = segment.end ?? _terminal.viewWidth;
 
-    final startOffset = Offset(
-      start * _painter.cellSize.width,
-      segment.line * _painter.cellSize.height + _lineOffset,
-    );
+    final startOffset = getSegmentOffset(segment, offset);
 
     _painter.paintHighlight(canvas, startOffset, end - start, color);
+  }
+
+  Offset getSegmentOffset(BufferSegment segment, Offset paintOffset) {
+    final start = segment.start ?? 0;
+    return paintOffset +
+        Offset(
+          start * _painter.cellSize.width,
+          segment.line * _painter.cellSize.height + _lineOffset,
+        );
   }
 }
