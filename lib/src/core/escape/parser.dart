@@ -728,20 +728,28 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
-    var top = 1;
+    var top = 0;
     int? bottom;
 
     if (_csi.params.length > 2) return;
 
     if (_csi.params.isNotEmpty) {
-      top = _csi.params[0];
+      final topParam = _csi.params[0];
+      top = switch (topParam) {
+        0 => 0,
+        _ => topParam - 1,
+      };
 
       if (_csi.params.length == 2) {
-        bottom = _csi.params[1] - 1;
+        final bottomParam = _csi.params[1];
+        bottom = switch (bottomParam) {
+          0 => null,
+          _ => bottomParam - 1,
+        };
       }
     }
 
-    handler.setMargins(top - 1, bottom);
+    handler.setMargins(top, bottom);
   }
 
   /// `ESC [ Ps t` Window operations [DISPATCH]

@@ -341,6 +341,27 @@ void main() {
   });
 
   group('Terminal CSI zero defaults', () {
+    test('scroll margins treat zero as default', () {
+      final terminal = Terminal()..resize(5, 5);
+
+      terminal.write('\x1b[2;4r');
+      expect(terminal.buffer.marginTop, 1);
+      expect(terminal.buffer.marginBottom, 3);
+
+      terminal.write('\x1b[0;0r');
+      expect(terminal.buffer.marginTop, 0);
+      expect(terminal.buffer.marginBottom, 4);
+    });
+
+    test('scroll margins treat omitted top as one', () {
+      final terminal = Terminal()..resize(5, 5);
+
+      terminal.write('\x1b[;3r');
+
+      expect(terminal.buffer.marginTop, 0);
+      expect(terminal.buffer.marginBottom, 2);
+    });
+
     test('cursor position treats omitted row as one', () {
       final terminal = Terminal()..resize(5, 3);
 
