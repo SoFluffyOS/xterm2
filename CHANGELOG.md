@@ -5,6 +5,7 @@
 * Render application-selected DECSCUSR cursor shapes.
 * Animate blinking cursors with Alacritty-compatible interval and timeout.
 * Bound OSC payload memory and safely discard oversized fragmented sequences.
+* Bound CSI payload and parameter memory across fragmented sequences.
 
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].

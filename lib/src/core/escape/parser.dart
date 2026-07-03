@@ -13,6 +13,10 @@ import 'package:xterm/src/utils/lookup_table.dart';
 ///  * Zero object allocation during processing.
 ///  * No internal state. Same input will always produce same output.
 class EscapeParser {
+  static const _maxCsiRawLength = 256;
+
+  static const _maxCsiParams = 32;
+
   static const _maxOscRawLength = 1024;
 
   static const _maxOscParams = 16;
@@ -37,6 +41,12 @@ class EscapeParser {
 
   void _process() {
     while (_queue.isNotEmpty) {
+      if (_discardingCsi) {
+        _discardCsiInput();
+        if (_discardingCsi) return;
+        continue;
+      }
+
       if (_discardingOsc) {
         _discardOscInput();
         if (_discardingOsc) return;
@@ -202,6 +212,7 @@ class EscapeParser {
   bool _escHandleCSI() {
     final consumed = _consumeCsi();
     if (!consumed) return false;
+    if (_csiOverflowed) return true;
 
     final csiHandler = _csiHandlers[_csi.finalByte];
 
@@ -218,6 +229,10 @@ class EscapeParser {
   /// object allocations.
   final _csi = _Csi(finalByte: 0, params: [], intermediates: []);
 
+  bool _csiOverflowed = false;
+
+  bool _discardingCsi = false;
+
   /// Parse a CSI from the head of the queue. Return false if the CSI isn't
   /// complete. After a CSI is successfully parsed, [_csi] is updated.
   bool _consumeCsi() {
@@ -227,12 +242,15 @@ class EscapeParser {
 
     _csi.params.clear();
     _csi.intermediates.clear();
+    _csiOverflowed = false;
+    var rawLength = 0;
 
     // test whether the csi is a `CSI ? Ps ...` or `CSI Ps ...`
     final prefix = _queue.peek();
     if (prefix >= Ascii.colon && prefix <= Ascii.questionMark) {
       _csi.prefix = prefix;
       _queue.consume();
+      rawLength++;
     } else {
       _csi.prefix = null;
     }
@@ -246,9 +264,21 @@ class EscapeParser {
       }
 
       final char = _queue.consume();
+      rawLength++;
+
+      if (rawLength > _maxCsiRawLength) {
+        _csiOverflowed = true;
+        if (char >= Ascii.atSign && char <= Ascii.tilde) {
+          _csi.finalByte = char;
+          return true;
+        }
+        _discardingCsi = true;
+        _discardCsiInput();
+        return true;
+      }
 
       if (char == Ascii.semicolon) {
-        if (hasParam) {
+        if (hasParam && _csi.params.length < _maxCsiParams) {
           _csi.params.add(param);
         }
         param = 0;
@@ -268,13 +298,23 @@ class EscapeParser {
       }
 
       if (char >= Ascii.atSign && char <= Ascii.tilde) {
-        if (hasParam) {
+        if (hasParam && _csi.params.length < _maxCsiParams) {
           _csi.params.add(param);
         }
 
         _csi.finalByte = char;
         return true;
       }
+    }
+  }
+
+  void _discardCsiInput() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+      if (char < Ascii.atSign || char > Ascii.tilde) continue;
+
+      _discardingCsi = false;
+      return;
     }
   }
 

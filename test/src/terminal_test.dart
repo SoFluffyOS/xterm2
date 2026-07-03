@@ -281,6 +281,16 @@ void main() {
 
     expect(terminal.buffer.lines[0].toString(), 'safe');
   });
+
+  test('Terminal bounds oversized CSI payloads across chunks', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[${'1;' * 100}');
+    terminal.write('2;' * 100);
+    terminal.write('mSafe');
+
+    expect(terminal.buffer.lines[0].toString(), 'Safe');
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {
