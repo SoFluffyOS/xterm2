@@ -581,6 +581,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       true => _cursorRenderWidth(cursorRenderColumn),
       false => 1,
     };
+    final cursorForeground =
+        switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
+      true => _cursorForeground(cursorRenderColumn),
+      false => _painter.theme.background,
+    };
 
     if (shouldPaintBlockCursor && _focusNode.hasFocus) {
       _painter.paintCursor(
@@ -607,7 +612,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
               true => cursorRenderColumn,
               false => null,
             },
-            cursorForeground: _painter.theme.background,
+            cursorForeground: cursorForeground,
           ) ||
           hasBlinkingText;
     }
@@ -661,6 +666,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
 
     return 1;
+  }
+
+  Color _cursorForeground(int cursorColumn) {
+    final line = _terminal.buffer.lines[_terminal.buffer.absoluteCursorY];
+    final cellData = CellData.empty();
+    line.getCellData(cursorColumn, cellData);
+    return _painter.resolveCellBackgroundColor(cellData) ??
+        _painter.theme.background;
   }
 
   Offset _cursorRenderOffset(int cursorColumn) {
