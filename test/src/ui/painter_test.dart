@@ -89,7 +89,7 @@ void main() {
     final style = const TerminalStyle().toTextStyle(
       decorationColor: const ui.Color(0xFFFF0000),
       underline: true,
-      doubleUnderline: true,
+      decorationStyle: TextDecorationStyle.dashed,
       strikethrough: true,
       overline: true,
     );
@@ -101,8 +101,18 @@ void main() {
     expect(decoration.contains(TextDecoration.underline), isTrue);
     expect(decoration.contains(TextDecoration.lineThrough), isTrue);
     expect(decoration.contains(TextDecoration.overline), isTrue);
-    expect(style.decorationStyle, TextDecorationStyle.double);
+    expect(style.decorationStyle, TextDecorationStyle.dashed);
     expect(style.decorationColor, const ui.Color(0xFFFF0000));
+  });
+
+  test('TerminalStyle renders double underline style', () {
+    final style = const TerminalStyle().toTextStyle(
+      doubleUnderline: true,
+      decorationStyle: TextDecorationStyle.dashed,
+    );
+
+    expect(style.decoration, TextDecoration.underline);
+    expect(style.decorationStyle, TextDecorationStyle.double);
   });
 
   test('paintLine strikes through procedural glyphs', () async {

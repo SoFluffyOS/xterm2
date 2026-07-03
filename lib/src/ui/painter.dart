@@ -312,7 +312,13 @@ class TerminalPainter {
           charCode,
           _foregroundPaint,
         )) {
-      if (isHyperlink || cellFlags & CellFlags.underline != 0) {
+      if (isHyperlink ||
+          cellFlags &
+                  (CellFlags.underline |
+                      CellAttr.undercurl |
+                      CellAttr.dottedUnderline |
+                      CellAttr.dashedUnderline) !=
+              0) {
         _foregroundPaint.color = decorationColor;
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
@@ -372,8 +378,9 @@ class TerminalPainter {
         decorationColor: decorationColor,
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
-        underline: cellFlags & CellFlags.underline != 0 || isHyperlink,
+        underline: _hasUnderline(cellFlags) || isHyperlink,
         doubleUnderline: cellFlags & CellAttr.doubleUnderline != 0,
+        decorationStyle: _decorationStyle(cellFlags),
         strikethrough: cellFlags & CellAttr.strikethrough != 0,
         overline: cellFlags & CellAttr.overline != 0,
       );
@@ -385,8 +392,7 @@ class TerminalPainter {
       // the CodePoint 0xA0. This is a non breaking space and a underline can be
       // drawn below it.
       var char = String.fromCharCode(charCode);
-      if ((cellFlags & CellFlags.underline != 0 || isHyperlink) &&
-          charCode == 0x20) {
+      if ((_hasUnderline(cellFlags) || isHyperlink) && charCode == 0x20) {
         char = String.fromCharCode(0xA0);
       }
       if (combiningCharacters != null) {
@@ -402,6 +408,25 @@ class TerminalPainter {
     }
 
     canvas.drawParagraph(paragraph, offset);
+  }
+
+  @pragma('vm:prefer-inline')
+  bool _hasUnderline(int cellFlags) {
+    return cellFlags & CellAttr.underlineMask != 0;
+  }
+
+  @pragma('vm:prefer-inline')
+  TextDecorationStyle _decorationStyle(int cellFlags) {
+    if (cellFlags & CellAttr.undercurl != 0) {
+      return TextDecorationStyle.wavy;
+    }
+    if (cellFlags & CellAttr.dottedUnderline != 0) {
+      return TextDecorationStyle.dotted;
+    }
+    if (cellFlags & CellAttr.dashedUnderline != 0) {
+      return TextDecorationStyle.dashed;
+    }
+    return TextDecorationStyle.solid;
   }
 
   /// Paints the background of a cell represented by [cellData] to [canvas] at

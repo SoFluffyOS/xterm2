@@ -249,6 +249,7 @@ class EscapeParser {
 
     _csi.params.clear();
     _csi.intermediates.clear();
+    _csi.paramSeparators.clear();
     _csiOverflowed = false;
     var rawLength = 0;
 
@@ -292,6 +293,7 @@ class EscapeParser {
             true => param,
             false => 0,
           });
+          _csi.paramSeparators.add(char);
         }
         param = 0;
         hasParam = false;
@@ -513,6 +515,32 @@ class EscapeParser {
     // ignore: dead_code
     for (var i = 0; i < _csi.params.length; i++) {
       final param = params[i];
+      if (param == 4 &&
+          i + 1 < params.length &&
+          _csi.separatorAfter(i) == Ascii.colon) {
+        switch (params[i + 1]) {
+          case 0:
+            handler.unsetCursorUnderline();
+            break;
+          case 1:
+            handler.setCursorUnderline();
+            break;
+          case 2:
+            handler.setCursorDoubleUnderline();
+            break;
+          case 3:
+            handler.setCursorUndercurl();
+            break;
+          case 4:
+            handler.setCursorDottedUnderline();
+            break;
+          case 5:
+            handler.setCursorDashedUnderline();
+            break;
+        }
+        i++;
+        continue;
+      }
       switch (param) {
         case 0:
           handler.resetCursorStyle();
@@ -1325,15 +1353,24 @@ class _Csi {
     required this.params,
     required this.finalByte,
     required this.intermediates,
-  });
+  }) : paramSeparators = [];
 
   int? prefix;
 
   List<int> params;
 
+  final List<int> paramSeparators;
+
   int finalByte;
 
   final List<int> intermediates;
+
+  int? separatorAfter(int paramIndex) {
+    if (paramIndex < 0 || paramIndex >= paramSeparators.length) {
+      return null;
+    }
+    return paramSeparators[paramIndex];
+  }
 
   @override
   String toString() {

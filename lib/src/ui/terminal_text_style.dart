@@ -59,6 +59,7 @@ class TerminalStyle {
     bool italic = false,
     bool underline = false,
     bool doubleUnderline = false,
+    TextDecorationStyle decorationStyle = TextDecorationStyle.solid,
     bool strikethrough = false,
     bool overline = false,
   }) {
@@ -71,9 +72,9 @@ class TerminalStyle {
       true => TextDecoration.none,
       false => TextDecoration.combine(decorations),
     };
-    final decorationStyle = switch (doubleUnderline) {
+    final effectiveDecorationStyle = switch (doubleUnderline) {
       true => TextDecorationStyle.double,
-      false => TextDecorationStyle.solid,
+      false => decorationStyle,
     };
 
     return TextStyle(
@@ -92,7 +93,7 @@ class TerminalStyle {
         false => FontStyle.normal,
       },
       decoration: decoration,
-      decorationStyle: decorationStyle,
+      decorationStyle: effectiveDecorationStyle,
       decorationColor: decorationColor,
     );
   }

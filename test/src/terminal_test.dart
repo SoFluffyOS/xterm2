@@ -111,6 +111,30 @@ void main() {
     expect(terminal.cursor.isDoubleUnderline, isFalse);
   });
 
+  test('Terminal applies colon underline style SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal
+        .write('\x1b[4:3mcurly\x1b[4:4mdotted\x1b[4:5mdashed\x1b[4:0mplain');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.undercurl, isNot(0));
+    expect(line.getAttributes(5) & CellAttr.dottedUnderline, isNot(0));
+    expect(line.getAttributes(11) & CellAttr.dashedUnderline, isNot(0));
+    expect(terminal.cursor.isDashedUnderline, isFalse);
+  });
+
+  test('Terminal keeps semicolon underline and italic SGR distinct', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4;3mtext');
+
+    final attrs = terminal.buffer.lines[0].getAttributes(0);
+    expect(attrs & CellAttr.underline, isNot(0));
+    expect(attrs & CellAttr.italic, isNot(0));
+    expect(attrs & CellAttr.undercurl, 0);
+  });
+
   test('Terminal applies underline color SGR', () {
     final terminal = Terminal()..resize(20, 5);
 

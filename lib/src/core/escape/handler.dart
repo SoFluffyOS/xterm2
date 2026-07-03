@@ -173,6 +173,12 @@ abstract class EscapeHandler {
 
   void setCursorDoubleUnderline();
 
+  void setCursorUndercurl();
+
+  void setCursorDottedUnderline();
+
+  void setCursorDashedUnderline();
+
   void setCursorBlink();
 
   void setCursorInverse();

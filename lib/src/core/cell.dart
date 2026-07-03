@@ -61,10 +61,18 @@ abstract class CellAttr {
   static const strikethrough = 1 << 7;
   static const overline = 1 << 8;
   static const doubleUnderline = 1 << 9;
+  static const undercurl = 1 << 10;
+  static const dottedUnderline = 1 << 11;
+  static const dashedUnderline = 1 << 12;
 
-  static const visualMask = 0x3ff;
-  static const hyperlinkShift = 10;
-  static const hyperlinkMask = 0x3fffff << hyperlinkShift;
+  static const underlineMask = underline |
+      doubleUnderline |
+      undercurl |
+      dottedUnderline |
+      dashedUnderline;
+  static const visualMask = 0x1fff;
+  static const hyperlinkShift = 13;
+  static const hyperlinkMask = 0x7ffff << hyperlinkShift;
   static const hyperlinkMarker = 1 << hyperlinkShift;
 }
 

@@ -497,6 +497,21 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCursorUndercurl() {
+    onCommand('setCursorUndercurl');
+  }
+
+  @override
+  void setCursorDottedUnderline() {
+    onCommand('setCursorDottedUnderline');
+  }
+
+  @override
+  void setCursorDashedUnderline() {
+    onCommand('setCursorDashedUnderline');
+  }
+
+  @override
   void setCursorBlink() {
     onCommand('setCursorBlink');
   }

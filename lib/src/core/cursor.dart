@@ -40,7 +40,7 @@ class CursorStyle {
   }
 
   void setUnderline() {
-    attrs &= ~CellAttr.doubleUnderline;
+    attrs &= ~CellAttr.underlineMask;
     attrs |= CellAttr.underline;
   }
 
@@ -65,8 +65,23 @@ class CursorStyle {
   }
 
   void setDoubleUnderline() {
-    attrs &= ~CellAttr.underline;
+    attrs &= ~CellAttr.underlineMask;
     attrs |= CellAttr.doubleUnderline;
+  }
+
+  void setUndercurl() {
+    attrs &= ~CellAttr.underlineMask;
+    attrs |= CellAttr.undercurl;
+  }
+
+  void setDottedUnderline() {
+    attrs &= ~CellAttr.underlineMask;
+    attrs |= CellAttr.dottedUnderline;
+  }
+
+  void setDashedUnderline() {
+    attrs &= ~CellAttr.underlineMask;
+    attrs |= CellAttr.dashedUnderline;
   }
 
   void unsetBold() {
@@ -82,8 +97,7 @@ class CursorStyle {
   }
 
   void unsetUnderline() {
-    attrs &= ~CellAttr.underline;
-    attrs &= ~CellAttr.doubleUnderline;
+    attrs &= ~CellAttr.underlineMask;
   }
 
   void unsetBlink() {
@@ -115,6 +129,12 @@ class CursorStyle {
   bool get isUnderline => (attrs & CellAttr.underline) != 0;
 
   bool get isDoubleUnderline => (attrs & CellAttr.doubleUnderline) != 0;
+
+  bool get isUndercurl => (attrs & CellAttr.undercurl) != 0;
+
+  bool get isDottedUnderline => (attrs & CellAttr.dottedUnderline) != 0;
+
+  bool get isDashedUnderline => (attrs & CellAttr.dashedUnderline) != 0;
 
   bool get isBlink => (attrs & CellAttr.blink) != 0;
 
