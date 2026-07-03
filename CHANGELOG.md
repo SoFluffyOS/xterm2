@@ -1,3 +1,7 @@
+## Unreleased
+
+* Support DEC synchronized updates with Alacritty-compatible timeout recovery.
+
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].
 * Fix designate charset logic [#186]. Thanks [@djnalluri].

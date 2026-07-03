@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' show max;
 
 import 'package:xterm/src/base/observable.dart';
@@ -147,6 +148,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _bracketedPasteMode = false;
 
+  bool _synchronizedUpdateMode = false;
+
+  Timer? _synchronizedUpdateTimer;
+
   /* State getters */
 
   /// Number of cells in a terminal row.
@@ -226,6 +231,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// [onTitleChange] when the escape sequences in [data] request it.
   void write(String data) {
     _parser.write(data);
+    if (_synchronizedUpdateMode) return;
     notifyListeners();
   }
 
@@ -748,6 +754,19 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setBracketedPasteMode(bool enabled) {
     _bracketedPasteMode = enabled;
+  }
+
+  @override
+  void setSynchronizedUpdateMode(bool enabled) {
+    _synchronizedUpdateTimer?.cancel();
+    _synchronizedUpdateMode = enabled;
+    if (!enabled) return;
+
+    _synchronizedUpdateTimer = Timer(const Duration(milliseconds: 150), () {
+      _synchronizedUpdateMode = false;
+      _synchronizedUpdateTimer = null;
+      notifyListeners();
+    });
   }
 
   @override

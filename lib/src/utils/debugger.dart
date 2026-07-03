@@ -440,6 +440,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setSynchronizedUpdateMode(bool enabled) {
+    onCommand('setSynchronizedUpdateMode($enabled)');
+  }
+
+  @override
   void setUnknownDecMode(int mode, bool enabled) {
     onCommand('setUnknownDecMode($mode, $enabled)', error: true);
   }

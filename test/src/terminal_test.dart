@@ -196,6 +196,35 @@ void main() {
       expect(lastData, isNull);
     });
   });
+
+  group('Terminal synchronized updates', () {
+    test('coalesces redraws until the update ends', () {
+      final terminal = Terminal();
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hfirst');
+      terminal.write(' second');
+      expect(redraws, 0);
+      expect(terminal.buffer.lines[0].toString(), 'first second');
+
+      terminal.write('\x1b[?2026l');
+      expect(redraws, 1);
+    });
+
+    test('forces a redraw when an application omits the terminator', () async {
+      final terminal = Terminal();
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(redraws, 1);
+      terminal.write(' recovered');
+      expect(redraws, 2);
+    });
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {
