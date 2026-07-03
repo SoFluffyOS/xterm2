@@ -3,6 +3,26 @@ import 'package:xterm/xterm.dart';
 
 void main() {
   group('BufferLine.getText()', () {
+    test('preserves combining characters on the base cell', () {
+      final terminal = Terminal();
+
+      terminal.write('e\u0301');
+
+      final line = terminal.buffer.lines[0];
+      expect(line.getText(), 'e\u0301');
+      expect(line.getCombiningCharacters(0), '\u0301');
+      expect(terminal.buffer.cursorX, 1);
+    });
+
+    test('bounds combining characters per cell', () {
+      final terminal = Terminal();
+
+      terminal.write('e${'\u0301' * 20}');
+
+      final combining = terminal.buffer.lines[0].getCombiningCharacters(0);
+      expect(combining?.runes.length, 16);
+    });
+
     test('should return the text', () {
       final terminal = Terminal();
       terminal.write('Hello World');
@@ -101,6 +121,44 @@ void main() {
       line.resize(20);
 
       expect(line.length, equals(20));
+    });
+
+    test('preserves hidden combining characters across shrink and grow', () {
+      final line = BufferLine(10);
+      line.setCodePoint(5, 'e'.codeUnitAt(0));
+      line.addCombiningCharacter(5, 0x0301);
+
+      line.resize(3);
+      line.resize(10);
+
+      expect(line.getCombiningCharacters(5), '\u0301');
+      expect(line.getText(), 'e\u0301');
+    });
+  });
+
+  group('BufferLine combining character mutations', () {
+    test('moves combining characters when cells are inserted and removed', () {
+      final terminal = Terminal();
+      terminal.write('e\u0301b');
+      final line = terminal.buffer.lines[0];
+
+      line.insertCells(0, 1);
+      expect(line.getCombiningCharacters(1), '\u0301');
+      expect(line.getText(), 'e\u0301b');
+
+      line.removeCells(0, 1);
+      expect(line.getCombiningCharacters(0), '\u0301');
+      expect(line.getText(), 'e\u0301b');
+    });
+
+    test('clears combining characters when a cell is erased', () {
+      final terminal = Terminal();
+      terminal.write('e\u0301');
+      final line = terminal.buffer.lines[0];
+
+      line.eraseCell(0, CursorStyle.empty);
+
+      expect(line.getCombiningCharacters(0), isNull);
     });
   });
 

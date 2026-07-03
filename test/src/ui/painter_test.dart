@@ -7,6 +7,35 @@ import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('paintLine shapes combining characters with their base glyph', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final baseTerminal = Terminal()..write('X');
+    final combinedTerminal = Terminal()..write('X\u0338');
+    expect(
+      combinedTerminal.buffer.lines[0].getCombiningCharacters(0),
+      '\u0338',
+    );
+
+    final baseImage = await _paintLine(
+      painter,
+      baseTerminal.buffer.lines[0],
+    );
+    final combinedImage = await _paintLine(
+      painter,
+      combinedTerminal.buffer.lines[0],
+    );
+
+    expect(painter.paragraphCacheLength, 2);
+    expect(combinedTerminal.buffer.cursorX, 1);
+
+    baseImage.dispose();
+    combinedImage.dispose();
+  });
+
   test('TerminalStyle combines underline and strikethrough', () {
     final style = const TerminalStyle().toTextStyle(
       underline: true,

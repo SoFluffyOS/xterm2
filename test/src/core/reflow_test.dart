@@ -78,6 +78,21 @@ void main() {
     expect(terminal.buffer.lines[1].toString(), '是地上霜');
   });
 
+  test('reflow() preserves combining characters', () {
+    final terminal = Terminal()..resize(8, 5);
+    terminal.write('abcde\u0301fgh');
+
+    terminal.resize(4, 5);
+
+    expect(terminal.buffer.getText(), startsWith('abcde\u0301fgh'));
+    expect(terminal.buffer.lines[1].getCombiningCharacters(0), '\u0301');
+
+    terminal.resize(8, 5);
+
+    expect(terminal.buffer.getText(), startsWith('abcde\u0301fgh'));
+    expect(terminal.buffer.lines[0].getCombiningCharacters(4), '\u0301');
+  });
+
   test('lines has correct length after reflow', () {
     final terminal = Terminal();
 

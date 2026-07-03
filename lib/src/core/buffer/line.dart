@@ -17,6 +17,8 @@ const _cellAttributes = 2;
 
 const _cellContent = 3;
 
+const _maxCombiningCharactersPerCell = 16;
+
 class BufferLine with IndexedItem {
   BufferLine(
     this._length, {
@@ -34,6 +36,8 @@ class BufferLine with IndexedItem {
   int get length => _length;
 
   final _anchors = <CellAnchor>[];
+
+  final _combiningCharacters = <int, String>{};
 
   List<CellAnchor> get anchors => _anchors;
 
@@ -64,6 +68,29 @@ class BufferLine with IndexedItem {
 
   int getWidth(int index) {
     return _data[index * _cellSize + _cellContent] >> CellContent.widthShift;
+  }
+
+  String? getCombiningCharacters(int index) {
+    return _combiningCharacters[index];
+  }
+
+  void addCombiningCharacter(int index, int codePoint) {
+    if (index < 0 ||
+        index >= _length ||
+        getCodePoint(index) == 0 ||
+        codePoint < 0 ||
+        codePoint > 0x10FFFF) {
+      return;
+    }
+
+    final existing = _combiningCharacters[index];
+    if (existing == null) {
+      _combiningCharacters[index] = String.fromCharCode(codePoint);
+      return;
+    }
+
+    if (existing.runes.length >= _maxCombiningCharactersPerCell) return;
+    _combiningCharacters[index] = existing + String.fromCharCode(codePoint);
   }
 
   void getCellData(int index, CellData cellData) {
@@ -98,6 +125,7 @@ class BufferLine with IndexedItem {
 
   void setContent(int index, int value) {
     _data[index * _cellSize + _cellContent] = value;
+    _combiningCharacters.remove(index);
   }
 
   void setCodePoint(int index, int char) {
@@ -112,6 +140,7 @@ class BufferLine with IndexedItem {
     _data[offset + _cellAttributes] =
         style.attrs | (style.hyperlinkId << CellAttr.hyperlinkShift);
     _data[offset + _cellContent] = char | (witdh << CellContent.widthShift);
+    _combiningCharacters.remove(index);
   }
 
   void setCellData(int index, CellData cellData) {
@@ -120,6 +149,7 @@ class BufferLine with IndexedItem {
     _data[offset + _cellBackground] = cellData.background;
     _data[offset + _cellAttributes] = cellData.flags;
     _data[offset + _cellContent] = cellData.content;
+    _combiningCharacters.remove(index);
   }
 
   void eraseCell(int index, CursorStyle style) {
@@ -128,6 +158,7 @@ class BufferLine with IndexedItem {
     _data[offset + _cellBackground] = style.background;
     _data[offset + _cellAttributes] = style.attrs;
     _data[offset + _cellContent] = 0;
+    _combiningCharacters.remove(index);
   }
 
   void resetCell(int index) {
@@ -136,6 +167,7 @@ class BufferLine with IndexedItem {
     _data[offset + _cellBackground] = 0;
     _data[offset + _cellAttributes] = 0;
     _data[offset + _cellContent] = 0;
+    _combiningCharacters.remove(index);
   }
 
   /// Erase cells whose index satisfies [start] <= index < [end]. Erased cells
@@ -164,6 +196,7 @@ class BufferLine with IndexedItem {
     assert(count >= 0 && start + count <= _length);
 
     style ??= CursorStyle.empty;
+    final combiningCharacters = Map<int, String>.of(_combiningCharacters);
 
     if (start + count < _length) {
       final moveStart = start * _cellSize;
@@ -182,6 +215,22 @@ class BufferLine with IndexedItem {
       eraseCell(start - 1, style);
     }
 
+    _combiningCharacters.clear();
+    for (final entry in combiningCharacters.entries) {
+      if (entry.key < start) {
+        if (getCodePoint(entry.key) != 0) {
+          _combiningCharacters[entry.key] = entry.value;
+        }
+        continue;
+      }
+
+      if (entry.key < start + count) continue;
+      final newIndex = entry.key - count;
+      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+        _combiningCharacters[newIndex] = entry.value;
+      }
+    }
+
     // Update anchors, remove anchors that are inside the removed range.
     for (var i = 0; i < _anchors.length; i++) {
       final anchor = _anchors[i];
@@ -198,6 +247,7 @@ class BufferLine with IndexedItem {
   /// Inserts [count] cells at [start]. New cells are initialized with [style].
   void insertCells(int start, int count, [CursorStyle? style]) {
     style ??= CursorStyle.empty;
+    final combiningCharacters = Map<int, String>.of(_combiningCharacters);
 
     if (start > 0 && getWidth(start - 1) == 2) {
       eraseCell(start - 1, style);
@@ -219,6 +269,21 @@ class BufferLine with IndexedItem {
 
     if (getWidth(_length - 1) == 2) {
       eraseCell(_length - 1, style);
+    }
+
+    _combiningCharacters.clear();
+    for (final entry in combiningCharacters.entries) {
+      if (entry.key < start) {
+        if (getCodePoint(entry.key) != 0) {
+          _combiningCharacters[entry.key] = entry.value;
+        }
+        continue;
+      }
+
+      final newIndex = entry.key + count;
+      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+        _combiningCharacters[newIndex] = entry.value;
+      }
     }
 
     // Update anchors, move anchors that are after the inserted range.
@@ -294,6 +359,11 @@ class BufferLine with IndexedItem {
   /// line.
   void copyFrom(BufferLine src, int srcCol, int dstCol, int len) {
     resize(dstCol + len);
+    final copiedCombiningCharacters = <int, String>{};
+    for (final entry in src._combiningCharacters.entries) {
+      if (entry.key < srcCol || entry.key >= srcCol + len) continue;
+      copiedCombiningCharacters[dstCol + entry.key - srcCol] = entry.value;
+    }
 
     // data.setRange(
     //   dstCol * _cellSize,
@@ -307,6 +377,11 @@ class BufferLine with IndexedItem {
     for (var i = 0; i < len * _cellSize; i++) {
       _data[dstOffset++] = src._data[srcOffset++];
     }
+
+    _combiningCharacters.removeWhere(
+      (index, _) => index >= dstCol && index < dstCol + len,
+    );
+    _combiningCharacters.addAll(copiedCombiningCharacters);
   }
 
   static int _calcCapacity(int length) {
@@ -343,6 +418,10 @@ class BufferLine with IndexedItem {
       final width = getWidth(i);
       if (codePoint != 0 && i + width <= to) {
         builder.writeCharCode(codePoint);
+        final combining = _combiningCharacters[i];
+        if (combining != null) {
+          builder.write(combining);
+        }
       }
     }
 

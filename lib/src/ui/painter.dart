@@ -83,6 +83,8 @@ class TerminalPainter {
   /// The size of each character in the terminal.
   Size get cellSize => _cellSize;
 
+  int get paragraphCacheLength => _paragraphCache.length;
+
   /// When the set of font available to the system changes, call this method to
   /// clear cached state related to font rendering.
   void clearFontCache() {
@@ -232,7 +234,12 @@ class TerminalPainter {
       final charWidth = cellData.content >> CellContent.widthShift;
       final cellOffset = offset.translate(i * cellWidth, 0);
 
-      paintCellForeground(canvas, cellOffset, cellData);
+      paintCellForeground(
+        canvas,
+        cellOffset,
+        cellData,
+        combiningCharacters: line.getCombiningCharacters(i),
+      );
 
       if (charWidth == 2) {
         i++;
@@ -249,7 +256,12 @@ class TerminalPainter {
   /// Paints the character in the cell represented by [cellData] to [canvas] at
   /// [offset].
   @pragma('vm:prefer-inline')
-  void paintCellForeground(Canvas canvas, Offset offset, CellData cellData) {
+  void paintCellForeground(
+    Canvas canvas,
+    Offset offset,
+    CellData cellData, {
+    String? combiningCharacters,
+  }) {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
 
@@ -266,13 +278,14 @@ class TerminalPainter {
     }
 
     _foregroundPaint.color = color;
-    if (paintProceduralGlyph(
-      canvas,
-      offset,
-      _cellSize,
-      charCode,
-      _foregroundPaint,
-    )) {
+    if (combiningCharacters == null &&
+        paintProceduralGlyph(
+          canvas,
+          offset,
+          _cellSize,
+          charCode,
+          _foregroundPaint,
+        )) {
       if (isHyperlink || cellFlags & CellFlags.underline != 0) {
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
@@ -290,7 +303,11 @@ class TerminalPainter {
       return;
     }
 
-    final cacheKey = cellData.getHash() ^ _textScaler.hashCode;
+    final combiningHash = switch (combiningCharacters) {
+      final value? => value.hashCode,
+      null => 0,
+    };
+    final cacheKey = cellData.getHash() ^ _textScaler.hashCode ^ combiningHash;
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 
     if (paragraph == null) {
@@ -312,6 +329,9 @@ class TerminalPainter {
       if ((cellFlags & CellFlags.underline != 0 || isHyperlink) &&
           charCode == 0x20) {
         char = String.fromCharCode(0xA0);
+      }
+      if (combiningCharacters != null) {
+        char += combiningCharacters;
       }
 
       paragraph = _paragraphCache.performAndCacheLayout(
