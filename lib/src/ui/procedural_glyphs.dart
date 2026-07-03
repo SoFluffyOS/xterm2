@@ -170,6 +170,10 @@ bool paintProceduralGlyph(
   int codePoint,
   Paint paint,
 ) {
+  if (!_isProceduralGlyph(codePoint)) {
+    return false;
+  }
+
   final x = offset.dx;
   final y = offset.dy;
   final width = cellSize.width;
@@ -601,4 +605,21 @@ bool paintProceduralGlyph(
     default:
       return false;
   }
+}
+
+@pragma('vm:prefer-inline')
+bool _isProceduralGlyph(int codePoint) {
+  if (codePoint >= 0x2500 && codePoint <= 0x259f) {
+    return true;
+  }
+  if (codePoint >= 0x2800 && codePoint <= 0x28ff) {
+    return true;
+  }
+  if (codePoint >= 0xe0b0 && codePoint <= 0xe0b3) {
+    return true;
+  }
+  if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
+    return true;
+  }
+  return codePoint >= 0x1fb82 && codePoint <= 0x1fb8b;
 }
