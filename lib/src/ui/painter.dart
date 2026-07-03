@@ -164,8 +164,21 @@ class TerminalPainter {
     BufferLine line, {
     bool blinkVisible = true,
   }) {
+    paintLineBackgrounds(canvas, offset, line);
+    return paintLineForegrounds(
+      canvas,
+      offset,
+      line,
+      blinkVisible: blinkVisible,
+    );
+  }
+
+  void paintLineBackgrounds(
+    Canvas canvas,
+    Offset offset,
+    BufferLine line,
+  ) {
     final cellData = CellData.empty();
-    final cellWidth = _cellSize.width;
 
     var backgroundRunStart = 0;
     var backgroundRunEnd = 0;
@@ -240,7 +253,16 @@ class TerminalPainter {
         runColor,
       );
     }
+  }
 
+  bool paintLineForegrounds(
+    Canvas canvas,
+    Offset offset,
+    BufferLine line, {
+    bool blinkVisible = true,
+  }) {
+    final cellData = CellData.empty();
+    final cellWidth = _cellSize.width;
     var hasBlinkingText = false;
     for (var i = 0; i < line.length; i++) {
       line.getCellData(i, cellData);

@@ -56,6 +56,26 @@ void main() {
     painter.dispose();
   });
 
+  test('paintLine splits backgrounds from foreground glyphs', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('\x1b[48;2;12;34;56mX');
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    painter.paintLineBackgrounds(canvas, Offset.zero, terminal.buffer.lines[0]);
+    expect(painter.paragraphCacheLength, 0);
+
+    painter.paintLineForegrounds(canvas, Offset.zero, terminal.buffer.lines[0]);
+    expect(painter.paragraphCacheLength, 1);
+
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
   test('paintLine shapes combining characters with their base glyph', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

@@ -533,12 +533,41 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final effectFirstLine = firstLine.clamp(0, lines.length - 1);
     final effectLastLine = lastLine.clamp(0, lines.length - 1);
 
+    for (var i = effectFirstLine; i <= effectLastLine; i++) {
+      _painter.paintLineBackgrounds(
+        canvas,
+        offset.translate(0, (i * charHeight + _lineOffset).truncateToDouble()),
+        lines[i],
+      );
+    }
+
+    _paintHighlights(
+      canvas,
+      offset,
+      _controller.highlights,
+      effectFirstLine,
+      effectLastLine,
+    );
+
+    final selection = _controller.selection;
+    if (selection != null) {
+      _paintSelection(
+        canvas,
+        offset,
+        selection,
+        effectFirstLine,
+        effectLastLine,
+      );
+    }
+
     var hasBlinkingText = false;
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
-      hasBlinkingText = _painter.paintLine(
+      hasBlinkingText = _painter.paintLineForegrounds(
             canvas,
             offset.translate(
-                0, (i * charHeight + _lineOffset).truncateToDouble()),
+              0,
+              (i * charHeight + _lineOffset).truncateToDouble(),
+            ),
             lines[i],
             blinkVisible: _textBlinkVisible,
           ) ||
@@ -560,25 +589,6 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
           hasFocus: _focusNode.hasFocus,
         );
       }
-    }
-
-    _paintHighlights(
-      canvas,
-      offset,
-      _controller.highlights,
-      effectFirstLine,
-      effectLastLine,
-    );
-
-    final selection = _controller.selection;
-    if (selection != null) {
-      _paintSelection(
-        canvas,
-        offset,
-        selection,
-        effectFirstLine,
-        effectLastLine,
-      );
     }
   }
 
