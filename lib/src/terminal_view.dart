@@ -175,8 +175,19 @@ class TerminalViewState extends State<TerminalView> {
 
   late final Future<String?> Function(String) _clipboardQuery = _queryClipboard;
 
-  RenderTerminal get renderTerminal =>
-      _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
+  RenderTerminal get renderTerminal {
+    final context = _viewportKey.currentContext;
+    if (context == null) {
+      throw StateError('Terminal viewport is not mounted');
+    }
+
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderTerminal) {
+      return renderObject;
+    }
+
+    throw StateError('Terminal viewport render object is not available');
+  }
 
   @override
   void initState() {
@@ -483,9 +494,14 @@ class TerminalViewState extends State<TerminalView> {
       return resultOverride;
     }
 
+    final context = focusNode.context;
+    if (context == null) {
+      return KeyEventResult.ignored;
+    }
+
     // ignore: invalid_use_of_protected_member
     final shortcutResult = _shortcutManager.handleKeypress(
-      focusNode.context!,
+      context,
       event,
     );
 
