@@ -20,10 +20,13 @@ mixin Disposable {
   }
 
   void dispose() {
+    if (_disposed) return;
+
     _disposed = true;
     for (final disposable in _disposables) {
       disposable.dispose();
     }
+    _disposables.clear();
     _onDisposed.emit(null);
   }
 }
@@ -35,6 +38,8 @@ class _DisposeCallback with Disposable {
 
   @override
   void dispose() {
+    if (disposed) return;
+
     super.dispose();
     callback();
   }

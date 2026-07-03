@@ -4,6 +4,19 @@ import 'package:xterm/xterm.dart';
 
 void main() {
   group('TerminalController', () {
+    test('dispose releases selection anchors', () {
+      final terminal = Terminal();
+      final controller = TerminalController();
+      final base = terminal.buffer.createAnchor(0, 0);
+      final extent = terminal.buffer.createAnchor(2, 2);
+      controller.setSelection(base, extent);
+
+      controller.dispose();
+
+      expect(base.attached, isFalse);
+      expect(extent.attached, isFalse);
+    });
+
     testWidgets('setSelectionRange works', (tester) async {
       final terminal = Terminal();
       final terminalView = TerminalController();
@@ -79,6 +92,41 @@ void main() {
   });
 
   group('TerminalController.highlight', () {
+    test('dispose releases highlight anchors', () {
+      final terminal = Terminal();
+      final controller = TerminalController();
+      final start = terminal.buffer.createAnchor(5, 5);
+      final end = terminal.buffer.createAnchor(5, 10);
+      controller.highlight(
+        p1: start,
+        p2: end,
+        color: Colors.yellow,
+      );
+
+      controller.dispose();
+
+      expect(start.attached, isFalse);
+      expect(end.attached, isFalse);
+      expect(controller.highlights, isEmpty);
+    });
+
+    test('highlight dispose releases owned anchors', () {
+      final terminal = Terminal();
+      final controller = TerminalController();
+      final start = terminal.buffer.createAnchor(5, 5);
+      final end = terminal.buffer.createAnchor(5, 10);
+      final highlight = controller.highlight(
+        p1: start,
+        p2: end,
+        color: Colors.yellow,
+      );
+
+      highlight.dispose();
+
+      expect(start.attached, isFalse);
+      expect(end.attached, isFalse);
+    });
+
     test('works', () {
       final terminal = Terminal();
       final controller = TerminalController();

@@ -145,6 +145,21 @@ class TerminalController with ChangeNotifier {
 
     return highlight;
   }
+
+  @override
+  void dispose() {
+    _selectionBase?.dispose();
+    _selectionBase = null;
+    _selectionExtent?.dispose();
+    _selectionExtent = null;
+
+    final highlights = List<TerminalHighlight>.of(_highlights);
+    for (final highlight in highlights) {
+      highlight.dispose();
+    }
+
+    super.dispose();
+  }
 }
 
 class TerminalHighlight with Disposable {
@@ -161,7 +176,10 @@ class TerminalHighlight with Disposable {
     required this.p1,
     required this.p2,
     required this.color,
-  });
+  }) {
+    registerCallback(p1.dispose);
+    registerCallback(p2.dispose);
+  }
 
   /// Returns the range of the highlight. May be null if the anchors that
   /// define the highlight are not attached to the terminal.

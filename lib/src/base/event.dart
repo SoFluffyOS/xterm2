@@ -37,6 +37,9 @@ class EventSubscription<T> with Disposable {
 
   @override
   void dispose() {
+    if (disposed) return;
+
+    super.dispose();
     emitter._listeners.remove(listener);
   }
 }
