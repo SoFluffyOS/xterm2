@@ -12,6 +12,7 @@ import 'package:xterm/src/ui/gesture/gesture_handler.dart';
 import 'package:xterm/src/ui/input_map.dart';
 import 'package:xterm/src/ui/keyboard_listener.dart';
 import 'package:xterm/src/ui/keyboard_visibility.dart';
+import 'package:xterm/src/ui/palette_builder.dart';
 import 'package:xterm/src/ui/render.dart';
 import 'package:xterm/src/ui/scroll_handler.dart';
 import 'package:xterm/src/ui/shortcut/actions.dart';
@@ -166,6 +167,8 @@ class TerminalViewState extends State<TerminalView> {
 
   late ScrollController _scrollController;
 
+  late final int? Function(int, int?) _colorQuery = _resolveColorQuery;
+
   RenderTerminal get renderTerminal =>
       _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
@@ -178,11 +181,16 @@ class TerminalViewState extends State<TerminalView> {
     _shortcutManager = ShortcutManager(
       shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
     );
+    _installColorQuery(widget.terminal);
     super.initState();
   }
 
   @override
   void didUpdateWidget(TerminalView oldWidget) {
+    if (oldWidget.terminal != widget.terminal) {
+      _removeColorQuery(oldWidget.terminal);
+      _installColorQuery(widget.terminal);
+    }
     if (oldWidget.focusNode != widget.focusNode) {
       _focusNode.removeListener(_reportFocusChange);
       if (oldWidget.focusNode == null) {
@@ -209,6 +217,7 @@ class TerminalViewState extends State<TerminalView> {
 
   @override
   void dispose() {
+    _removeColorQuery(widget.terminal);
     _focusNode.removeListener(_reportFocusChange);
     if (widget.focusNode == null) {
       _focusNode.dispose();
@@ -221,6 +230,32 @@ class TerminalViewState extends State<TerminalView> {
     }
     _shortcutManager.dispose();
     super.dispose();
+  }
+
+  void _installColorQuery(Terminal terminal) {
+    terminal.onColorQuery ??= _colorQuery;
+  }
+
+  void _removeColorQuery(Terminal terminal) {
+    if (terminal.onColorQuery == _colorQuery) {
+      terminal.onColorQuery = null;
+    }
+  }
+
+  int? _resolveColorQuery(int code, int? index) {
+    if (code == 4) {
+      if (index == null) return null;
+      return PaletteBuilder(widget.theme).paletteColor(index).toARGB32() &
+          0x00ffffff;
+    }
+    final color = switch (code) {
+      10 => widget.theme.foreground,
+      11 => widget.theme.background,
+      12 => widget.theme.cursor,
+      _ => null,
+    };
+    if (color == null) return null;
+    return color.toARGB32() & 0x00ffffff;
   }
 
   void _reportFocusChange() {

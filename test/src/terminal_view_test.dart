@@ -27,6 +27,34 @@ void main() {
     expect(state.renderTerminal.debugNeedsLayout, isFalse);
   });
 
+  testWidgets('TerminalView answers color queries from its theme', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    await tester.pumpWidget(MaterialApp(
+      home: TerminalView(
+        terminal,
+        theme: TerminalThemes.whiteOnBlack,
+      ),
+    ));
+
+    terminal.write(
+      '\x1b]4;1;?\x1b\\'
+      '\x1b]10;?;?;?\x1b\\',
+    );
+
+    expect(output, [
+      '\x1b]4;1;rgb:cdcd/3131/3131\x1b\\',
+      '\x1b]10;rgb:ffff/ffff/ffff\x1b\\',
+      '\x1b]11;rgb:0000/0000/0000\x1b\\',
+      '\x1b]12;rgb:aeae/afaf/adad\x1b\\',
+    ]);
+
+    await tester.pumpWidget(const SizedBox());
+    expect(terminal.onColorQuery, isNull);
+  });
+
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
