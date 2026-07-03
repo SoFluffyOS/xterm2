@@ -1,6 +1,73 @@
 import 'dart:math' show max, min;
 import 'dart:ui';
 
+const _singleLineBoxArms = <int>[
+  0x44,
+  0x48,
+  0x84,
+  0x88,
+  0x41,
+  0x42,
+  0x81,
+  0x82,
+  0x14,
+  0x18,
+  0x24,
+  0x28,
+  0x11,
+  0x12,
+  0x21,
+  0x22,
+  0x54,
+  0x58,
+  0x64,
+  0x94,
+  0xa4,
+  0x68,
+  0x98,
+  0xa8,
+  0x51,
+  0x52,
+  0x61,
+  0x91,
+  0xa1,
+  0x62,
+  0x92,
+  0xa2,
+  0x45,
+  0x46,
+  0x49,
+  0x4a,
+  0x85,
+  0x86,
+  0x89,
+  0x8a,
+  0x15,
+  0x16,
+  0x19,
+  0x1a,
+  0x25,
+  0x26,
+  0x29,
+  0x2a,
+  0x55,
+  0x56,
+  0x59,
+  0x5a,
+  0x65,
+  0x95,
+  0xa5,
+  0x66,
+  0x69,
+  0x96,
+  0x99,
+  0x6a,
+  0x9a,
+  0xa6,
+  0xa9,
+  0xaa,
+];
+
 bool paintProceduralGlyph(
   Canvas canvas,
   Offset offset,
@@ -141,6 +208,35 @@ bool paintProceduralGlyph(
     }
   }
 
+  if (codePoint >= 0x250c && codePoint <= 0x254b) {
+    final arms = _singleLineBoxArms[codePoint - 0x250c];
+    double thickness(int shift) {
+      return switch ((arms >> shift) & 3) {
+        1 => thin,
+        2 => heavy,
+        _ => 0,
+      };
+    }
+
+    final left = thickness(0);
+    final right = thickness(2);
+    final top = thickness(4);
+    final bottom = thickness(6);
+    if (left > 0) {
+      horizontal(x, centerX, left);
+    }
+    if (right > 0) {
+      horizontal(centerX, x + width, right);
+    }
+    if (top > 0) {
+      vertical(y, centerY, top);
+    }
+    if (bottom > 0) {
+      vertical(centerY, y + height, bottom);
+    }
+    return true;
+  }
+
   switch (codePoint) {
     case 0x2500:
       horizontal(x, x + width, thin);
@@ -177,42 +273,6 @@ bool paintProceduralGlyph(
       return true;
     case 0x250b:
       dashedVertical(3, heavy);
-      return true;
-    case 0x250c:
-      horizontal(centerX, x + width, thin);
-      vertical(centerY, y + height, thin);
-      return true;
-    case 0x2510:
-      horizontal(x, centerX, thin);
-      vertical(centerY, y + height, thin);
-      return true;
-    case 0x2514:
-      horizontal(centerX, x + width, thin);
-      vertical(y, centerY, thin);
-      return true;
-    case 0x2518:
-      horizontal(x, centerX, thin);
-      vertical(y, centerY, thin);
-      return true;
-    case 0x251c:
-      horizontal(centerX, x + width, thin);
-      vertical(y, y + height, thin);
-      return true;
-    case 0x2524:
-      horizontal(x, centerX, thin);
-      vertical(y, y + height, thin);
-      return true;
-    case 0x252c:
-      horizontal(x, x + width, thin);
-      vertical(centerY, y + height, thin);
-      return true;
-    case 0x2534:
-      horizontal(x, x + width, thin);
-      vertical(y, centerY, thin);
-      return true;
-    case 0x253c:
-      horizontal(x, x + width, thin);
-      vertical(y, y + height, thin);
       return true;
     case 0x254c:
       dashedHorizontal(1, thin);
