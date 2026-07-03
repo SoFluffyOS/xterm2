@@ -82,6 +82,45 @@ void main() {
     recorder.endRecording().dispose();
   });
 
+  test('procedural glyph rendering covers dashed and diagonal box lines', () {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    const codePoints = [
+      0x2504,
+      0x2505,
+      0x2506,
+      0x2507,
+      0x2508,
+      0x2509,
+      0x250a,
+      0x250b,
+      0x254c,
+      0x254d,
+      0x254e,
+      0x254f,
+      0x2571,
+      0x2572,
+      0x2573,
+    ];
+
+    for (final codePoint in codePoints) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(10, 20),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+    }
+
+    recorder.endRecording().dispose();
+  });
+
   test('procedural braille blank has no visible dots', () async {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);

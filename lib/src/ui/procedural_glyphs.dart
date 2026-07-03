@@ -1,4 +1,4 @@
-import 'dart:math' show max;
+import 'dart:math' show max, min;
 import 'dart:ui';
 
 bool paintProceduralGlyph(
@@ -123,6 +123,24 @@ bool paintProceduralGlyph(
         centerX - thickness / 2, start, centerX + thickness / 2, end));
   }
 
+  void dashedHorizontal(int gaps, double thickness) {
+    final gap = max(1.0, width / 8);
+    final dash = max(1.0, (width - gap * gaps) / (gaps + 1));
+    for (var segment = 0; segment <= gaps; segment++) {
+      final start = x + segment * (dash + gap);
+      horizontal(start, min(x + width, start + dash), thickness);
+    }
+  }
+
+  void dashedVertical(int gaps, double thickness) {
+    final gap = max(1.0, height / 8);
+    final dash = max(1.0, (height - gap * gaps) / (gaps + 1));
+    for (var segment = 0; segment <= gaps; segment++) {
+      final start = y + segment * (dash + gap);
+      vertical(start, min(y + height, start + dash), thickness);
+    }
+  }
+
   switch (codePoint) {
     case 0x2500:
       horizontal(x, x + width, thin);
@@ -135,6 +153,30 @@ bool paintProceduralGlyph(
       return true;
     case 0x2503:
       vertical(y, y + height, heavy);
+      return true;
+    case 0x2504:
+      dashedHorizontal(2, thin);
+      return true;
+    case 0x2505:
+      dashedHorizontal(2, heavy);
+      return true;
+    case 0x2506:
+      dashedVertical(2, thin);
+      return true;
+    case 0x2507:
+      dashedVertical(2, heavy);
+      return true;
+    case 0x2508:
+      dashedHorizontal(3, thin);
+      return true;
+    case 0x2509:
+      dashedHorizontal(3, heavy);
+      return true;
+    case 0x250a:
+      dashedVertical(3, thin);
+      return true;
+    case 0x250b:
+      dashedVertical(3, heavy);
       return true;
     case 0x250c:
       horizontal(centerX, x + width, thin);
@@ -171,6 +213,40 @@ bool paintProceduralGlyph(
     case 0x253c:
       horizontal(x, x + width, thin);
       vertical(y, y + height, thin);
+      return true;
+    case 0x254c:
+      dashedHorizontal(1, thin);
+      return true;
+    case 0x254d:
+      dashedHorizontal(1, heavy);
+      return true;
+    case 0x254e:
+      dashedVertical(1, thin);
+      return true;
+    case 0x254f:
+      dashedVertical(1, heavy);
+      return true;
+    case 0x2571:
+    case 0x2572:
+    case 0x2573:
+      final strokePaint = Paint()
+        ..color = paint.color
+        ..strokeWidth = thin
+        ..style = PaintingStyle.stroke;
+      if (codePoint == 0x2571 || codePoint == 0x2573) {
+        canvas.drawLine(
+          Offset(x, y + height),
+          Offset(x + width, y),
+          strokePaint,
+        );
+      }
+      if (codePoint == 0x2572 || codePoint == 0x2573) {
+        canvas.drawLine(
+          Offset(x, y),
+          Offset(x + width, y + height),
+          strokePaint,
+        );
+      }
       return true;
     default:
       return false;
