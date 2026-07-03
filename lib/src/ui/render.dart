@@ -600,14 +600,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
             _shouldShowCursor;
     final shouldPaintBlockCursor =
         shouldPaintCursor && cursorType == TerminalCursorType.block;
-    final cursorRenderColumn = switch (shouldPaintBlockCursor) {
-      true => _cursorRenderColumn(),
-      false => _terminal.buffer.cursorX,
-    };
-    final cursorRenderWidth = switch (shouldPaintBlockCursor) {
-      true => _cursorRenderWidth(cursorRenderColumn),
-      false => 1,
-    };
+    final cursorRenderColumn = _cursorRenderColumn();
+    final cursorRenderWidth = _cursorRenderWidth(cursorRenderColumn);
     final cursorForeground =
         switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
       true => _cursorForeground(cursorRenderColumn),
