@@ -2,6 +2,14 @@ import 'package:test/test.dart';
 import 'package:xterm/core.dart';
 
 void main() {
+  test('Terminal sets a horizontal tab stop at the cursor', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[3gabc\x1bH\r\t');
+
+    expect(terminal.buffer.cursorX, 3);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);
