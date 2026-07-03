@@ -263,6 +263,29 @@ void main() {
     image.dispose();
   });
 
+  test('paintLine keeps braille pattern blank invisible', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('\u2800');
+
+    expect(terminal.buffer.cursorX, 1);
+
+    final image = await _paintLine(painter, terminal.buffer.lines[0]);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    expect(_hasAnyAlpha(byteData, image.width, image.height), isFalse);
+
+    image.dispose();
+    painter.dispose();
+  });
+
   test('paintLine batches same-color backgrounds without seams', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

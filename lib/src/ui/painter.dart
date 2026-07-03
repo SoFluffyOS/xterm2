@@ -426,6 +426,9 @@ class TerminalPainter {
       // the CodePoint 0xA0. This is a non breaking space and a underline can be
       // drawn below it.
       var char = String.fromCharCode(charCode);
+      if (charCode == 0x2800) {
+        char = String.fromCharCode(0xA0);
+      }
       if ((_hasUnderline(cellFlags) || isHyperlink) && charCode == 0x20) {
         char = String.fromCharCode(0xA0);
       }
