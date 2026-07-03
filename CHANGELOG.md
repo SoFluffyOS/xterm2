@@ -9,6 +9,7 @@
 * Expose authoritative current-directory updates from OSC 7.
 * Parse, render, hit-test, and activate bounded OSC 8 hyperlinks.
 * Render common block and box-drawing glyphs procedurally without font seams.
+* Reuse cell paints to reduce per-frame rendering allocations.
 
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].

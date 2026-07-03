@@ -27,6 +27,10 @@ class TerminalPainter {
   /// [_textStyle] is changed, or when the system font changes.
   final _paragraphCache = ParagraphCache(10240);
 
+  /// Reused during cell painting to avoid allocating objects per visible cell.
+  final _foregroundPaint = Paint();
+  final _backgroundPaint = Paint();
+
   TerminalStyle get textStyle => _textStyle;
   TerminalStyle _textStyle;
   set textStyle(TerminalStyle value) {
@@ -185,19 +189,19 @@ class TerminalPainter {
       color = color.withValues(alpha: 0.5);
     }
 
-    final proceduralPaint = Paint()..color = color;
+    _foregroundPaint.color = color;
     if (paintProceduralGlyph(
       canvas,
       offset,
       _cellSize,
       charCode,
-      proceduralPaint,
+      _foregroundPaint,
     )) {
       if (isHyperlink || cellFlags & CellFlags.underline != 0) {
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
           offset.translate(_cellSize.width, _cellSize.height - 1),
-          proceduralPaint,
+          _foregroundPaint,
         );
       }
       return;
@@ -252,11 +256,14 @@ class TerminalPainter {
       color = resolveBackgroundColor(cellData.background);
     }
 
-    final paint = Paint()..color = color;
+    _backgroundPaint.color = color;
     final doubleWidth = cellData.content >> CellContent.widthShift == 2;
-    final widthScale = doubleWidth ? 2 : 1;
+    final widthScale = switch (doubleWidth) {
+      true => 2,
+      false => 1,
+    };
     final size = Size(_cellSize.width * widthScale + 1, _cellSize.height);
-    canvas.drawRect(offset & size, paint);
+    canvas.drawRect(offset & size, _backgroundPaint);
   }
 
   /// Get the effective foreground color for a cell from information encoded in
