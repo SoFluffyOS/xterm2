@@ -315,6 +315,18 @@ class TerminalPainter {
           _foregroundPaint,
         );
       }
+      if (cellFlags & CellAttr.doubleUnderline != 0) {
+        canvas.drawLine(
+          offset.translate(0, _cellSize.height - 3),
+          offset.translate(_cellSize.width, _cellSize.height - 3),
+          _foregroundPaint,
+        );
+        canvas.drawLine(
+          offset.translate(0, _cellSize.height - 1),
+          offset.translate(_cellSize.width, _cellSize.height - 1),
+          _foregroundPaint,
+        );
+      }
       if (cellFlags & CellAttr.strikethrough != 0) {
         canvas.drawLine(
           offset.translate(0, _cellSize.height / 2),
@@ -353,6 +365,7 @@ class TerminalPainter {
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
         underline: cellFlags & CellFlags.underline != 0 || isHyperlink,
+        doubleUnderline: cellFlags & CellAttr.doubleUnderline != 0,
         strikethrough: cellFlags & CellAttr.strikethrough != 0,
         overline: cellFlags & CellAttr.overline != 0,
       );

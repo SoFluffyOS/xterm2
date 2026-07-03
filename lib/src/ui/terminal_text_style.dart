@@ -57,17 +57,22 @@ class TerminalStyle {
     bool bold = false,
     bool italic = false,
     bool underline = false,
+    bool doubleUnderline = false,
     bool strikethrough = false,
     bool overline = false,
   }) {
     final decorations = [
-      if (underline) TextDecoration.underline,
+      if (underline || doubleUnderline) TextDecoration.underline,
       if (strikethrough) TextDecoration.lineThrough,
       if (overline) TextDecoration.overline,
     ];
     final decoration = switch (decorations.isEmpty) {
       true => TextDecoration.none,
       false => TextDecoration.combine(decorations),
+    };
+    final decorationStyle = switch (doubleUnderline) {
+      true => TextDecorationStyle.double,
+      false => TextDecorationStyle.solid,
     };
 
     return TextStyle(
@@ -86,6 +91,7 @@ class TerminalStyle {
         false => FontStyle.normal,
       },
       decoration: decoration,
+      decorationStyle: decorationStyle,
     );
   }
 

@@ -37,6 +37,7 @@ class CursorStyle {
   }
 
   void setUnderline() {
+    attrs &= ~CellAttr.doubleUnderline;
     attrs |= CellAttr.underline;
   }
 
@@ -60,6 +61,11 @@ class CursorStyle {
     attrs |= CellAttr.overline;
   }
 
+  void setDoubleUnderline() {
+    attrs &= ~CellAttr.underline;
+    attrs |= CellAttr.doubleUnderline;
+  }
+
   void unsetBold() {
     attrs &= ~CellAttr.bold;
   }
@@ -74,6 +80,7 @@ class CursorStyle {
 
   void unsetUnderline() {
     attrs &= ~CellAttr.underline;
+    attrs &= ~CellAttr.doubleUnderline;
   }
 
   void unsetBlink() {
@@ -103,6 +110,8 @@ class CursorStyle {
   bool get isItalis => (attrs & CellAttr.italic) != 0;
 
   bool get isUnderline => (attrs & CellAttr.underline) != 0;
+
+  bool get isDoubleUnderline => (attrs & CellAttr.doubleUnderline) != 0;
 
   bool get isBlink => (attrs & CellAttr.blink) != 0;
 

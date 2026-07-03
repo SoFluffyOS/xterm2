@@ -935,6 +935,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setCursorDoubleUnderline() {
+    _cursorStyle.setDoubleUnderline();
+  }
+
+  @override
   void setCursorBlink() {
     _cursorStyle.setBlink();
   }

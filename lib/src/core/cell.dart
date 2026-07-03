@@ -55,10 +55,11 @@ abstract class CellAttr {
   static const invisible = 1 << 6;
   static const strikethrough = 1 << 7;
   static const overline = 1 << 8;
+  static const doubleUnderline = 1 << 9;
 
-  static const visualMask = 0x1ff;
-  static const hyperlinkShift = 9;
-  static const hyperlinkMask = 0x7fffff << hyperlinkShift;
+  static const visualMask = 0x3ff;
+  static const hyperlinkShift = 10;
+  static const hyperlinkMask = 0x3fffff << hyperlinkShift;
   static const hyperlinkMarker = 1 << hyperlinkShift;
 }
 

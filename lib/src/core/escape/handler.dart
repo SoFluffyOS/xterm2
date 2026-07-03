@@ -171,6 +171,8 @@ abstract class EscapeHandler {
 
   void setCursorUnderline();
 
+  void setCursorDoubleUnderline();
+
   void setCursorBlink();
 
   void setCursorInverse();

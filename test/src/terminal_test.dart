@@ -99,6 +99,18 @@ void main() {
     expect(terminal.cursor.isOverline, isFalse);
   });
 
+  test('Terminal applies double underline SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[21mdouble\x1b[24mplain');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.doubleUnderline,
+      isNot(0),
+    );
+    expect(terminal.cursor.isDoubleUnderline, isFalse);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);

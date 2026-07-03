@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'dart:ui' as ui;
-import 'package:flutter/widgets.dart' show TextDecoration, TextScaler;
+import 'package:flutter/widgets.dart'
+    show TextDecoration, TextDecorationStyle, TextScaler;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
@@ -87,6 +88,7 @@ void main() {
   test('TerminalStyle combines text decorations', () {
     final style = const TerminalStyle().toTextStyle(
       underline: true,
+      doubleUnderline: true,
       strikethrough: true,
       overline: true,
     );
@@ -98,6 +100,7 @@ void main() {
     expect(decoration.contains(TextDecoration.underline), isTrue);
     expect(decoration.contains(TextDecoration.lineThrough), isTrue);
     expect(decoration.contains(TextDecoration.overline), isTrue);
+    expect(style.decorationStyle, TextDecorationStyle.double);
   });
 
   test('paintLine strikes through procedural glyphs', () async {
