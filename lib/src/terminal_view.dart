@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -169,6 +171,10 @@ class TerminalViewState extends State<TerminalView> {
 
   late final int? Function(int, int?) _colorQuery = _resolveColorQuery;
 
+  late final void Function(String, String) _clipboardStore = _storeClipboard;
+
+  late final Future<String?> Function(String) _clipboardQuery = _queryClipboard;
+
   RenderTerminal get renderTerminal =>
       _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
@@ -182,6 +188,7 @@ class TerminalViewState extends State<TerminalView> {
       shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
     );
     _installColorQuery(widget.terminal);
+    _installClipboardHandlers(widget.terminal);
     super.initState();
   }
 
@@ -189,7 +196,9 @@ class TerminalViewState extends State<TerminalView> {
   void didUpdateWidget(TerminalView oldWidget) {
     if (oldWidget.terminal != widget.terminal) {
       _removeColorQuery(oldWidget.terminal);
+      _removeClipboardHandlers(oldWidget.terminal);
       _installColorQuery(widget.terminal);
+      _installClipboardHandlers(widget.terminal);
     }
     if (oldWidget.focusNode != widget.focusNode) {
       _focusNode.removeListener(_reportFocusChange);
@@ -218,6 +227,7 @@ class TerminalViewState extends State<TerminalView> {
   @override
   void dispose() {
     _removeColorQuery(widget.terminal);
+    _removeClipboardHandlers(widget.terminal);
     _focusNode.removeListener(_reportFocusChange);
     if (widget.focusNode == null) {
       _focusNode.dispose();
@@ -240,6 +250,31 @@ class TerminalViewState extends State<TerminalView> {
     if (terminal.onColorQuery == _colorQuery) {
       terminal.onColorQuery = null;
     }
+  }
+
+  void _installClipboardHandlers(Terminal terminal) {
+    terminal.onClipboardStore ??= _clipboardStore;
+    terminal.onClipboardQuery ??= _clipboardQuery;
+  }
+
+  void _removeClipboardHandlers(Terminal terminal) {
+    if (terminal.onClipboardStore == _clipboardStore) {
+      terminal.onClipboardStore = null;
+    }
+    if (terminal.onClipboardQuery == _clipboardQuery) {
+      terminal.onClipboardQuery = null;
+    }
+  }
+
+  void _storeClipboard(String selector, String text) {
+    if (!_focusNode.hasFocus) return;
+    unawaited(Clipboard.setData(ClipboardData(text: text)));
+  }
+
+  Future<String?> _queryClipboard(String selector) async {
+    if (!_focusNode.hasFocus) return null;
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    return data?.text;
   }
 
   int? _resolveColorQuery(int code, int? index) {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' show max;
 
 import 'package:xterm/src/base/observable.dart';
@@ -54,6 +55,17 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// only for code 4. The return value is a 24-bit RGB color.
   int? Function(int code, int? index)? onColorQuery;
 
+  /// Called when the application requests copying text through OSC 52.
+  ///
+  /// [selector] is usually `c` for clipboard or `p`/`s` for primary selection.
+  /// Leave this unset to deny clipboard writes.
+  void Function(String selector, String text)? onClipboardStore;
+
+  /// Called when the application requests clipboard contents through OSC 52.
+  ///
+  /// Return null to deny the request. The result may be asynchronous.
+  FutureOr<String?> Function(String selector)? onClipboardQuery;
+
   /// Function that is called when the terminal emits data to the underlying
   /// program. This is typically caused by user inputs from [textInput],
   /// [keyInput], [mouseInput], or [paste].
@@ -89,6 +101,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onIconChange,
     this.onCurrentDirectoryChange,
     this.onColorQuery,
+    this.onClipboardStore,
+    this.onClipboardQuery,
     this.onOutput,
     this.onResize,
     this.platform = TerminalTargetPlatform.unknown,
@@ -398,9 +412,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (_isDisposed) return;
     if (_bracketedPasteMode) {
       onOutput?.call(_emitter.bracketedPaste(text));
-    } else {
-      textInput(text);
+      return;
     }
+
+    onOutput?.call(text.replaceAll('\r\n', '\r').replaceAll('\n', '\r'));
   }
 
   /// Reports a terminal viewport focus change to the underlying application.
@@ -1252,9 +1267,53 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void storeClipboard(String selector, String data) {
+    final clipboardSelector = _resolveClipboardSelector(selector);
+    if (clipboardSelector == null) return;
+
+    try {
+      final bytes = base64.decode(data);
+      final text = utf8.decode(bytes);
+      onClipboardStore?.call(clipboardSelector, text);
+    } on FormatException {
+      return;
+    }
+  }
+
+  @override
+  void queryClipboard(String selector) {
+    final clipboardSelector = _resolveClipboardSelector(selector);
+    if (clipboardSelector == null) return;
+
+    final callback = onClipboardQuery;
+    if (callback == null) return;
+
+    unawaited(Future<String?>.value(callback(clipboardSelector)).then((text) {
+      if (_isDisposed) return;
+      if (text == null) return;
+
+      final encoded = base64.encode(utf8.encode(text));
+      onOutput?.call('\x1b]52;$clipboardSelector;$encoded\x1b\\');
+    }));
+  }
+
+  @override
   void unknownOSC(String ps, List<String> pt) {
     onPrivateOSC?.call(ps, pt);
   }
+}
+
+String? _resolveClipboardSelector(String selector) {
+  for (final codeUnit in selector.codeUnits) {
+    switch (codeUnit) {
+      case 0x63:
+        return 'c';
+      case 0x70:
+      case 0x73:
+        return 's';
+    }
+  }
+  return null;
 }
 
 int? _parseOscColor(String value) {

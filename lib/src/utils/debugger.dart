@@ -694,6 +694,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void storeClipboard(String selector, String data) {
+    onCommand('storeClipboard($selector, $data)');
+  }
+
+  @override
+  void queryClipboard(String selector) {
+    onCommand('queryClipboard($selector)');
+  }
+
+  @override
   void unknownOSC(String code, List<String> args) {
     onCommand('unknownOSC($code, $args)', error: true);
   }

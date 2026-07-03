@@ -253,5 +253,9 @@ abstract class EscapeHandler {
 
   void resetDynamicColor(int code);
 
+  void storeClipboard(String selector, String data);
+
+  void queryClipboard(String selector);
+
   void unknownOSC(String code, List<String> args);
 }

@@ -1278,6 +1278,15 @@ class EscapeParser {
             handler.setDynamicColor(code, value);
           }
           return true;
+        case '52':
+          if (_osc.length < 3) return true;
+          final data = _osc[2];
+          if (data == '?') {
+            handler.queryClipboard(_osc[1]);
+            return true;
+          }
+          handler.storeClipboard(_osc[1], data);
+          return true;
       }
     }
 

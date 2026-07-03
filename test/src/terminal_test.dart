@@ -546,6 +546,54 @@ void main() {
     );
   });
 
+  test('Terminal handles OSC 52 clipboard store and query', () async {
+    final stores = <(String, String)>[];
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+      onClipboardQuery: (selector) => switch (selector) {
+        'c' => 'paste me',
+        _ => null,
+      },
+    );
+
+    terminal.write('\x1b]52;c;Y29weSBtZQ==\x1b\\');
+    terminal.write('\x1b]52;p;cHJpbWFyeQ==\x1b\\');
+    terminal.write('\x1b]52;x;aWdub3JlZA==\x1b\\');
+    terminal.write('\x1b]52;c;?\x1b\\');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(stores, [('c', 'copy me'), ('s', 'primary')]);
+    expect(output, ['\x1b]52;c;cGFzdGUgbWU=\x1b\\']);
+  });
+
+  test('Terminal ignores malformed OSC 52 payloads', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write('\x1b]52;c;not base64\x1b\\');
+    terminal.write('\x1b]52;x;Y29weQ==\x1b\\');
+
+    expect(stores, isEmpty);
+  });
+
+  test('Terminal paste sanitizes bracketed and non-bracketed payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.paste('a\nb\r\nc');
+    terminal.write('\x1b[?2004h');
+    terminal.paste('safe\x1b[201~\x03');
+
+    expect(output, [
+      'a\rb\rc',
+      '\x1b[200~safe[201~\x1b[201~',
+    ]);
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();
