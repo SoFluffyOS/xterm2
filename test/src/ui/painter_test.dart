@@ -76,6 +76,59 @@ void main() {
     painter.dispose();
   });
 
+  test('paintLine foreground override uses separate glyph cache entry', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('X');
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    painter.paintLineForegrounds(canvas, Offset.zero, terminal.buffer.lines[0]);
+    expect(painter.paragraphCacheLength, 1);
+
+    painter.paintLineForegrounds(
+      canvas,
+      Offset.zero,
+      terminal.buffer.lines[0],
+      cursorColumn: 0,
+      cursorForeground: const ui.Color(0xFF000000),
+    );
+    expect(painter.paragraphCacheLength, 2);
+
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
+  test('block cursor spans the requested cell width', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+
+    final image = await _paintCursor(
+      painter,
+      Offset.zero,
+      TerminalCursorType.block,
+      cellWidth: 2,
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected cursor image bytes');
+    }
+
+    final firstCellX = (painter.cellSize.width / 2).round();
+    final secondCellX = (painter.cellSize.width * 1.5).round();
+    expect(_alphaAt(byteData, image.width, firstCellX, 1), greaterThan(0));
+    expect(_alphaAt(byteData, image.width, secondCellX, 1), greaterThan(0));
+
+    image.dispose();
+  });
+
   test('paintLine shapes combining characters with their base glyph', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -277,14 +330,16 @@ void main() {
 Future<ui.Image> _paintCursor(
   TerminalPainter painter,
   ui.Offset offset,
-  TerminalCursorType cursorType,
-) async {
+  TerminalCursorType cursorType, {
+  int cellWidth = 1,
+}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   painter.paintCursor(
     canvas,
     offset,
     cursorType: cursorType,
+    cellWidth: cellWidth,
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(80, 80);

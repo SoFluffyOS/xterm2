@@ -110,26 +110,28 @@ class TerminalPainter {
     Offset offset, {
     required TerminalCursorType cursorType,
     bool hasFocus = true,
+    int cellWidth = 1,
   }) {
+    final cursorSize = Size(_cellSize.width * cellWidth, _cellSize.height);
     final paint = Paint()
       ..color = _theme.cursor
       ..strokeWidth = 1;
 
     if (!hasFocus) {
       paint.style = PaintingStyle.stroke;
-      canvas.drawRect(offset & _cellSize, paint);
+      canvas.drawRect(offset & cursorSize, paint);
       return;
     }
 
     switch (cursorType) {
       case TerminalCursorType.block:
         paint.style = PaintingStyle.fill;
-        canvas.drawRect(offset & _cellSize, paint);
+        canvas.drawRect(offset & cursorSize, paint);
         return;
       case TerminalCursorType.underline:
         return canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
-          offset.translate(_cellSize.width, _cellSize.height - 1),
+          offset.translate(cursorSize.width, _cellSize.height - 1),
           paint,
         );
       case TerminalCursorType.verticalBar:
@@ -260,6 +262,8 @@ class TerminalPainter {
     Offset offset,
     BufferLine line, {
     bool blinkVisible = true,
+    int? cursorColumn,
+    Color? cursorForeground,
   }) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
@@ -279,6 +283,10 @@ class TerminalPainter {
         cellData,
         combiningCharacters: line.getCombiningCharacters(i),
         blinkVisible: blinkVisible,
+        foregroundOverride: switch (i == cursorColumn) {
+          true => cursorForeground,
+          false => null,
+        },
       );
 
       if (charWidth == 2) {
@@ -303,6 +311,7 @@ class TerminalPainter {
     CellData cellData, {
     String? combiningCharacters,
     bool blinkVisible = true,
+    Color? foregroundOverride,
   }) {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
@@ -313,10 +322,11 @@ class TerminalPainter {
 
     final isHyperlink = cellData.hyperlinkId != 0;
     final inverse = (cellFlags & CellFlags.inverse != 0) != _reverseDisplay;
-    var color = switch (inverse) {
-      false => resolveForegroundColor(cellData.foreground),
-      true => resolveBackgroundColor(cellData.background),
-    };
+    var color = foregroundOverride ??
+        switch (inverse) {
+          false => resolveForegroundColor(cellData.foreground),
+          true => resolveBackgroundColor(cellData.background),
+        };
     if (cellFlags & CellFlags.faint != 0) {
       color = color.withValues(alpha: 0.5);
     }
@@ -391,6 +401,7 @@ class TerminalPainter {
       cellData.content,
       _textScaler,
       combiningCharacters,
+      foregroundOverride,
     );
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 

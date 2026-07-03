@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/buffer/range.dart';
 import 'package:xterm/src/core/buffer/segment.dart';
+import 'package:xterm/src/core/cell.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
 import 'package:xterm/src/core/mouse/modifiers.dart';
@@ -560,6 +561,31 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       );
     }
 
+    final cursorType = _terminal.applicationCursorType ?? _cursorType;
+    final shouldPaintCursor =
+        _terminal.buffer.absoluteCursorY >= effectFirstLine &&
+            _terminal.buffer.absoluteCursorY <= effectLastLine &&
+            _shouldShowCursor;
+    final shouldPaintBlockCursor =
+        shouldPaintCursor && cursorType == TerminalCursorType.block;
+    final cursorRenderColumn = switch (shouldPaintBlockCursor) {
+      true => _cursorRenderColumn(),
+      false => _terminal.buffer.cursorX,
+    };
+    final cursorRenderWidth = switch (shouldPaintBlockCursor) {
+      true => _cursorRenderWidth(cursorRenderColumn),
+      false => 1,
+    };
+
+    if (shouldPaintBlockCursor && _focusNode.hasFocus) {
+      _painter.paintCursor(
+        canvas,
+        offset + _cursorRenderOffset(cursorRenderColumn),
+        cursorType: cursorType,
+        cellWidth: cursorRenderWidth,
+      );
+    }
+
     var hasBlinkingText = false;
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
       hasBlinkingText = _painter.paintLineForegrounds(
@@ -570,26 +596,73 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
             ),
             lines[i],
             blinkVisible: _textBlinkVisible,
+            cursorColumn: switch (shouldPaintBlockCursor &&
+                _focusNode.hasFocus &&
+                i == _terminal.buffer.absoluteCursorY) {
+              true => cursorRenderColumn,
+              false => null,
+            },
+            cursorForeground: _painter.theme.background,
           ) ||
           hasBlinkingText;
     }
     _updateTextBlinking(hasBlinkingText);
 
-    if (_terminal.buffer.absoluteCursorY >= effectFirstLine &&
-        _terminal.buffer.absoluteCursorY <= effectLastLine) {
+    if (shouldPaintCursor) {
       if (_isComposingText) {
         _paintComposingText(canvas, offset + cursorOffset);
       }
 
-      if (_shouldShowCursor) {
+      if (!shouldPaintBlockCursor || !_focusNode.hasFocus) {
         _painter.paintCursor(
           canvas,
-          offset + cursorOffset,
-          cursorType: _terminal.applicationCursorType ?? _cursorType,
+          offset + _cursorRenderOffset(cursorRenderColumn),
+          cursorType: cursorType,
           hasFocus: _focusNode.hasFocus,
+          cellWidth: cursorRenderWidth,
         );
       }
     }
+  }
+
+  int _cursorRenderColumn() {
+    final line = _terminal.buffer.lines[_terminal.buffer.absoluteCursorY];
+    final cursorX = _terminal.buffer.cursorX;
+    final cellData = CellData.empty();
+    line.getCellData(cursorX, cellData);
+
+    final charWidth = cellData.content >> CellContent.widthShift;
+    if (charWidth != 0 || cursorX == 0) {
+      return cursorX;
+    }
+
+    line.getCellData(cursorX - 1, cellData);
+    final previousCharWidth = cellData.content >> CellContent.widthShift;
+    if (previousCharWidth == 2) {
+      return cursorX - 1;
+    }
+
+    return cursorX;
+  }
+
+  int _cursorRenderWidth(int cursorColumn) {
+    final line = _terminal.buffer.lines[_terminal.buffer.absoluteCursorY];
+    final cellData = CellData.empty();
+    line.getCellData(cursorColumn, cellData);
+
+    final charWidth = cellData.content >> CellContent.widthShift;
+    if (charWidth == 2) {
+      return 2;
+    }
+
+    return 1;
+  }
+
+  Offset _cursorRenderOffset(int cursorColumn) {
+    return Offset(
+      cursorColumn * _painter.cellSize.width,
+      _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
+    );
   }
 
   /// Paints the text that is currently being composed in IME to [canvas] at
