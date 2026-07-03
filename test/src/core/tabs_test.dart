@@ -28,4 +28,19 @@ void main() {
       expect(tabStops.find(1, 9), 8);
     });
   });
+
+  test('supports tab stops beyond the initial terminal width', () {
+    final tabStops = TabStops();
+
+    expect(tabStops.find(2000, 2050), 2000);
+
+    tabStops.clearAll();
+    expect(tabStops.find(2000, 2050), isNull);
+
+    tabStops.setAt(2047);
+    expect(tabStops.find(2000, 2050), 2047);
+
+    tabStops.reset();
+    expect(tabStops.find(2000, 2050), 2000);
+  });
 }
