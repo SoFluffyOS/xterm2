@@ -504,6 +504,31 @@ void main() {
     expect(terminal.colorRevision, 0);
   });
 
+  test('Terminal answers OSC color queries', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 4 && index == 2) return 0x123456;
+        if (code == 11) return 0xabcdef;
+        return null;
+      },
+    );
+    terminal.write('\x1b]4;1;#010203\x1b\\');
+
+    terminal.write(
+      '\x1b]4;1;?;2;?\x1b\\'
+      '\x1b]11;?\x1b\\'
+      '\x1b]12;?\x1b\\',
+    );
+
+    expect(output, [
+      '\x1b]4;1;rgb:0101/0202/0303\x1b\\',
+      '\x1b]4;2;rgb:1212/3434/5656\x1b\\',
+      '\x1b]11;rgb:abab/cdcd/efef\x1b\\',
+    ]);
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();

@@ -1256,7 +1256,12 @@ class EscapeParser {
           for (var i = 1; i + 1 < _osc.length; i += 2) {
             final index = int.tryParse(_osc[i]);
             if (index == null) continue;
-            handler.setIndexedColor(index, _osc[i + 1]);
+            final value = _osc[i + 1];
+            if (value == '?') {
+              handler.queryIndexedColor(index);
+              continue;
+            }
+            handler.setIndexedColor(index, value);
           }
           return true;
         case '10':
@@ -1264,7 +1269,13 @@ class EscapeParser {
         case '12':
           final firstCode = int.parse(ps);
           for (var i = 1; i < _osc.length; i++) {
-            handler.setDynamicColor(firstCode + i - 1, _osc[i]);
+            final code = firstCode + i - 1;
+            final value = _osc[i];
+            if (value == '?') {
+              handler.queryDynamicColor(code);
+              continue;
+            }
+            handler.setDynamicColor(code, value);
           }
           return true;
       }

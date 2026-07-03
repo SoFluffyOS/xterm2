@@ -49,6 +49,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports its current directory using OSC 7.
   void Function(String uri)? onCurrentDirectoryChange;
 
+  /// Resolves the currently displayed color for OSC color queries. [code] is
+  /// 4 for an indexed color or 10–12 for dynamic colors; [index] is provided
+  /// only for code 4. The return value is a 24-bit RGB color.
+  int? Function(int code, int? index)? onColorQuery;
+
   /// Function that is called when the terminal emits data to the underlying
   /// program. This is typically caused by user inputs from [textInput],
   /// [keyInput], [mouseInput], or [paste].
@@ -83,6 +88,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onTitleChange,
     this.onIconChange,
     this.onCurrentDirectoryChange,
+    this.onColorQuery,
     this.onOutput,
     this.onResize,
     this.platform = TerminalTargetPlatform.unknown,
@@ -1164,6 +1170,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void queryIndexedColor(int index) {
+    if (index < 0 || index > 255) return;
+    final color = _indexedColorOverrides[index] ?? onColorQuery?.call(4, index);
+    if (color == null) return;
+    onOutput?.call('\x1b]4;$index;${_formatOscColor(color)}\x1b\\');
+  }
+
+  @override
   void resetIndexedColors(List<int> indices) {
     if (indices.isEmpty) {
       if (_indexedColorOverrides.isEmpty) return;
@@ -1201,6 +1215,19 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return;
     }
     _colorRevision++;
+  }
+
+  @override
+  void queryDynamicColor(int code) {
+    final override = switch (code) {
+      10 => _foregroundColorOverride,
+      11 => _backgroundColorOverride,
+      12 => _cursorColorOverride,
+      _ => null,
+    };
+    final color = override ?? onColorQuery?.call(code, null);
+    if (color == null) return;
+    onOutput?.call('\x1b]$code;${_formatOscColor(color)}\x1b\\');
   }
 
   @override
@@ -1262,4 +1289,13 @@ int? _parseOscColorComponents(List<String> components) {
     color = (color << 8) | ((value * 255 + maximum ~/ 2) ~/ maximum);
   }
   return color;
+}
+
+String _formatOscColor(int color) {
+  String component(int shift) {
+    final value = ((color >> shift) & 0xff) * 0x101;
+    return value.toRadixString(16).padLeft(4, '0');
+  }
+
+  return 'rgb:${component(16)}/${component(8)}/${component(0)}';
 }

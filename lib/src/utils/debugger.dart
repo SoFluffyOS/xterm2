@@ -669,6 +669,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void queryIndexedColor(int index) {
+    onCommand('queryIndexedColor($index)');
+  }
+
+  @override
   void resetIndexedColors(List<int> indices) {
     onCommand('resetIndexedColors($indices)');
   }
@@ -676,6 +681,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void setDynamicColor(int code, String value) {
     onCommand('setDynamicColor($code, $value)');
+  }
+
+  @override
+  void queryDynamicColor(int code) {
+    onCommand('queryDynamicColor($code)');
   }
 
   @override
