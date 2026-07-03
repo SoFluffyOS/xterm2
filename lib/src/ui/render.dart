@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' show max;
 import 'dart:ui';
 
@@ -153,6 +154,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _stickToBottom = true;
 
+  Timer? _cursorBlinkTimer;
+
+  Timer? _cursorBlinkTimeout;
+
+  bool _cursorBlinkVisible = true;
+
+  bool _cursorBlinkWasEnabled = false;
+
+  bool get isCursorBlinkVisible => _cursorBlinkVisible;
+
   void _onScroll() {
     _stickToBottom = _scrollOffset >= _maxScrollExtent;
     markNeedsLayout();
@@ -160,10 +171,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _onFocusChange() {
+    _updateCursorBlinking(force: true);
     markNeedsPaint();
   }
 
   void _onTerminalChange() {
+    _updateCursorBlinking();
     markNeedsLayout();
     _notifyEditableRect();
   }
@@ -182,15 +195,49 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _terminal.addListener(_onTerminalChange);
     _controller.addListener(_onControllerUpdate);
     _focusNode.addListener(_onFocusChange);
+    _updateCursorBlinking(force: true);
   }
 
   @override
   void detach() {
-    super.detach();
+    _stopCursorBlinking();
     _offset.removeListener(_onScroll);
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
     _focusNode.removeListener(_onFocusChange);
+    super.detach();
+  }
+
+  void _updateCursorBlinking({bool force = false}) {
+    final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
+    if (!force && enabled == _cursorBlinkWasEnabled) return;
+
+    _stopCursorBlinking();
+    _cursorBlinkWasEnabled = enabled;
+    _cursorBlinkVisible = true;
+    if (!enabled || !attached) return;
+
+    _cursorBlinkTimer = Timer.periodic(
+      const Duration(milliseconds: 750),
+      (_) {
+        _cursorBlinkVisible = !_cursorBlinkVisible;
+        markNeedsPaint();
+      },
+    );
+    _cursorBlinkTimeout = Timer(const Duration(seconds: 5), () {
+      _cursorBlinkTimer?.cancel();
+      _cursorBlinkTimer = null;
+      _cursorBlinkVisible = true;
+      markNeedsPaint();
+    });
+  }
+
+  void _stopCursorBlinking() {
+    _cursorBlinkTimer?.cancel();
+    _cursorBlinkTimeout?.cancel();
+    _cursorBlinkTimer = null;
+    _cursorBlinkTimeout = null;
+    _cursorBlinkVisible = true;
   }
 
   @override
@@ -365,7 +412,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   bool get _shouldShowCursor {
-    return _terminal.cursorVisibleMode || _alwaysShowCursor || _isComposingText;
+    if (_alwaysShowCursor || _isComposingText) return true;
+    if (!_terminal.cursorVisibleMode) return false;
+    if (!_terminal.cursorBlinkMode || !_focusNode.hasFocus) return true;
+    return _cursorBlinkVisible;
   }
 
   double get _viewportHeight {

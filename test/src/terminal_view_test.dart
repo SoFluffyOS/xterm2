@@ -207,6 +207,39 @@ void main() {
     });
   });
 
+  testWidgets('TerminalView renders and times out cursor blinking', (
+    tester,
+  ) async {
+    final terminal = Terminal()..write('\x1b[1 q');
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(state.renderTerminal.isCursorBlinkVisible, isFalse);
+
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pump(const Duration(seconds: 5));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
   group('TerminalController.pointerInputs', () {
     testWidgets('works', (tester) async {
       final output = <String>[];
