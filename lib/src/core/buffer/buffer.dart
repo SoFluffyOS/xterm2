@@ -59,7 +59,9 @@ class Buffer {
 
   /// lines of the buffer. the length of [lines] should always be equal or
   /// greater than [viewHeight].
-  late final lines = IndexAwareCircularBuffer<BufferLine>(maxLines);
+  late final lines = IndexAwareCircularBuffer<BufferLine>(
+    max(maxLines, terminal.viewHeight),
+  );
 
   /// Total number of lines in the buffer. Always equal or greater than
   /// [viewHeight].
@@ -437,6 +439,10 @@ class Buffer {
   }
 
   void resize(int oldWidth, int oldHeight, int newWidth, int newHeight) {
+    if (newHeight > lines.maxLength) {
+      lines.maxLength = newHeight;
+    }
+
     // 1. Adjust the height.
     if (newHeight > oldHeight) {
       // Grow larger

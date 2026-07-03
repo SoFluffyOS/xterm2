@@ -2,6 +2,25 @@ import 'package:test/test.dart';
 import 'package:xterm/core.dart';
 
 void main() {
+  group('Terminal.maxLines', () {
+    test('never truncates the viewport', () {
+      final terminal = Terminal(maxLines: 2);
+
+      for (var i = 0; i < 39; i++) {
+        terminal.write('line $i\r\n');
+      }
+      terminal.write('line 39');
+
+      expect(terminal.lines.length, terminal.viewHeight);
+      expect(terminal.buffer.currentLine.toString(), startsWith('line 39'));
+
+      terminal.resize(80, 30);
+
+      expect(terminal.lines.length, 30);
+      expect(terminal.buffer.currentLine.toString(), startsWith('line 39'));
+    });
+  });
+
   group('Terminal.inputHandler', () {
     test('can be set to null', () {
       final terminal = Terminal(inputHandler: null);
