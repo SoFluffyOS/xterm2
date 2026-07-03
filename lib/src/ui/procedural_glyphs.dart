@@ -43,6 +43,46 @@ bool paintProceduralGlyph(
     fill(Rect.fromLTWH(x + width / 2, y, width / 2, height));
     return true;
   }
+  if (codePoint >= 0x2591 && codePoint <= 0x2593) {
+    final opacity = (codePoint - 0x2590) / 4;
+    final shadePaint = Paint()
+      ..color = paint.color.withValues(alpha: paint.color.a * opacity);
+    canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadePaint);
+    return true;
+  }
+  if (codePoint == 0x2594) {
+    fill(Rect.fromLTWH(x, y, width, height / 8));
+    return true;
+  }
+  if (codePoint == 0x2595) {
+    fill(Rect.fromLTWH(x + width * 7 / 8, y, width / 8, height));
+    return true;
+  }
+  if (codePoint >= 0x2596 && codePoint <= 0x259f) {
+    const quadrantMasks = [4, 8, 1, 13, 9, 7, 11, 2, 6, 14];
+    final quadrants = quadrantMasks[codePoint - 0x2596];
+    final halfWidth = width / 2;
+    final halfHeight = height / 2;
+
+    if (quadrants & 1 != 0) {
+      fill(Rect.fromLTWH(x, y, halfWidth, halfHeight));
+    }
+    if (quadrants & 2 != 0) {
+      fill(Rect.fromLTWH(x + halfWidth, y, halfWidth, halfHeight));
+    }
+    if (quadrants & 4 != 0) {
+      fill(Rect.fromLTWH(x, y + halfHeight, halfWidth, halfHeight));
+    }
+    if (quadrants & 8 != 0) {
+      fill(Rect.fromLTWH(
+        x + halfWidth,
+        y + halfHeight,
+        halfWidth,
+        halfHeight,
+      ));
+    }
+    return true;
+  }
   if (codePoint >= 0x2800 && codePoint <= 0x28ff) {
     final dots = codePoint - 0x2800;
     final dotWidth = max(1.0, width * 0.22);
