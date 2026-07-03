@@ -341,6 +341,24 @@ void main() {
   });
 
   group('Terminal CSI zero defaults', () {
+    test('cursor position treats omitted row as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('\x1b[;3HX');
+
+      expect(terminal.buffer.lines[0].toString(), 'X');
+      expect(terminal.buffer.lines[0].getCodePoint(2), 'X'.codeUnitAt(0));
+    });
+
+    test('cursor position treats omitted column as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('\x1b[2;HX');
+
+      expect(terminal.buffer.lines[1].toString(), 'X');
+      expect(terminal.buffer.lines[1].getCodePoint(0), 'X'.codeUnitAt(0));
+    });
+
     test('delete characters treats zero as one', () {
       final terminal = Terminal()..resize(5, 3);
 

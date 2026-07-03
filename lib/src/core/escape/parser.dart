@@ -245,9 +245,10 @@ class EscapeParser {
     _csiOverflowed = false;
     var rawLength = 0;
 
-    // test whether the csi is a `CSI ? Ps ...` or `CSI Ps ...`
+    // Test whether the CSI has a private marker such as `?`, `>`, or `=`.
+    // Semicolon is a parameter separator and must not be consumed here.
     final prefix = _queue.peek();
-    if (prefix >= Ascii.colon && prefix <= Ascii.questionMark) {
+    if (prefix >= Ascii.lessThan && prefix <= Ascii.questionMark) {
       _csi.prefix = prefix;
       _queue.consume();
       rawLength++;
@@ -257,6 +258,7 @@ class EscapeParser {
 
     var param = 0;
     var hasParam = false;
+    var hasParamSeparator = false;
     while (true) {
       // The sequence isn't completed, just ignore it.
       if (_queue.isEmpty) {
@@ -278,10 +280,15 @@ class EscapeParser {
       }
 
       if (char == Ascii.semicolon) {
-        if (hasParam && _csi.params.length < _maxCsiParams) {
-          _csi.params.add(param);
+        if (_csi.params.length < _maxCsiParams) {
+          _csi.params.add(switch (hasParam) {
+            true => param,
+            false => 0,
+          });
         }
         param = 0;
+        hasParam = false;
+        hasParamSeparator = true;
         continue;
       }
 
@@ -298,7 +305,8 @@ class EscapeParser {
       }
 
       if (char >= Ascii.atSign && char <= Ascii.tilde) {
-        if (hasParam && _csi.params.length < _maxCsiParams) {
+        if ((hasParam || hasParamSeparator) &&
+            _csi.params.length < _maxCsiParams) {
           _csi.params.add(param);
         }
 
