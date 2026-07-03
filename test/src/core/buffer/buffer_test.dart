@@ -56,6 +56,31 @@ void main() {
       expect(terminal.buffer.lines[0].toString(), 'abcX');
       expect(terminal.buffer.cursorY, 0);
     });
+
+    test('overwriting wide glyph trailing spacer clears the wide glyph', () {
+      final terminal = Terminal()..resize(4, 3);
+      terminal.write('界\r\x1b[CX');
+
+      final line = terminal.buffer.lines[0];
+      expect(line.toString(), 'X');
+      expect(line.getCodePoint(0), 0);
+      expect(line.getWidth(0), 0);
+      expect(line.getCodePoint(1), 'X'.codeUnitAt(0));
+      expect(line.getWidth(1), 1);
+    });
+
+    test('overwriting across a wide glyph clears its spacer', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('a界d\r界');
+
+      final line = terminal.buffer.lines[0];
+      expect(line.toString(), '界d');
+      expect(line.getWidth(0), 2);
+      expect(line.getWidth(1), 0);
+      expect(line.getCodePoint(2), 0);
+      expect(line.getWidth(2), 0);
+      expect(line.getCodePoint(3), 'd'.codeUnitAt(0));
+    });
   });
 
   group('Buffer.getText()', () {

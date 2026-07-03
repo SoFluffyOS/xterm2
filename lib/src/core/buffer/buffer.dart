@@ -151,6 +151,12 @@ class Buffer {
     if (terminal.insertMode) {
       line.insertCells(_cursorX, cellWidth, terminal.cursor);
     }
+    if (!terminal.insertMode) {
+      line.clearWideCellAt(_cursorX, terminal.cursor);
+      if (cellWidth == 2) {
+        line.clearWideCellAt(_cursorX + 1, terminal.cursor);
+      }
+    }
     line.setCell(_cursorX, codePoint, cellWidth, terminal.cursor);
 
     if (cellWidth == 2) {

@@ -157,6 +157,23 @@ class BufferLine with IndexedItem {
     _combiningCharacters.remove(index);
   }
 
+  void clearWideCellAt(int index, CursorStyle style) {
+    if (index < 0 || index >= _length) return;
+
+    if (getWidth(index) == 2) {
+      eraseCell(index, style);
+      if (index + 1 < _length) {
+        eraseCell(index + 1, style);
+      }
+      return;
+    }
+
+    if (index > 0 && getWidth(index - 1) == 2) {
+      eraseCell(index - 1, style);
+      eraseCell(index, style);
+    }
+  }
+
   void setCellData(int index, CellData cellData) {
     final offset = index * _cellSize;
     _data[offset + _cellForeground] = cellData.foreground;
