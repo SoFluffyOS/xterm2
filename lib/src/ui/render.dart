@@ -29,6 +29,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required ViewportOffset offset,
     required EdgeInsets padding,
     required bool autoResize,
+    required double backgroundOpacity,
     required TerminalStyle textStyle,
     required TextScaler textScaler,
     required TerminalTheme theme,
@@ -42,6 +43,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _offset = offset,
         _padding = padding,
         _autoResize = autoResize,
+        _backgroundOpacity = backgroundOpacity,
         _focusNode = focusNode,
         _cursorType = cursorType,
         _alwaysShowCursor = alwaysShowCursor,
@@ -94,6 +96,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     if (value == _autoResize) return;
     _autoResize = value;
     markNeedsLayout();
+  }
+
+  double _backgroundOpacity;
+  set backgroundOpacity(double value) {
+    if (value == _backgroundOpacity) return;
+    _backgroundOpacity = value;
+    markNeedsPaint();
   }
 
   set textStyle(TerminalStyle value) {
@@ -170,6 +179,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool _textBlinkVisible = true;
 
   bool get isCursorBlinkVisible => _cursorBlinkVisible;
+
+  Color? debugBackgroundFillColor() {
+    _updatePainterColorState();
+    final backgroundOverride = _painter.backgroundColorOverride;
+    if (backgroundOverride == null) return null;
+    return backgroundOverride.withValues(alpha: _backgroundOpacity);
+  }
 
   var _lastTerminalLineCount = 0;
 
@@ -542,24 +558,19 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _paint(PaintingContext context, Offset offset) {
     final canvas = context.canvas;
-    _painter.updateColorOverrides(
-      _terminal,
-      _terminal.colorRevision,
-      _terminal.indexedColorOverrides,
-      _terminal.foregroundColorOverride,
-      _terminal.backgroundColorOverride,
-      _terminal.cursorColorOverride,
-    );
-    _painter.reverseDisplay = _terminal.reverseDisplayMode;
+    _updatePainterColorState();
 
     final backgroundOverride = _painter.backgroundColorOverride;
     if (backgroundOverride != null) {
-      final paint = Paint()..color = backgroundOverride;
+      final paint = Paint()
+        ..color = backgroundOverride.withValues(alpha: _backgroundOpacity);
       canvas.drawRect(offset & size, paint);
     }
 
     if (_terminal.reverseDisplayMode) {
-      final paint = Paint()..color = _painter.foregroundColor;
+      final paint = Paint()
+        ..color =
+            _painter.foregroundColor.withValues(alpha: _backgroundOpacity);
       canvas.drawRect(offset & size, paint);
     }
 
@@ -678,6 +689,18 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
     }
     canvas.restore();
+  }
+
+  void _updatePainterColorState() {
+    _painter.updateColorOverrides(
+      _terminal,
+      _terminal.colorRevision,
+      _terminal.indexedColorOverrides,
+      _terminal.foregroundColorOverride,
+      _terminal.backgroundColorOverride,
+      _terminal.cursorColorOverride,
+    );
+    _painter.reverseDisplay = _terminal.reverseDisplayMode;
   }
 
   int _cursorRenderColumn() {

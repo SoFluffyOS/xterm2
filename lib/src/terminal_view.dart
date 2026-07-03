@@ -275,6 +275,7 @@ class TerminalViewState extends State<TerminalView> {
           offset: offset,
           padding: MediaQuery.of(context).padding,
           autoResize: widget.autoResize,
+          backgroundOpacity: widget.backgroundOpacity,
           textStyle: widget.textStyle,
           textScaler: widget.textScaler ?? MediaQuery.textScalerOf(context),
           theme: widget.theme,
@@ -509,6 +510,7 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.offset,
     required this.padding,
     required this.autoResize,
+    required this.backgroundOpacity,
     required this.textStyle,
     required this.textScaler,
     required this.theme,
@@ -528,6 +530,8 @@ class _TerminalView extends LeafRenderObjectWidget {
   final EdgeInsets padding;
 
   final bool autoResize;
+
+  final double backgroundOpacity;
 
   final TerminalStyle textStyle;
 
@@ -553,6 +557,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       offset: offset,
       padding: padding,
       autoResize: autoResize,
+      backgroundOpacity: backgroundOpacity,
       textStyle: textStyle,
       textScaler: textScaler,
       theme: theme,
@@ -572,6 +577,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..offset = offset
       ..padding = padding
       ..autoResize = autoResize
+      ..backgroundOpacity = backgroundOpacity
       ..textStyle = textStyle
       ..textScaler = textScaler
       ..theme = theme

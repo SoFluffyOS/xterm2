@@ -119,6 +119,26 @@ void main() {
 
     setup.focusNode.dispose();
   });
+
+  test('OSC background override honors configured background opacity', () {
+    final setup = _createRenderTerminal(backgroundOpacity: 0.5);
+    final render = setup.render;
+    final terminal = setup.terminal;
+
+    terminal.write('\x1b]11;#ff0000\x1b\\');
+
+    final color = render.debugBackgroundFillColor();
+    if (color == null) {
+      fail('Expected background override color');
+    }
+
+    expect(color.a, 0.5);
+    expect(color.r, 1);
+    expect(color.g, 0);
+    expect(color.b, 0);
+
+    setup.focusNode.dispose();
+  });
 }
 
 ({
@@ -129,6 +149,7 @@ void main() {
 }) _createRenderTerminal({
   EdgeInsets padding = EdgeInsets.zero,
   bool autoResize = false,
+  double backgroundOpacity = 1,
 }) {
   final terminal = Terminal()..resize(10, 5);
   final controller = TerminalController();
@@ -139,6 +160,7 @@ void main() {
     offset: ViewportOffset.fixed(0),
     padding: padding,
     autoResize: autoResize,
+    backgroundOpacity: backgroundOpacity,
     textStyle: const TerminalStyle(fontSize: 20, height: 1),
     textScaler: TextScaler.noScaling,
     theme: TerminalThemes.whiteOnBlack,
