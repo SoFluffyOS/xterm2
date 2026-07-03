@@ -37,6 +37,18 @@ void main() {
       expect(output, equals('\x1B[<0;1;1M'));
     });
 
+    test('report() marks sgr mouse motion', () {
+      final output = MouseReporter.report(
+        TerminalMouseButton.none,
+        TerminalMouseButtonState.down,
+        CellOffset(4, 6),
+        MouseReportMode.sgr,
+        motion: true,
+      );
+
+      expect(output, equals('\x1B[<35;5;7M'));
+    });
+
     test('report() supports urxvt mode', () {
       final output = MouseReporter.report(
         TerminalMouseButton.left,

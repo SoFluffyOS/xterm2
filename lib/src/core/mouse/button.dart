@@ -5,6 +5,8 @@ enum TerminalMouseButton {
 
   right(id: 2),
 
+  none(id: 3),
+
   wheelUp(id: 64 + 4, isWheel: true),
 
   wheelDown(id: 64 + 5, isWheel: true),

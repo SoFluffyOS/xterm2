@@ -22,12 +22,15 @@ class TerminalMouseEvent {
   /// The platform of the terminal.
   final TerminalTargetPlatform platform;
 
+  final bool motion;
+
   TerminalMouseEvent({
     required this.button,
     required this.buttonState,
     required this.position,
     required this.state,
     required this.platform,
+    this.motion = false,
   });
 }
 
@@ -66,6 +69,7 @@ class ClickMouseHandler implements TerminalMouseHandler {
   String? call(TerminalMouseEvent event) {
     switch (event.state.mouseMode) {
       case MouseMode.clickOnly:
+        if (event.motion) return null;
         // Only clicks and only the first 3 buttons are reported.
         if (event.buttonState == TerminalMouseButtonState.down &&
             (event.button.id < 3)) {
@@ -96,6 +100,21 @@ class UpDownMouseHandler implements TerminalMouseHandler {
       case MouseMode.clickOnly:
         return null;
       case MouseMode.upDownScroll:
+        if (event.motion) return null;
+        break;
+      case MouseMode.upDownScrollDrag:
+        if (event.motion && event.button == TerminalMouseButton.none) {
+          return null;
+        }
+        break;
+      case MouseMode.upDownScrollMove:
+        break;
+    }
+    switch (event.state.mouseMode) {
+      case MouseMode.none:
+      case MouseMode.clickOnly:
+        return null;
+      case MouseMode.upDownScroll:
       case MouseMode.upDownScrollDrag:
       case MouseMode.upDownScrollMove:
         // Up events are never reported for mouse wheel buttons.
@@ -108,6 +127,7 @@ class UpDownMouseHandler implements TerminalMouseHandler {
           event.buttonState,
           event.position,
           event.state.mouseReportMode,
+          motion: event.motion,
         );
     }
   }

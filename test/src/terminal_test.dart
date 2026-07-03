@@ -90,6 +90,43 @@ void main() {
   });
 
   group('Terminal.mouseInput', () {
+    test('filters mouse motion according to tracking mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1002h\x1b[?1006h');
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.none,
+          TerminalMouseButtonState.down,
+          CellOffset(1, 2),
+          motion: true,
+        ),
+        isFalse,
+      );
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.left,
+          TerminalMouseButtonState.down,
+          CellOffset(1, 2),
+          motion: true,
+        ),
+        isTrue,
+      );
+
+      terminal.write('\x1b[?1003h');
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.none,
+          TerminalMouseButtonState.down,
+          CellOffset(2, 3),
+          motion: true,
+        ),
+        isTrue,
+      );
+      expect(output, ['\x1b[<32;2;3M', '\x1b[<35;3;4M']);
+    });
+
     test('can handle mouse events', () {
       final output = <String>[];
 

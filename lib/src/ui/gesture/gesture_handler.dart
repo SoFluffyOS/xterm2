@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
+import 'package:xterm/src/core/mouse/mode.dart';
 import 'package:xterm/src/terminal_view.dart';
 import 'package:xterm/src/ui/controller.dart';
 import 'package:xterm/src/ui/gesture/gesture_detector.dart';
@@ -61,27 +62,67 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   @override
   Widget build(BuildContext context) {
-    return TerminalGestureDetector(
-      child: widget.child,
-      onTapUp: widget.onTapUp,
-      onSingleTapUp: onSingleTapUp,
-      onTapDown: onTapDown,
-      onSecondaryTapDown: onSecondaryTapDown,
-      onSecondaryTapUp: onSecondaryTapUp,
-      onTertiaryTapDown: onSecondaryTapDown,
-      onTertiaryTapUp: onSecondaryTapUp,
-      onLongPressStart: onLongPressStart,
-      onLongPressMoveUpdate: onLongPressMoveUpdate,
-      // onLongPressUp: onLongPressUp,
-      onDragStart: onDragStart,
-      onDragUpdate: onDragUpdate,
-      onDoubleTapDown: onDoubleTapDown,
+    return Listener(
+      onPointerMove: _onPointerMotion,
+      onPointerHover: _onPointerMotion,
+      child: TerminalGestureDetector(
+        child: widget.child,
+        onTapUp: widget.onTapUp,
+        onSingleTapUp: onSingleTapUp,
+        onTapDown: onTapDown,
+        onSecondaryTapDown: onSecondaryTapDown,
+        onSecondaryTapUp: onSecondaryTapUp,
+        onTertiaryTapDown: onTertiaryTapDown,
+        onTertiaryTapUp: onTertiaryTapUp,
+        onLongPressStart: onLongPressStart,
+        onLongPressMoveUpdate: onLongPressMoveUpdate,
+        // onLongPressUp: onLongPressUp,
+        onDragStart: onDragStart,
+        onDragUpdate: onDragUpdate,
+        onDoubleTapDown: onDoubleTapDown,
+      ),
     );
   }
 
   bool get _shouldSendTapEvent =>
       !widget.readOnly &&
       widget.terminalController.shouldSendPointerInput(PointerInput.tap);
+
+  void _onPointerMotion(PointerEvent event) {
+    final input = switch (event.buttons) {
+      0 => PointerInput.move,
+      _ => PointerInput.drag,
+    };
+    if (widget.readOnly ||
+        !widget.terminalController.shouldSendPointerInput(input)) {
+      return;
+    }
+
+    renderTerminal.mouseEvent(
+      _buttonForButtons(event.buttons),
+      TerminalMouseButtonState.down,
+      event.localPosition,
+      motion: true,
+    );
+  }
+
+  TerminalMouseButton _buttonForButtons(int buttons) {
+    if (buttons & kPrimaryMouseButton != 0) return TerminalMouseButton.left;
+    if (buttons & kSecondaryMouseButton != 0) return TerminalMouseButton.right;
+    if (buttons & kMiddleMouseButton != 0) return TerminalMouseButton.middle;
+    return TerminalMouseButton.none;
+  }
+
+  bool get _terminalReportsDrag {
+    if (widget.readOnly ||
+        !widget.terminalController.shouldSendPointerInput(PointerInput.drag)) {
+      return false;
+    }
+    return switch (widget.terminalView.widget.terminal.mouseMode) {
+      MouseMode.upDownScrollDrag || MouseMode.upDownScrollMove => true,
+      _ => false,
+    };
+  }
 
   void _tapDown(
     GestureTapDownCallback? callback,
@@ -153,7 +194,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   void onTertiaryTapUp(TapUpDetails details) {
-    _tapUp(widget.onTertiaryTapUp, details, TerminalMouseButton.right);
+    _tapUp(widget.onTertiaryTapUp, details, TerminalMouseButton.middle);
   }
 
   void onDoubleTapDown(TapDownDetails details) {
@@ -176,6 +217,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   void onDragStart(DragStartDetails details) {
     _lastDragStartDetails = details;
+    if (_terminalReportsDrag) return;
 
     details.kind == PointerDeviceKind.mouse
         ? renderTerminal.selectCharacters(details.localPosition)
@@ -183,6 +225,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   void onDragUpdate(DragUpdateDetails details) {
+    if (_terminalReportsDrag) return;
     renderTerminal.selectCharacters(
       _lastDragStartDetails!.localPosition,
       details.localPosition,

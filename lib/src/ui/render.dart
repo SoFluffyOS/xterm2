@@ -384,10 +384,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool mouseEvent(
     TerminalMouseButton button,
     TerminalMouseButtonState buttonState,
-    Offset offset,
-  ) {
+    Offset offset, {
+    bool motion = false,
+  }) {
     final position = getCellOffset(offset);
-    return _terminal.mouseInput(button, buttonState, position);
+    return _terminal.mouseInput(
+      button,
+      buttonState,
+      position,
+      motion: motion,
+    );
   }
 
   void _notifyEditableRect() {

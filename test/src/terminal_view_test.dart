@@ -264,6 +264,28 @@ void main() {
   });
 
   group('TerminalController.pointerInputs', () {
+    testWidgets('reports pointer motion requested by the application', (
+      tester,
+    ) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add)
+        ..write('\x1b[?1003h\x1b[?1006h');
+      final controller = TerminalController(pointerInputs: PointerInputs.all());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TerminalView(terminal, controller: controller),
+        ),
+      );
+
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(const Offset(4, 4)));
+      await tester.pump();
+
+      expect(output, isNotEmpty);
+      expect(output.last, startsWith('\x1b[<35;'));
+    });
+
     testWidgets('works', (tester) async {
       final output = <String>[];
 
