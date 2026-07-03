@@ -43,6 +43,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// the icon of the window. [icon] is the name of the icon.
   void Function(String icon)? onIconChange;
 
+  /// Called when the application reports its current directory using OSC 7.
+  void Function(String uri)? onCurrentDirectoryChange;
+
   /// Function that is called when the terminal emits data to the underlying
   /// program. This is typically caused by user inputs from [textInput],
   /// [keyInput], [mouseInput], or [paste].
@@ -76,6 +79,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onBell,
     this.onTitleChange,
     this.onIconChange,
+    this.onCurrentDirectoryChange,
     this.onOutput,
     this.onResize,
     this.platform = TerminalTargetPlatform.unknown,
@@ -941,6 +945,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setIconName(String name) {
     onIconChange?.call(name);
+  }
+
+  @override
+  void setCurrentDirectory(String uri) {
+    onCurrentDirectoryChange?.call(uri);
   }
 
   @override

@@ -599,6 +599,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCurrentDirectory(String uri) {
+    onCommand('setCurrentDirectory($uri)');
+  }
+
+  @override
   void unknownOSC(String code, List<String> args) {
     onCommand('unknownOSC($code, $args)', error: true);
   }

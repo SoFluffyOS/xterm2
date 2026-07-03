@@ -6,6 +6,7 @@
 * Animate blinking cursors with Alacritty-compatible interval and timeout.
 * Bound OSC payload memory and safely discard oversized fragmented sequences.
 * Bound CSI payload and parameter memory across fragmented sequences.
+* Expose authoritative current-directory updates from OSC 7.
 
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].

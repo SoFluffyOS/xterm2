@@ -215,5 +215,7 @@ abstract class EscapeHandler {
 
   void setIconName(String name);
 
+  void setCurrentDirectory(String uri);
+
   void unknownOSC(String code, List<String> args);
 }

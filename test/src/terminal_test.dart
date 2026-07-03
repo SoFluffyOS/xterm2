@@ -197,6 +197,17 @@ void main() {
     });
   });
 
+  test('Terminal reports OSC 7 current directory URIs', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]7;file://localhost/tmp/my%20project\x1b\\');
+
+    expect(currentDirectory, 'file://localhost/tmp/my%20project');
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();

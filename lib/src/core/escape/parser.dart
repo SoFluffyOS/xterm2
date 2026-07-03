@@ -1141,6 +1141,9 @@ class EscapeParser {
         case '2':
           handler.setTitle(pt);
           return true;
+        case '7':
+          handler.setCurrentDirectory(pt);
+          return true;
       }
     }
 
