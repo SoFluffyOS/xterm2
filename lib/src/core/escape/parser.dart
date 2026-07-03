@@ -426,6 +426,7 @@ class EscapeParser {
 
     if (_csi.params.isNotEmpty) {
       y = _csi.params[0];
+      if (y == 0) y = 1;
     }
 
     handler.setCursorY(y - 1);
@@ -438,9 +439,13 @@ class EscapeParser {
     var row = 1;
     var col = 1;
 
-    if (_csi.params.length == 2) {
+    if (_csi.params.isNotEmpty) {
       row = _csi.params[0];
+      if (row == 0) row = 1;
+    }
+    if (_csi.params.length >= 2) {
       col = _csi.params[1];
+      if (col == 0) col = 1;
     }
 
     handler.setCursor(col - 1, row - 1);

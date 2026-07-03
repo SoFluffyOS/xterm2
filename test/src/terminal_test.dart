@@ -34,6 +34,21 @@ void main() {
     expect(terminal.buffer.cursorX, 8);
   });
 
+  test('Terminal applies partial and zero cursor positions', () {
+    final terminal = Terminal()..resize(20, 10);
+
+    terminal.write('\x1b[5H');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[0;0H');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[0d');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);
