@@ -49,6 +49,27 @@ void main() {
       expect(output, equals('\x1B[<35;5;7M'));
     });
 
+    test('report() encodes sgr wheel buttons', () {
+      expect(
+        MouseReporter.report(
+          TerminalMouseButton.wheelUp,
+          TerminalMouseButtonState.down,
+          CellOffset(0, 0),
+          MouseReportMode.sgr,
+        ),
+        '\x1B[<64;1;1M',
+      );
+      expect(
+        MouseReporter.report(
+          TerminalMouseButton.wheelDown,
+          TerminalMouseButtonState.down,
+          CellOffset(0, 0),
+          MouseReportMode.sgr,
+        ),
+        '\x1B[<65;1;1M',
+      );
+    });
+
     test('report() supports urxvt mode', () {
       final output = MouseReporter.report(
         TerminalMouseButton.left,
