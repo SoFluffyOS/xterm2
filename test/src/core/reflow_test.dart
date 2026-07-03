@@ -93,6 +93,38 @@ void main() {
     expect(terminal.buffer.lines[0].getCombiningCharacters(4), '\u0301');
   });
 
+  test('reflow() tracks cursor when shrinking wrapped content', () {
+    final terminal = Terminal()..resize(10, 5);
+
+    terminal.write('1234567890abcdefg');
+    expect(terminal.buffer.cursorX, 7);
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.resize(5, 5);
+
+    expect(terminal.buffer.lines[0].toString(), '12345');
+    expect(terminal.buffer.lines[1].toString(), '67890');
+    expect(terminal.buffer.lines[2].toString(), 'abcde');
+    expect(terminal.buffer.lines[3].toString(), 'fg');
+    expect(terminal.buffer.cursorX, 2);
+    expect(terminal.buffer.absoluteCursorY, 3);
+  });
+
+  test('reflow() tracks cursor when growing wrapped content', () {
+    final terminal = Terminal()..resize(5, 5);
+
+    terminal.write('1234567890abcdefg');
+    expect(terminal.buffer.cursorX, 2);
+    expect(terminal.buffer.cursorY, 3);
+
+    terminal.resize(10, 5);
+
+    expect(terminal.buffer.lines[0].toString(), '1234567890');
+    expect(terminal.buffer.lines[1].toString(), 'abcdefg');
+    expect(terminal.buffer.cursorX, 7);
+    expect(terminal.buffer.absoluteCursorY, 1);
+  });
+
   test('lines has correct length after reflow', () {
     final terminal = Terminal();
 

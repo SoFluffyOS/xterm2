@@ -561,13 +561,16 @@ class Buffer {
       }
     }
 
-    // Ensure cursor is within the screen.
-    _cursorX = _cursorX.clamp(0, newWidth - 1);
+    // Ensure cursor row is within the screen. The column is clamped after
+    // width handling so reflow can preserve its logical offset.
     _cursorY = _cursorY.clamp(0, newHeight - 1);
 
     // 2. Adjust the width.
     if (newWidth != oldWidth) {
       if (terminal.reflowEnabled && !isAltBuffer) {
+        final cursorScrollBack = max(lines.length - newHeight, 0);
+        final cursorLine = _cursorY + cursorScrollBack;
+        final cursorAnchor = lines[cursorLine].createAnchor(_cursorX);
         final reflowResult = reflow(lines, oldWidth, newWidth);
 
         while (reflowResult.length < newHeight) {
@@ -575,10 +578,19 @@ class Buffer {
         }
 
         lines.replaceWith(reflowResult);
+        if (cursorAnchor.attached) {
+          final newScrollBack = max(lines.length - newHeight, 0);
+          _cursorX = cursorAnchor.x.clamp(0, newWidth - 1);
+          _cursorY = (cursorAnchor.y - newScrollBack).clamp(0, newHeight - 1);
+        }
+        cursorAnchor.dispose();
       } else {
         lines.forEach((item) => item.resize(newWidth));
+        _cursorX = _cursorX.clamp(0, newWidth - 1);
       }
     }
+
+    _cursorX = _cursorX.clamp(0, newWidth - 1);
   }
 
   /// Create a new [CellAnchor] at the specified [x] and [y] coordinates.
