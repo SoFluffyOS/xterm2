@@ -1252,7 +1252,39 @@ class EscapeParser {
           if (_osc.length < 3) return true;
           handler.setHyperlink(pt, _osc.sublist(2).join(';'));
           return true;
+        case '4':
+          for (var i = 1; i + 1 < _osc.length; i += 2) {
+            final index = int.tryParse(_osc[i]);
+            if (index == null) continue;
+            handler.setIndexedColor(index, _osc[i + 1]);
+          }
+          return true;
+        case '10':
+        case '11':
+        case '12':
+          final firstCode = int.parse(ps);
+          for (var i = 1; i < _osc.length; i++) {
+            handler.setDynamicColor(firstCode + i - 1, _osc[i]);
+          }
+          return true;
       }
+    }
+
+    final ps = _osc[0];
+    switch (ps) {
+      case '104':
+        final indices = <int>[];
+        for (var i = 1; i < _osc.length; i++) {
+          final index = int.tryParse(_osc[i]);
+          if (index != null) indices.add(index);
+        }
+        handler.resetIndexedColors(indices);
+        return true;
+      case '110':
+      case '111':
+      case '112':
+        handler.resetDynamicColor(int.parse(ps) - 100);
+        return true;
     }
 
     // Private extensions

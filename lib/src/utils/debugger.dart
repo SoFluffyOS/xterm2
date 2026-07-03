@@ -664,6 +664,26 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setIndexedColor(int index, String value) {
+    onCommand('setIndexedColor($index, $value)');
+  }
+
+  @override
+  void resetIndexedColors(List<int> indices) {
+    onCommand('resetIndexedColors($indices)');
+  }
+
+  @override
+  void setDynamicColor(int code, String value) {
+    onCommand('setDynamicColor($code, $value)');
+  }
+
+  @override
+  void resetDynamicColor(int code) {
+    onCommand('resetDynamicColor($code)');
+  }
+
+  @override
   void unknownOSC(String code, List<String> args) {
     onCommand('unknownOSC($code, $args)', error: true);
   }

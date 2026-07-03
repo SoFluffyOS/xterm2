@@ -31,6 +31,16 @@ class TerminalPainter {
   final _foregroundPaint = Paint();
   final _backgroundPaint = Paint();
 
+  final Map<int, Color> _indexedColorOverrides = {};
+
+  int _colorRevision = -1;
+
+  Color? _foregroundColorOverride;
+
+  Color? _backgroundColorOverride;
+
+  Color? _cursorColorOverride;
+
   TerminalStyle get textStyle => _textStyle;
   TerminalStyle _textStyle;
   set textStyle(TerminalStyle value) {
@@ -93,6 +103,43 @@ class TerminalPainter {
 
   int get paragraphCacheLength => _paragraphCache.length;
 
+  Color get foregroundColor => _foregroundColorOverride ?? _theme.foreground;
+
+  Color get backgroundColor => _backgroundColorOverride ?? _theme.background;
+
+  Color get cursorColor => _cursorColorOverride ?? _theme.cursor;
+
+  Color? get backgroundColorOverride => _backgroundColorOverride;
+
+  void updateColorOverrides(
+    int revision,
+    Iterable<MapEntry<int, int>> indexedColors,
+    int? foreground,
+    int? background,
+    int? cursor,
+  ) {
+    if (_colorRevision == revision) return;
+    _colorRevision = revision;
+    _indexedColorOverrides
+      ..clear()
+      ..addEntries(indexedColors.map(
+        (entry) => MapEntry(entry.key, Color(0xff000000 | entry.value)),
+      ));
+    _foregroundColorOverride = switch (foreground) {
+      final value? => Color(0xff000000 | value),
+      null => null,
+    };
+    _backgroundColorOverride = switch (background) {
+      final value? => Color(0xff000000 | value),
+      null => null,
+    };
+    _cursorColorOverride = switch (cursor) {
+      final value? => Color(0xff000000 | value),
+      null => null,
+    };
+    _paragraphCache.clear();
+  }
+
   /// When the set of font available to the system changes, call this method to
   /// clear cached state related to font rendering.
   void clearFontCache() {
@@ -114,7 +161,7 @@ class TerminalPainter {
   }) {
     final cursorSize = Size(_cellSize.width * cellWidth, _cellSize.height);
     final paint = Paint()
-      ..color = _theme.cursor
+      ..color = cursorColor
       ..strokeWidth = 1;
 
     if (!hasFocus) {
@@ -622,10 +669,10 @@ class TerminalPainter {
 
     switch (colorType) {
       case CellColor.normal:
-        return _theme.foreground;
+        return foregroundColor;
       case CellColor.named:
       case CellColor.palette:
-        return _colorPalette[colorValue];
+        return _indexedColorOverrides[colorValue] ?? _colorPalette[colorValue];
       case CellColor.rgb:
       default:
         return Color(colorValue | 0xFF000000);
@@ -641,10 +688,10 @@ class TerminalPainter {
 
     switch (colorType) {
       case CellColor.normal:
-        return _theme.background;
+        return backgroundColor;
       case CellColor.named:
       case CellColor.palette:
-        return _colorPalette[colorValue];
+        return _indexedColorOverrides[colorValue] ?? _colorPalette[colorValue];
       case CellColor.rgb:
       default:
         return Color(colorValue | 0xFF000000);

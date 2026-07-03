@@ -456,6 +456,54 @@ void main() {
     expect(currentDirectory, 'file://localhost/tmp/my%20project');
   });
 
+  test('Terminal applies and resets OSC color overrides', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]4;1;#abc;42;rgb:ffff/8000/0000\x1b\\'
+      '\x1b]10;#112233;#445566;#778899\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {1: 0xaabbcc, 42: 0xff8000},
+    );
+    expect(terminal.foregroundColorOverride, 0x112233);
+    expect(terminal.backgroundColorOverride, 0x445566);
+    expect(terminal.cursorColorOverride, 0x778899);
+
+    terminal.write(
+      '\x1b]104;1\x1b\\'
+      '\x1b]110\x1b\\'
+      '\x1b]111\x1b\\'
+      '\x1b]112\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {42: 0xff8000},
+    );
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.backgroundColorOverride, isNull);
+    expect(terminal.cursorColorOverride, isNull);
+
+    terminal.write('\x1b]104\x1b\\');
+    expect(terminal.indexedColorOverrides, isEmpty);
+  });
+
+  test('Terminal ignores malformed OSC colors', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]4;1;#12;300;#ffffff\x1b\\'
+      '\x1b]10;rgb:gg/00/00\x1b\\',
+    );
+
+    expect(terminal.indexedColorOverrides, isEmpty);
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.colorRevision, 0);
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();

@@ -120,6 +120,40 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter resolves OSC color overrides', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()
+      ..write(
+        '\x1b]4;1;#123456\x1b\\'
+        '\x1b]10;#234567;#345678;#456789\x1b\\',
+      );
+
+    painter.updateColorOverrides(
+      terminal.colorRevision,
+      terminal.indexedColorOverrides,
+      terminal.foregroundColorOverride,
+      terminal.backgroundColorOverride,
+      terminal.cursorColorOverride,
+    );
+
+    expect(
+      painter.resolveForegroundColor(CellColor.named | 1),
+      const ui.Color(0xff123456),
+    );
+    expect(
+      painter.resolveForegroundColor(CellColor.normal),
+      const ui.Color(0xff234567),
+    );
+    expect(painter.backgroundColor, const ui.Color(0xff345678));
+    expect(painter.cursorColor, const ui.Color(0xff456789));
+
+    painter.dispose();
+  });
+
   test('block cursor spans the requested cell width', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

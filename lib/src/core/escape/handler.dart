@@ -241,5 +241,13 @@ abstract class EscapeHandler {
 
   void setHyperlink(String params, String uri);
 
+  void setIndexedColor(int index, String value);
+
+  void resetIndexedColors(List<int> indices);
+
+  void setDynamicColor(int code, String value);
+
+  void resetDynamicColor(int code);
+
   void unknownOSC(String code, List<String> args);
 }

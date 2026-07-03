@@ -101,7 +101,29 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   final Map<String, int> _explicitHyperlinkIds = {};
 
+  final Map<int, int> _indexedColorOverrides = {};
+
+  int? _foregroundColorOverride;
+
+  int? _backgroundColorOverride;
+
+  int? _cursorColorOverride;
+
+  int _colorRevision = 0;
+
   int _nextHyperlinkId = 1;
+
+  int get colorRevision => _colorRevision;
+
+  Iterable<MapEntry<int, int>> get indexedColorOverrides {
+    return _indexedColorOverrides.entries;
+  }
+
+  int? get foregroundColorOverride => _foregroundColorOverride;
+
+  int? get backgroundColorOverride => _backgroundColorOverride;
+
+  int? get cursorColorOverride => _cursorColorOverride;
 
   late var _buffer = _mainBuffer;
 
@@ -1133,7 +1155,111 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setIndexedColor(int index, String value) {
+    if (index < 0 || index > 255) return;
+    final color = _parseOscColor(value);
+    if (color == null || _indexedColorOverrides[index] == color) return;
+    _indexedColorOverrides[index] = color;
+    _colorRevision++;
+  }
+
+  @override
+  void resetIndexedColors(List<int> indices) {
+    if (indices.isEmpty) {
+      if (_indexedColorOverrides.isEmpty) return;
+      _indexedColorOverrides.clear();
+      _colorRevision++;
+      return;
+    }
+
+    var changed = false;
+    for (final index in indices) {
+      changed = _indexedColorOverrides.remove(index) != null || changed;
+    }
+    if (changed) _colorRevision++;
+  }
+
+  @override
+  void setDynamicColor(int code, String value) {
+    final color = _parseOscColor(value);
+    if (color == null) return;
+
+    switch (code) {
+      case 10:
+        if (_foregroundColorOverride == color) return;
+        _foregroundColorOverride = color;
+        break;
+      case 11:
+        if (_backgroundColorOverride == color) return;
+        _backgroundColorOverride = color;
+        break;
+      case 12:
+        if (_cursorColorOverride == color) return;
+        _cursorColorOverride = color;
+        break;
+      default:
+        return;
+    }
+    _colorRevision++;
+  }
+
+  @override
+  void resetDynamicColor(int code) {
+    switch (code) {
+      case 10:
+        if (_foregroundColorOverride == null) return;
+        _foregroundColorOverride = null;
+        break;
+      case 11:
+        if (_backgroundColorOverride == null) return;
+        _backgroundColorOverride = null;
+        break;
+      case 12:
+        if (_cursorColorOverride == null) return;
+        _cursorColorOverride = null;
+        break;
+      default:
+        return;
+    }
+    _colorRevision++;
+  }
+
+  @override
   void unknownOSC(String ps, List<String> pt) {
     onPrivateOSC?.call(ps, pt);
   }
+}
+
+int? _parseOscColor(String value) {
+  if (value.startsWith('#')) {
+    final hex = value.substring(1);
+    if (hex.length != 3 &&
+        hex.length != 6 &&
+        hex.length != 9 &&
+        hex.length != 12) {
+      return null;
+    }
+    final componentLength = hex.length ~/ 3;
+    return _parseOscColorComponents([
+      hex.substring(0, componentLength),
+      hex.substring(componentLength, componentLength * 2),
+      hex.substring(componentLength * 2),
+    ]);
+  }
+
+  if (!value.startsWith('rgb:')) return null;
+  return _parseOscColorComponents(value.substring(4).split('/'));
+}
+
+int? _parseOscColorComponents(List<String> components) {
+  if (components.length != 3) return null;
+  var color = 0;
+  for (final component in components) {
+    if (component.isEmpty || component.length > 4) return null;
+    final value = int.tryParse(component, radix: 16);
+    if (value == null) return null;
+    final maximum = (1 << (component.length * 4)) - 1;
+    color = (color << 8) | ((value * 255 + maximum ~/ 2) ~/ maximum);
+  }
+  return color;
 }

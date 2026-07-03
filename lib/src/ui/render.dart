@@ -542,10 +542,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _paint(PaintingContext context, Offset offset) {
     final canvas = context.canvas;
+    _painter.updateColorOverrides(
+      _terminal.colorRevision,
+      _terminal.indexedColorOverrides,
+      _terminal.foregroundColorOverride,
+      _terminal.backgroundColorOverride,
+      _terminal.cursorColorOverride,
+    );
     _painter.reverseDisplay = _terminal.reverseDisplayMode;
 
+    final backgroundOverride = _painter.backgroundColorOverride;
+    if (backgroundOverride != null) {
+      final paint = Paint()..color = backgroundOverride;
+      canvas.drawRect(offset & size, paint);
+    }
+
     if (_terminal.reverseDisplayMode) {
-      final paint = Paint()..color = _painter.theme.foreground;
+      final paint = Paint()..color = _painter.foregroundColor;
       canvas.drawRect(offset & size, paint);
     }
 
@@ -611,7 +624,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final cursorForeground =
         switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
       true => _cursorForeground(cursorRenderColumn),
-      false => _painter.theme.background,
+      false => _painter.backgroundColor,
     };
 
     if (shouldPaintBlockCursor && _focusNode.hasFocus) {
@@ -701,7 +714,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final cellData = CellData.empty();
     line.getCellData(cursorColumn, cellData);
     return _painter.resolveCellBackgroundColor(cellData) ??
-        _painter.theme.background;
+        _painter.backgroundColor;
   }
 
   Offset _cursorRenderOffset(int cursorColumn) {
@@ -725,8 +738,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         false => _painter.resolveForegroundColor(_terminal.cursor.foreground),
       },
       backgroundColor: switch (_terminal.reverseDisplayMode) {
-        true => _painter.theme.foreground,
-        false => _painter.theme.background,
+        true => _painter.foregroundColor,
+        false => _painter.backgroundColor,
       },
       underline: true,
     );
