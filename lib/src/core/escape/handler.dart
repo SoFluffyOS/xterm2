@@ -103,6 +103,8 @@ abstract class EscapeHandler {
 
   void unknownCSI(int finalByte);
 
+  void setCursorShape(int style);
+
   /* Modes */
 
   void setInsertMode(bool enabled);

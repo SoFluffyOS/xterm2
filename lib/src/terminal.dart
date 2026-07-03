@@ -140,6 +140,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _cursorVisibleMode = true;
 
+  TerminalCursorType? _applicationCursorType;
+
+  TerminalCursorType? get applicationCursorType => _applicationCursorType;
+
   bool _appKeypadMode = false;
 
   bool _reportFocusMode = false;
@@ -664,6 +668,18 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unknownCSI(int finalByte) {
     // no-op
+  }
+
+  @override
+  void setCursorShape(int style) {
+    _applicationCursorType = switch (style) {
+      0 || 1 || 2 => TerminalCursorType.block,
+      3 || 4 => TerminalCursorType.underline,
+      5 || 6 => TerminalCursorType.verticalBar,
+      _ => _applicationCursorType,
+    };
+    if (style < 0 || style > 6) return;
+    _cursorBlinkMode = style == 0 || style.isOdd;
   }
 
   /* Modes */

@@ -1,5 +1,11 @@
 import 'package:xterm/src/core/cell.dart';
 
+enum TerminalCursorType {
+  block,
+  underline,
+  verticalBar,
+}
+
 class CursorStyle {
   int foreground;
 

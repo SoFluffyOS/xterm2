@@ -242,6 +242,22 @@ void main() {
     terminal.focusInput(true);
     expect(output, hasLength(2));
   });
+
+  test('Terminal applies DECSCUSR cursor shape and blinking state', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[3 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.underline);
+    expect(terminal.cursorBlinkMode, isTrue);
+
+    terminal.write('\x1b[6 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.verticalBar);
+    expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b[2 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.block);
+    expect(terminal.cursorBlinkMode, isFalse);
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

@@ -13,5 +13,14 @@ void main() {
       parser.write('\x1b[8;24;80t');
       verify(parser.handler.resize(80, 24));
     });
+
+    test('parses DECSCUSR with its space intermediate', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[5 q');
+
+      verify(handler.setCursorShape(5)).called(1);
+    });
   });
 }

@@ -2,6 +2,7 @@
 
 * Support DEC synchronized updates with Alacritty-compatible timeout recovery.
 * Report terminal view focus changes for DEC focus tracking mode.
+* Render application-selected DECSCUSR cursor shapes.
 
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].

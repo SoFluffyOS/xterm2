@@ -186,6 +186,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCursorShape(int style) {
+    onCommand('setCursorShape($style)');
+  }
+
+  @override
   void setCursor(int x, int y) {
     onCommand('setCursor($x, $y)');
   }
