@@ -177,4 +177,14 @@ void main() {
       expect(anchor.attached, false);
     });
   });
+
+  test('BufferLine.dispose detaches every anchor', () {
+    final line = BufferLine(10);
+    final anchors = [line.createAnchor(1), line.createAnchor(2)];
+
+    line.dispose();
+
+    expect(anchors.every((anchor) => anchor.line == null), isTrue);
+    expect(line.anchors, isEmpty);
+  });
 }

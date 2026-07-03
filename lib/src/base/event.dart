@@ -21,7 +21,7 @@ class EventEmitter<T> {
   }
 
   void emit(T event) {
-    for (final listener in _listeners) {
+    for (final listener in _listeners.toList()) {
       listener(event);
     }
   }

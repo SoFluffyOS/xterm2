@@ -435,7 +435,7 @@ class BufferLine with IndexedItem {
   }
 
   void dispose() {
-    for (final anchor in _anchors) {
+    for (final anchor in _anchors.toList()) {
       anchor.dispose();
     }
   }

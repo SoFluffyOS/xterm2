@@ -27,6 +27,22 @@ void main() {
     expect(calls, 0);
     expect(subscription.disposed, isTrue);
   });
+
+  test('EventEmitter allows listeners to unsubscribe during emission', () {
+    final emitter = EventEmitter<int>();
+    late EventSubscription<int> firstSubscription;
+    final calls = <int>[];
+    firstSubscription = emitter((event) {
+      calls.add(event);
+      firstSubscription.dispose();
+    });
+    emitter(calls.add);
+
+    emitter.emit(1);
+    emitter.emit(2);
+
+    expect(calls, [1, 1, 2]);
+  });
 }
 
 class _TestDisposable with Disposable {}

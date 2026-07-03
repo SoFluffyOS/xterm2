@@ -10,7 +10,7 @@ mixin Observable {
   }
 
   void notifyListeners() {
-    for (var listener in listeners) {
+    for (final listener in listeners.toList()) {
       listener();
     }
   }
