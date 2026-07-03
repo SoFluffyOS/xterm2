@@ -322,6 +322,24 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal ignores incomplete SGR color sequences', () {
+    final terminal = Terminal();
+
+    expect(
+      () => terminal.write(
+        '\x1b[38m'
+        '\x1b[38;2;1;2m'
+        '\x1b[38;5m'
+        '\x1b[48m'
+        '\x1b[48;2;1;2m'
+        '\x1b[48;5m'
+        'Safe',
+      ),
+      returnsNormally,
+    );
+    expect(terminal.buffer.lines[0].toString(), 'Safe');
+  });
+
   group('Terminal CSI zero defaults', () {
     test('delete characters treats zero as one', () {
       final terminal = Terminal()..resize(5, 3);
