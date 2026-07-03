@@ -30,6 +30,8 @@ import 'package:xterm/src/utils/circular_buffer.dart';
 /// understand.
 class Terminal with Observable implements TerminalState, EscapeHandler {
   static const _maxHyperlinks = 4096;
+  static const _maxKittyKeyboardModeStackDepth = 4096;
+  static const _kittyKeyboardModeMask = 0x1f;
 
   /// The number of lines that the scrollback buffer can hold. If the buffer
   /// exceeds this size, the lines at the top of the buffer will be removed.
@@ -211,6 +213,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   Timer? _synchronizedUpdateTimer;
 
+  int _kittyKeyboardMode = 0;
+
+  final _kittyKeyboardModeStack = <int>[];
+
   bool _isDisposed = false;
 
   /* State getters */
@@ -267,6 +273,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get bracketedPasteMode => _bracketedPasteMode;
+
+  @override
+  int get kittyKeyboardMode => _kittyKeyboardMode;
 
   /// Current active buffer of the terminal. This is initially [mainBuffer] and
   /// can be switched back and forth from [altBuffer] to [mainBuffer] when
@@ -600,6 +609,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _kittyKeyboardMode = 0;
+    _kittyKeyboardModeStack.clear();
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
     _nextHyperlinkId = 1;
@@ -631,6 +642,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _kittyKeyboardMode = 0;
+    _kittyKeyboardModeStack.clear();
     _tabStops.reset();
     _buffer.charset.reset();
     _buffer.resetVerticalMargins();
@@ -943,6 +956,47 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       _synchronizedUpdateTimer = null;
       notifyListeners();
     });
+  }
+
+  @override
+  void reportKittyKeyboardMode() {
+    onOutput?.call('\x1b[?${_kittyKeyboardMode & _kittyKeyboardModeMask}u');
+  }
+
+  @override
+  void setKittyKeyboardMode(int mode, int behavior) {
+    final normalizedMode = mode & _kittyKeyboardModeMask;
+    _kittyKeyboardMode = switch (behavior) {
+      2 => _kittyKeyboardMode | normalizedMode,
+      3 => _kittyKeyboardMode & ~normalizedMode,
+      _ => normalizedMode,
+    };
+  }
+
+  @override
+  void pushKittyKeyboardMode(int mode) {
+    if (_kittyKeyboardModeStack.length >= _maxKittyKeyboardModeStackDepth) {
+      _kittyKeyboardModeStack.removeAt(0);
+    }
+
+    final normalizedMode = mode & _kittyKeyboardModeMask;
+    _kittyKeyboardModeStack.add(normalizedMode);
+    _kittyKeyboardMode = normalizedMode;
+  }
+
+  @override
+  void popKittyKeyboardModes(int count) {
+    if (count <= 0) return;
+
+    final newLength = switch (count >= _kittyKeyboardModeStack.length) {
+      true => 0,
+      false => _kittyKeyboardModeStack.length - count,
+    };
+    _kittyKeyboardModeStack.length = newLength;
+    _kittyKeyboardMode = switch (_kittyKeyboardModeStack.isEmpty) {
+      true => 0,
+      false => _kittyKeyboardModeStack.last,
+    };
   }
 
   @override

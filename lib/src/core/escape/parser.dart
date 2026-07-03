@@ -365,6 +365,7 @@ class EscapeParser {
     'p'.codeUnitAt(0): _csiHandleSoftReset,
     'q'.codeUnitAt(0): _csiHandleCursorStyle,
     'r'.codeUnitAt(0): _csiHandleSetMargins,
+    'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     't'.codeUnitAt(0): _csiWindowManipulation,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
     'B'.codeUnitAt(0): _csiHandleCursorDown,
@@ -396,6 +397,39 @@ class EscapeParser {
       _ => 0,
     };
     handler.setCursorShape(style);
+  }
+
+  void _csiHandleKittyKeyboardMode() {
+    switch (_csi.prefix) {
+      case Ascii.questionMark:
+        return handler.reportKittyKeyboardMode();
+      case Ascii.equal:
+        final mode = switch (_csi.params.isEmpty) {
+          true => 0,
+          false => _csi.params[0],
+        };
+        final behavior = switch (_csi.params.length >= 2) {
+          true => _csi.params[1],
+          false => 1,
+        };
+        return handler.setKittyKeyboardMode(mode, behavior);
+      case Ascii.greaterThan:
+        final mode = switch (_csi.params.isEmpty) {
+          true => 0,
+          false => _csi.params[0],
+        };
+        return handler.pushKittyKeyboardMode(mode);
+      case Ascii.lessThan:
+        final count = switch (_csi.params.isEmpty || _csi.params[0] == 0) {
+          true => 1,
+          false => _csi.params[0],
+        };
+        return handler.popKittyKeyboardModes(count);
+      case null:
+        return handler.restoreCursor();
+      default:
+        return handler.unknownCSI(_csi.finalByte);
+    }
   }
 
   void _csiHandleSoftReset() {

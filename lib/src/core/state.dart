@@ -41,4 +41,6 @@ abstract class TerminalState {
   bool get altBufferMouseScrollMode;
 
   bool get bracketedPasteMode;
+
+  int get kittyKeyboardMode;
 }

@@ -460,6 +460,26 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void reportKittyKeyboardMode() {
+    onCommand('reportKittyKeyboardMode');
+  }
+
+  @override
+  void setKittyKeyboardMode(int mode, int behavior) {
+    onCommand('setKittyKeyboardMode($mode, $behavior)');
+  }
+
+  @override
+  void pushKittyKeyboardMode(int mode) {
+    onCommand('pushKittyKeyboardMode($mode)');
+  }
+
+  @override
+  void popKittyKeyboardModes(int count) {
+    onCommand('popKittyKeyboardModes($count)');
+  }
+
+  @override
   void setUnknownDecMode(int mode, bool enabled) {
     onCommand('setUnknownDecMode($mode, $enabled)', error: true);
   }
