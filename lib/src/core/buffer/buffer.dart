@@ -139,6 +139,9 @@ class Buffer {
     }
 
     final line = currentLine;
+    if (terminal.insertMode) {
+      line.insertCells(_cursorX, cellWidth, terminal.cursor);
+    }
     line.setCell(_cursorX, codePoint, cellWidth, terminal.cursor);
 
     if (cellWidth == 2) {

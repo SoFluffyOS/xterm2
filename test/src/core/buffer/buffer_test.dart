@@ -3,6 +3,29 @@ import 'package:xterm/xterm.dart';
 
 void main() {
   group('Buffer.writeChar()', () {
+    test('shifts cells in insert mode', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('abcde\r\x1b[2C\x1b[4hX');
+
+      expect(terminal.buffer.lines[0].toString(), 'abXcd');
+    });
+
+    test('shifts two cells for wide glyphs in insert mode', () {
+      final terminal = Terminal()..resize(6, 3);
+      terminal.write('abcd\r\x1b[C\x1b[4h界');
+
+      expect(terminal.buffer.lines[0].toString(), 'a界bcd');
+      expect(terminal.buffer.lines[0].getWidth(1), 2);
+      expect(terminal.buffer.lines[0].getWidth(2), 0);
+    });
+
+    test('overwrites cells after insert mode is disabled', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('abcde\r\x1b[2C\x1b[4hX\x1b[4lY');
+
+      expect(terminal.buffer.lines[0].toString(), 'abXYd');
+    });
+
     test('wraps a wide character before the right margin', () {
       final terminal = Terminal()..resize(4, 3);
 
