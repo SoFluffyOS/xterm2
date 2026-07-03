@@ -33,6 +33,8 @@ abstract class EscapeHandler {
 
   void setTapStop();
 
+  void reset();
+
   void reverseIndex();
 
   void designateCharset(int charset, int name);

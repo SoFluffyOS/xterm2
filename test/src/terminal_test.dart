@@ -10,6 +10,30 @@ void main() {
     expect(terminal.buffer.cursorX, 3);
   });
 
+  test('Terminal applies a full reset', () {
+    final terminal = Terminal()..resize(20, 5);
+    terminal.write(
+      '\x1b[?1h\x1b[?7l\x1b[?25l\x1b[4h\x1b[5m'
+      '\x1b[3gabc\x1bH\x1b[?1049hcontent\x1bc',
+    );
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(
+      terminal.buffer.lines.toList().every((line) => line.getText().isEmpty),
+      isTrue,
+    );
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.cursorKeysMode, isFalse);
+    expect(terminal.autoWrapMode, isTrue);
+    expect(terminal.cursorVisibleMode, isTrue);
+    expect(terminal.insertMode, isFalse);
+    expect(terminal.cursor.attrs, 0);
+
+    terminal.write('\t');
+    expect(terminal.buffer.cursorX, 8);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);

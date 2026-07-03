@@ -45,6 +45,14 @@ class Charset {
     _currentIndex = _savedIndex;
     _updateCache();
   }
+
+  void reset() {
+    _charsetMap.clear();
+    _currentIndex = 0;
+    _savedCharsetMap.clear();
+    _savedIndex = 0;
+    _updateCache();
+  }
 }
 
 const decSpecGraphics = <int, int>{

@@ -423,6 +423,18 @@ class Buffer {
     }
   }
 
+  void reset() {
+    clear();
+    _cursorX = 0;
+    _cursorY = 0;
+    _savedCursorX = 0;
+    _savedCursorY = 0;
+    _savedCursorStyle.reset();
+    _savedCursorStyle.hyperlinkId = 0;
+    charset.reset();
+    resetVerticalMargins();
+  }
+
   void insertBlankChars(int count) {
     currentLine.insertCells(_cursorX, count, terminal.cursor);
   }

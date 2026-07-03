@@ -120,6 +120,7 @@ class EscapeParser {
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
+    'c'.charCode: _escHandleReset,
     // 'P'.charCode: _unsupportedHandler, // Sixel
     // 'c'.charCode: _unsupportedHandler,
     // '#'.charCode: _unsupportedHandler,
@@ -168,6 +169,12 @@ class EscapeParser {
   /// https://terminalguide.namepad.de/seq/a_esc_ch/
   bool _escHandleTabSet() {
     handler.setTapStop();
+    return true;
+  }
+
+  /// `ESC c` Full Reset (RIS)
+  bool _escHandleReset() {
+    handler.reset();
     return true;
   }
 
