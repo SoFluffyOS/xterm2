@@ -194,6 +194,21 @@ void main() {
       expect(output, ['\x1B[<20;1;1M']);
     });
 
+    test('reports sgr pixel mouse coordinates', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1000h\x1b[?1016h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(2, 3),
+        pixelPosition: CellOffset(20, 30),
+      );
+
+      expect(output, ['\x1B[<0;21;31M']);
+    });
+
     test('ignores invalid collapsed mouse mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

@@ -70,6 +70,18 @@ void main() {
       );
     });
 
+    test('report() supports sgr pixels mode', () {
+      final output = MouseReporter.report(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(4, 6),
+        MouseReportMode.sgrPixels,
+        pixelPosition: CellOffset(30, 40),
+      );
+
+      expect(output, equals('\x1B[<0;31;41M'));
+    });
+
     test('report() encodes mouse modifiers', () {
       final modifiers = TerminalMouseModifiers(
         shift: true,

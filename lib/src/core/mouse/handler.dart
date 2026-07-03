@@ -17,6 +17,9 @@ class TerminalMouseEvent {
   /// The position of button state change.
   final CellOffset position;
 
+  /// The pixel position of the pointer, when the active report mode needs it.
+  final CellOffset? pixelPosition;
+
   /// The state of the terminal.
   final TerminalState state;
 
@@ -31,6 +34,7 @@ class TerminalMouseEvent {
     required this.button,
     required this.buttonState,
     required this.position,
+    this.pixelPosition,
     required this.state,
     required this.platform,
     this.motion = false,
@@ -83,6 +87,7 @@ class ClickMouseHandler implements TerminalMouseHandler {
             event.position,
             event.state.mouseReportMode,
             modifiers: event.modifiers,
+            pixelPosition: event.pixelPosition,
           );
         }
         return null;
@@ -134,6 +139,7 @@ class UpDownMouseHandler implements TerminalMouseHandler {
           event.state.mouseReportMode,
           motion: event.motion,
           modifiers: event.modifiers,
+          pixelPosition: event.pixelPosition,
         );
     }
   }

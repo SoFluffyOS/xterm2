@@ -86,12 +86,17 @@ class _TerminalScrollGestureHandlerState
   /// will simulate scroll events by sending up/down arrow keys.
   void _sendScrollEvent(bool up) {
     final position = widget.getCellOffset(lastPointerPosition);
+    final pixelPosition = CellOffset(
+      lastPointerPosition.dx.floor(),
+      lastPointerPosition.dy.floor(),
+    );
 
     final handled = widget.terminal.mouseInput(
       up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
       TerminalMouseButtonState.down,
       position,
       modifiers: _currentModifiers(),
+      pixelPosition: pixelPosition,
     );
 
     if (!handled && widget.simulateScroll) {

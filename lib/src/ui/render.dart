@@ -420,6 +420,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       position,
       motion: motion,
       modifiers: modifiers,
+      pixelPosition: CellOffset(offset.dx.floor(), offset.dy.floor()),
     );
   }
 

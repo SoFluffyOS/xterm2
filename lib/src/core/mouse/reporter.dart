@@ -12,6 +12,7 @@ abstract class MouseReporter {
     MouseReportMode reportMode, {
     bool motion = false,
     TerminalMouseModifiers modifiers = TerminalMouseModifiers.none,
+    CellOffset? pixelPosition,
   }) {
     // x and y offsets have to be incremented by 1 as the offset if 0-based,
     // The position has to be reported using 1-based coordinates.
@@ -43,12 +44,21 @@ abstract class MouseReporter {
             : String.fromCharCode(32 + y);
         return "\x1b[M$btn$col$row";
       case MouseReportMode.sgr:
+      case MouseReportMode.sgrPixels:
+        final reportX = switch (reportMode) {
+          MouseReportMode.sgrPixels => (pixelPosition ?? position).x + 1,
+          _ => x,
+        };
+        final reportY = switch (reportMode) {
+          MouseReportMode.sgrPixels => (pixelPosition ?? position).y + 1,
+          _ => y,
+        };
         var buttonID = button.id + modifiers.reportOffset;
         if (motion) {
           buttonID += 32;
         }
         final upDown = state == TerminalMouseButtonState.down ? 'M' : 'm';
-        return "\x1b[<$buttonID;$x;$y$upDown";
+        return "\x1b[<$buttonID;$reportX;$reportY$upDown";
       case MouseReportMode.urxvt:
         // The button ID uses the same id as to report it as in normal mode.
         final baseButtonID =
