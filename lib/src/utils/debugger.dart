@@ -164,6 +164,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void softReset() {
+    onCommand('softReset');
+  }
+
+  @override
   void reverseIndex() {
     onCommand('reverseIndex');
   }

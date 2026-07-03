@@ -34,6 +34,22 @@ void main() {
     expect(terminal.buffer.cursorX, 8);
   });
 
+  test('Terminal applies a DEC soft reset', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write(
+      '\x1b[?1h\x1b[?7l\x1b[4h\x1b[5m\x1b[2;4rcontent\x1b[!p',
+    );
+
+    expect(terminal.buffer.lines[0].toString(), 'content');
+    expect(terminal.cursorKeysMode, isFalse);
+    expect(terminal.autoWrapMode, isTrue);
+    expect(terminal.insertMode, isFalse);
+    expect(terminal.cursor.attrs, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
+  });
+
   test('Terminal applies partial and zero cursor positions', () {
     final terminal = Terminal()..resize(20, 10);
 

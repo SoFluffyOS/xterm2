@@ -344,6 +344,7 @@ class EscapeParser {
     'l'.codeUnitAt(0): _csiHandleMode,
     'm'.codeUnitAt(0): _csiHandleSgr,
     'n'.codeUnitAt(0): _csiHandleDeviceStatusReport,
+    'p'.codeUnitAt(0): _csiHandleSoftReset,
     'q'.codeUnitAt(0): _csiHandleCursorStyle,
     'r'.codeUnitAt(0): _csiHandleSetMargins,
     't'.codeUnitAt(0): _csiWindowManipulation,
@@ -377,6 +378,15 @@ class EscapeParser {
       _ => 0,
     };
     handler.setCursorShape(style);
+  }
+
+  void _csiHandleSoftReset() {
+    if (_csi.intermediates.length != 1 ||
+        _csi.intermediates.single != Ascii.exclamationMark) {
+      return handler.unknownCSI(_csi.finalByte);
+    }
+
+    handler.softReset();
   }
 
   /// `ESC [ Ps a` Cursor Horizontal Position Relative (HPR)

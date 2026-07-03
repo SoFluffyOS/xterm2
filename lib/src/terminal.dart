@@ -543,6 +543,34 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void softReset() {
+    _synchronizedUpdateTimer?.cancel();
+    _synchronizedUpdateTimer = null;
+    _synchronizedUpdateMode = false;
+    _precedingCodepoint = 0;
+    _cursorStyle.reset();
+    _cursorStyle.hyperlinkId = 0;
+    _insertMode = false;
+    _lineFeedMode = false;
+    _cursorKeysMode = false;
+    _reverseDisplayMode = false;
+    _originMode = false;
+    _autoWrapMode = true;
+    _mouseMode = MouseMode.none;
+    _mouseReportMode = MouseReportMode.normal;
+    _cursorBlinkMode = false;
+    _cursorVisibleMode = true;
+    _applicationCursorType = null;
+    _appKeypadMode = false;
+    _reportFocusMode = false;
+    _altBufferMouseScrollMode = false;
+    _bracketedPasteMode = false;
+    _tabStops.reset();
+    _buffer.charset.reset();
+    _buffer.resetVerticalMargins();
+  }
+
+  @override
   void reverseIndex() {
     _buffer.reverseIndex();
   }
