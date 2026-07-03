@@ -543,6 +543,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void _paint(PaintingContext context, Offset offset) {
     final canvas = context.canvas;
     _painter.updateColorOverrides(
+      _terminal,
       _terminal.colorRevision,
       _terminal.indexedColorOverrides,
       _terminal.foregroundColorOverride,

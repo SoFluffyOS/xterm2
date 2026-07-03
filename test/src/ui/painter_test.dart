@@ -133,6 +133,7 @@ void main() {
       );
 
     painter.updateColorOverrides(
+      terminal,
       terminal.colorRevision,
       terminal.indexedColorOverrides,
       terminal.foregroundColorOverride,
@@ -150,6 +151,41 @@ void main() {
     );
     expect(painter.backgroundColor, const ui.Color(0xff345678));
     expect(painter.cursorColor, const ui.Color(0xff456789));
+
+    painter.dispose();
+  });
+
+  test('TerminalPainter invalidates colors when terminal changes', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final first = Terminal()..write('\x1b]4;1;#112233\x1b\\');
+    final second = Terminal()..write('\x1b]4;1;#445566\x1b\\');
+
+    void apply(Terminal terminal) {
+      painter.updateColorOverrides(
+        terminal,
+        terminal.colorRevision,
+        terminal.indexedColorOverrides,
+        terminal.foregroundColorOverride,
+        terminal.backgroundColorOverride,
+        terminal.cursorColorOverride,
+      );
+    }
+
+    apply(first);
+    expect(
+      painter.resolveForegroundColor(CellColor.named | 1),
+      const ui.Color(0xff112233),
+    );
+
+    apply(second);
+    expect(
+      painter.resolveForegroundColor(CellColor.named | 1),
+      const ui.Color(0xff445566),
+    );
 
     painter.dispose();
   });

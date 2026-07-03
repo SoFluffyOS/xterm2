@@ -35,6 +35,8 @@ class TerminalPainter {
 
   int _colorRevision = -1;
 
+  Object? _colorSource;
+
   Color? _foregroundColorOverride;
 
   Color? _backgroundColorOverride;
@@ -112,13 +114,15 @@ class TerminalPainter {
   Color? get backgroundColorOverride => _backgroundColorOverride;
 
   void updateColorOverrides(
+    Object source,
     int revision,
     Iterable<MapEntry<int, int>> indexedColors,
     int? foreground,
     int? background,
     int? cursor,
   ) {
-    if (_colorRevision == revision) return;
+    if (identical(_colorSource, source) && _colorRevision == revision) return;
+    _colorSource = source;
     _colorRevision = revision;
     _indexedColorOverrides
       ..clear()
