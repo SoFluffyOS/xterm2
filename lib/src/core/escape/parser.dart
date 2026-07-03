@@ -19,7 +19,7 @@ class EscapeParser {
 
   static const _maxOscRawLength = 1024;
 
-  static const _maxOscParams = 16;
+  static const _maxOscParams = 256;
 
   final EscapeHandler handler;
 

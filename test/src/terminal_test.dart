@@ -529,6 +529,23 @@ void main() {
     ]);
   });
 
+  test('Terminal applies bulk OSC palette updates', () {
+    final terminal = Terminal();
+    final sequence = StringBuffer('\x1b]4');
+    for (var index = 0; index < 32; index++) {
+      sequence.write(';$index;#${index.toRadixString(16).padLeft(6, '0')}');
+    }
+    sequence.write('\x1b\\');
+
+    terminal.write(sequence.toString());
+
+    expect(terminal.indexedColorOverrides.length, 32);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides)[31],
+      0x00001f,
+    );
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();
