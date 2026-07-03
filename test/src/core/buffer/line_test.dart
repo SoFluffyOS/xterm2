@@ -26,6 +26,20 @@ void main() {
       expect(terminal.buffer.cursorX, 2);
     });
 
+    test('preserves emoji modifiers and regional indicator pairs', () {
+      final terminal = Terminal();
+
+      terminal.write('👍🏽🇻🇳🇺');
+
+      final line = terminal.buffer.lines[0];
+      expect(line.getText(), '👍🏽🇻🇳🇺');
+      expect(line.getCombiningCharacters(0), '🏽');
+      expect(line.getCombiningCharacters(2), '🇳');
+      expect(line.getWidth(2), 2);
+      expect(line.getWidth(3), 0);
+      expect(terminal.buffer.cursorX, 5);
+    });
+
     test('bounds combining characters per cell', () {
       final terminal = Terminal();
 

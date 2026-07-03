@@ -128,6 +128,12 @@ class BufferLine with IndexedItem {
     _combiningCharacters.remove(index);
   }
 
+  void setWidth(int index, int width) {
+    final offset = index * _cellSize + _cellContent;
+    _data[offset] = (_data[offset] & CellContent.codepointMask) |
+        (width << CellContent.widthShift);
+  }
+
   void setCodePoint(int index, int char) {
     final width = unicodeV11.wcwidth(char);
     setContent(index, char | (width << CellContent.widthShift));

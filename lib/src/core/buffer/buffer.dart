@@ -112,10 +112,11 @@ class Buffer {
     codePoint = charset.translate(codePoint);
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
-    if (_previousCellEndsWithJoiner()) {
+    if (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint)) {
       _addCombiningCharacter(codePoint);
       return;
     }
+    if (_joinRegionalIndicator(codePoint)) return;
     if (cellWidth == 0) {
       _addCombiningCharacter(codePoint);
       return;
@@ -178,6 +179,34 @@ class Buffer {
     }
     return currentLine.getCombiningCharacters(index)?.endsWith('\u200d') ??
         false;
+  }
+
+  bool _joinRegionalIndicator(int codePoint) {
+    if (!_isRegionalIndicator(codePoint) || _cursorX == 0) return false;
+    var index = min(_cursorX - 1, viewWidth - 1);
+    if (index > 0 && currentLine.getWidth(index) == 0) {
+      index--;
+    }
+    if (!_isRegionalIndicator(currentLine.getCodePoint(index)) ||
+        currentLine.getCombiningCharacters(index) != null ||
+        currentLine.getWidth(index) != 1 ||
+        _cursorX >= viewWidth) {
+      return false;
+    }
+
+    currentLine.addCombiningCharacter(index, codePoint);
+    currentLine.setWidth(index, 2);
+    currentLine.setCell(_cursorX, 0, 0, terminal.cursor);
+    _cursorX++;
+    return true;
+  }
+
+  static bool _isRegionalIndicator(int codePoint) {
+    return codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF;
+  }
+
+  static bool _isEmojiModifier(int codePoint) {
+    return codePoint >= 0x1F3FB && codePoint <= 0x1F3FF;
   }
 
   void _wrapInput() {
