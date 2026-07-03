@@ -580,6 +580,25 @@ void main() {
     expect(stores, isEmpty);
   });
 
+  test('Terminal discards unsupported DCS payloads until terminator', () {
+    final terminal = Terminal();
+
+    terminal.write('before\x1bPqbinary;data');
+    terminal.write('\x1b\\after');
+
+    expect(terminal.buffer.lines[0].toString(), 'beforeafter');
+  });
+
+  test('Terminal discards unsupported APC PM and SOS payloads', () {
+    final terminal = Terminal();
+
+    terminal.write('a\x1b_payload\x1b\\b');
+    terminal.write('\x1b^payload\x07c');
+    terminal.write('\x1bXpayload\x1b\\d');
+
+    expect(terminal.buffer.lines[0].toString(), 'abcd');
+  });
+
   test('Terminal paste sanitizes bracketed and non-bracketed payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

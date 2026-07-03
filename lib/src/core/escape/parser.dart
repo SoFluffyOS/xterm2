@@ -53,6 +53,12 @@ class EscapeParser {
         continue;
       }
 
+      if (_discardingStringControl) {
+        _discardStringControlInput();
+        if (_discardingStringControl) return;
+        continue;
+      }
+
       tokenBegin = _queue.totalConsumed;
       final char = _queue.consume();
 
@@ -120,8 +126,11 @@ class EscapeParser {
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
+    'P'.charCode: _escHandleStringControl,
+    'X'.charCode: _escHandleStringControl,
+    '^'.charCode: _escHandleStringControl,
+    '_'.charCode: _escHandleStringControl,
     'c'.charCode: _escHandleReset,
-    // 'P'.charCode: _unsupportedHandler, // Sixel
     // 'c'.charCode: _unsupportedHandler,
     // '#'.charCode: _unsupportedHandler,
     '('.charCode: _escHandleDesignateCharset0, //  SCS - G0
@@ -213,6 +222,13 @@ class EscapeParser {
   /// https://terminalguide.namepad.de/seq/a_esc_x3d_equals/
   bool _escHandleSetAppKeypadMode() {
     handler.setAppKeypadMode(true);
+    return true;
+  }
+
+  bool _escHandleStringControl() {
+    _discardingStringControl = true;
+    _discardStringControlSawEscape = false;
+    _discardStringControlInput();
     return true;
   }
 
@@ -1395,6 +1411,33 @@ class EscapeParser {
 
       if (char == Ascii.ESC) {
         _discardOscSawEscape = true;
+      }
+    }
+  }
+
+  bool _discardingStringControl = false;
+
+  bool _discardStringControlSawEscape = false;
+
+  void _discardStringControlInput() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+
+      if (_discardStringControlSawEscape) {
+        _discardStringControlSawEscape = false;
+        if (char == Ascii.backslash) {
+          _discardingStringControl = false;
+          return;
+        }
+      }
+
+      if (char == Ascii.BEL) {
+        _discardingStringControl = false;
+        return;
+      }
+
+      if (char == Ascii.ESC) {
+        _discardStringControlSawEscape = true;
       }
     }
   }
