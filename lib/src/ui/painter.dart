@@ -150,11 +150,12 @@ class TerminalPainter {
 
   /// Paints [line] to [canvas] at [offset]. The x offset of [offset] is usually
   /// 0, and the y offset is the top of the line.
-  void paintLine(
+  bool paintLine(
     Canvas canvas,
     Offset offset,
-    BufferLine line,
-  ) {
+    BufferLine line, {
+    bool blinkVisible = true,
+  }) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
 
@@ -232,23 +233,29 @@ class TerminalPainter {
       );
     }
 
+    var hasBlinkingText = false;
     for (var i = 0; i < line.length; i++) {
       line.getCellData(i, cellData);
 
       final charWidth = cellData.content >> CellContent.widthShift;
       final cellOffset = offset.translate(i * cellWidth, 0);
+      if (cellData.flags & CellFlags.blink != 0) {
+        hasBlinkingText = true;
+      }
 
       paintCellForeground(
         canvas,
         cellOffset,
         cellData,
         combiningCharacters: line.getCombiningCharacters(i),
+        blinkVisible: blinkVisible,
       );
 
       if (charWidth == 2) {
         i++;
       }
     }
+    return hasBlinkingText;
   }
 
   @pragma('vm:prefer-inline')
@@ -265,12 +272,14 @@ class TerminalPainter {
     Offset offset,
     CellData cellData, {
     String? combiningCharacters,
+    bool blinkVisible = true,
   }) {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
 
     final cellFlags = cellData.flags;
     if (cellFlags & CellFlags.invisible != 0) return;
+    if (cellFlags & CellFlags.blink != 0 && !blinkVisible) return;
 
     final isHyperlink = cellData.hyperlinkId != 0;
     var color = switch (cellFlags & CellFlags.inverse) {

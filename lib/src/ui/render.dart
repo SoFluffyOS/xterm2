@@ -158,9 +158,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   Timer? _cursorBlinkTimeout;
 
+  Timer? _textBlinkTimer;
+
   bool _cursorBlinkVisible = true;
 
   bool _cursorBlinkWasEnabled = false;
+
+  bool _textBlinkVisible = true;
 
   bool get isCursorBlinkVisible => _cursorBlinkVisible;
 
@@ -201,6 +205,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   @override
   void detach() {
     _stopCursorBlinking();
+    _stopTextBlinking();
     _offset.removeListener(_onScroll);
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
@@ -211,6 +216,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   @override
   void dispose() {
     _stopCursorBlinking();
+    _stopTextBlinking();
     _painter.dispose();
     super.dispose();
   }
@@ -245,6 +251,28 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _cursorBlinkTimer = null;
     _cursorBlinkTimeout = null;
     _cursorBlinkVisible = true;
+  }
+
+  void _updateTextBlinking(bool enabled) {
+    if (!enabled) {
+      _stopTextBlinking();
+      return;
+    }
+    if (_textBlinkTimer != null || !attached) return;
+
+    _textBlinkTimer = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (_) {
+        _textBlinkVisible = !_textBlinkVisible;
+        markNeedsPaint();
+      },
+    );
+  }
+
+  void _stopTextBlinking() {
+    _textBlinkTimer?.cancel();
+    _textBlinkTimer = null;
+    _textBlinkVisible = true;
   }
 
   @override
@@ -470,13 +498,18 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final effectFirstLine = firstLine.clamp(0, lines.length - 1);
     final effectLastLine = lastLine.clamp(0, lines.length - 1);
 
+    var hasBlinkingText = false;
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
-      _painter.paintLine(
-        canvas,
-        offset.translate(0, (i * charHeight + _lineOffset).truncateToDouble()),
-        lines[i],
-      );
+      hasBlinkingText = _painter.paintLine(
+            canvas,
+            offset.translate(
+                0, (i * charHeight + _lineOffset).truncateToDouble()),
+            lines[i],
+            blinkVisible: _textBlinkVisible,
+          ) ||
+          hasBlinkingText;
     }
+    _updateTextBlinking(hasBlinkingText);
 
     if (_terminal.buffer.absoluteCursorY >= effectFirstLine &&
         _terminal.buffer.absoluteCursorY <= effectLastLine) {

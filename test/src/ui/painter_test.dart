@@ -7,6 +7,33 @@ import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('paintLine hides blinking text during the off phase', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('\x1b[5mX');
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    final hasBlinkingText = painter.paintLine(
+      canvas,
+      Offset.zero,
+      terminal.buffer.lines[0],
+      blinkVisible: false,
+    );
+
+    expect(hasBlinkingText, isTrue);
+    expect(painter.paragraphCacheLength, 0);
+
+    painter.paintLine(canvas, Offset.zero, terminal.buffer.lines[0]);
+    expect(painter.paragraphCacheLength, 1);
+
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
   test('paintLine shapes combining characters with their base glyph', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
