@@ -7,6 +7,27 @@ import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('reverse display swaps normal cell backgrounds', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty();
+
+    expect(painter.resolveCellBackgroundColor(cell), isNull);
+
+    painter.reverseDisplay = true;
+    expect(
+      painter.resolveCellBackgroundColor(cell),
+      TerminalThemes.whiteOnBlack.foreground,
+    );
+
+    cell.flags = CellFlags.inverse;
+    expect(painter.resolveCellBackgroundColor(cell), isNull);
+    painter.dispose();
+  });
+
   test('paintLine hides blinking text during the off phase', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

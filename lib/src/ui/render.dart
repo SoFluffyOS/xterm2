@@ -485,6 +485,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _paint(PaintingContext context, Offset offset) {
     final canvas = context.canvas;
+    _painter.reverseDisplay = _terminal.reverseDisplayMode;
 
     final lines = _terminal.buffer.lines;
     final charHeight = _painter.cellSize.height;
@@ -556,8 +557,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
 
     final style = _painter.textStyle.toTextStyle(
-      color: _painter.resolveForegroundColor(_terminal.cursor.foreground),
-      backgroundColor: _painter.theme.background,
+      color: switch (_terminal.reverseDisplayMode) {
+        true => _painter.resolveBackgroundColor(_terminal.cursor.background),
+        false => _painter.resolveForegroundColor(_terminal.cursor.foreground),
+      },
+      backgroundColor: switch (_terminal.reverseDisplayMode) {
+        true => _painter.theme.foreground,
+        false => _painter.theme.background,
+      },
       underline: true,
     );
 

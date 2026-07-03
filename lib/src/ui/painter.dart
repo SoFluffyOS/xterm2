@@ -58,6 +58,14 @@ class TerminalPainter {
     _paragraphCache.clear();
   }
 
+  bool get reverseDisplay => _reverseDisplay;
+  bool _reverseDisplay = false;
+  set reverseDisplay(bool value) {
+    if (value == _reverseDisplay) return;
+    _reverseDisplay = value;
+    _paragraphCache.clear();
+  }
+
   Size _measureCharSize() {
     const test = 'mmmmmmmmmm';
 
@@ -282,9 +290,10 @@ class TerminalPainter {
     if (cellFlags & CellFlags.blink != 0 && !blinkVisible) return;
 
     final isHyperlink = cellData.hyperlinkId != 0;
-    var color = switch (cellFlags & CellFlags.inverse) {
-      0 => resolveForegroundColor(cellData.foreground),
-      _ => resolveBackgroundColor(cellData.background),
+    final inverse = (cellFlags & CellFlags.inverse != 0) != _reverseDisplay;
+    var color = switch (inverse) {
+      false => resolveForegroundColor(cellData.foreground),
+      true => resolveBackgroundColor(cellData.background),
     };
     if (cellFlags & CellFlags.faint != 0) {
       color = color.withValues(alpha: 0.5);
@@ -406,7 +415,9 @@ class TerminalPainter {
   Color? resolveCellBackgroundColor(CellData cellData) {
     final colorType = cellData.background & CellColor.typeMask;
 
-    if (cellData.flags & CellFlags.inverse != 0) {
+    final inverse =
+        (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
+    if (inverse) {
       return resolveForegroundColor(cellData.foreground);
     }
 
