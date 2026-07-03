@@ -1,3 +1,4 @@
+import 'dart:math' show max, min;
 import 'dart:ui';
 import 'package:flutter/painting.dart';
 
@@ -162,10 +163,11 @@ class TerminalPainter {
     required TerminalCursorType cursorType,
     bool hasFocus = true,
     int cellWidth = 1,
+    Color? color,
   }) {
     final cursorSize = Size(_cellSize.width * cellWidth, _cellSize.height);
     final paint = Paint()
-      ..color = cursorColor
+      ..color = color ?? cursorColor
       ..strokeWidth = 1;
 
     if (!hasFocus) {
@@ -664,6 +666,32 @@ class TerminalPainter {
     return resolveBackgroundColor(cellData.background);
   }
 
+  ({Color background, Color foreground}) resolveCursorColors(
+    CellData cellData,
+  ) {
+    final inverse =
+        (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
+    final cellForeground = switch (inverse) {
+      true => resolveBackgroundColor(cellData.background),
+      false => resolveForegroundColor(cellData.foreground),
+    };
+    final cellBackground = switch (inverse) {
+      true => resolveForegroundColor(cellData.foreground),
+      false => resolveBackgroundColor(cellData.background),
+    };
+
+    if (_contrastRatio(cellForeground, cellBackground) < 1.5) {
+      return (
+        background: foregroundColor,
+        foreground: backgroundColor,
+      );
+    }
+    return (
+      background: cursorColor,
+      foreground: cellBackground,
+    );
+  }
+
   /// Get the effective foreground color for a cell from information encoded in
   /// [cellColor].
   @pragma('vm:prefer-inline')
@@ -701,4 +729,12 @@ class TerminalPainter {
         return Color(colorValue | 0xFF000000);
     }
   }
+}
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter = max(firstLuminance, secondLuminance);
+  final darker = min(firstLuminance, secondLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
 }

@@ -190,6 +190,24 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter keeps cursors visible on low-contrast cells', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()
+      ..foreground = CellColor.named
+      ..background = CellColor.named;
+
+    final colors = painter.resolveCursorColors(cell);
+
+    expect(colors.background, painter.foregroundColor);
+    expect(colors.foreground, painter.backgroundColor);
+
+    painter.dispose();
+  });
+
   test('block cursor spans the requested cell width', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

@@ -622,9 +622,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         shouldPaintCursor && cursorType == TerminalCursorType.block;
     final cursorRenderColumn = _cursorRenderColumn();
     final cursorRenderWidth = _cursorRenderWidth(cursorRenderColumn);
+    final cursorColors = _cursorColors(cursorRenderColumn);
     final cursorForeground =
         switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
-      true => _cursorForeground(cursorRenderColumn),
+      true => cursorColors.foreground,
       false => _painter.backgroundColor,
     };
 
@@ -634,6 +635,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         offset + _cursorRenderOffset(cursorRenderColumn),
         cursorType: cursorType,
         cellWidth: cursorRenderWidth,
+        color: cursorColors.background,
       );
     }
 
@@ -671,6 +673,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
           cursorType: cursorType,
           hasFocus: _focusNode.hasFocus,
           cellWidth: cursorRenderWidth,
+          color: cursorColors.background,
         );
       }
     }
@@ -710,12 +713,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     return 1;
   }
 
-  Color _cursorForeground(int cursorColumn) {
+  ({Color background, Color foreground}) _cursorColors(int cursorColumn) {
     final line = _terminal.buffer.lines[_terminal.buffer.absoluteCursorY];
     final cellData = CellData.empty();
     line.getCellData(cursorColumn, cellData);
-    return _painter.resolveCellBackgroundColor(cellData) ??
-        _painter.backgroundColor;
+    return _painter.resolveCursorColors(cellData);
   }
 
   Offset _cursorRenderOffset(int cursorColumn) {
