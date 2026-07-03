@@ -293,6 +293,16 @@ void main() {
     expect(terminal.buffer.cursorY, 2);
   });
 
+  test('Terminal applies application keypad mode escapes', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b=');
+    expect(terminal.appKeypadMode, isTrue);
+
+    terminal.write('\x1b>');
+    expect(terminal.appKeypadMode, isFalse);
+  });
+
   test('Terminal applies DECSCUSR cursor shape and blinking state', () {
     final terminal = Terminal();
 

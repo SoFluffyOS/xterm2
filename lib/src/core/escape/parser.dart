@@ -196,16 +196,16 @@ class EscapeParser {
   /// `ESC >` Reset Application Keypad Mode (DECKPNM)
   ///
   /// https://terminalguide.namepad.de/seq/a_esc_x3c_greater_than/
-  bool _escHandleSetAppKeypadMode() {
-    handler.setAppKeypadMode(true);
+  bool _escHandleResetAppKeypadMode() {
+    handler.setAppKeypadMode(false);
     return true;
   }
 
   /// `ESC =` Set Application Keypad Mode (DECKPAM)
   ///
   /// https://terminalguide.namepad.de/seq/a_esc_x3d_equals/
-  bool _escHandleResetAppKeypadMode() {
-    handler.setAppKeypadMode(false);
+  bool _escHandleSetAppKeypadMode() {
+    handler.setAppKeypadMode(true);
     return true;
   }
 
