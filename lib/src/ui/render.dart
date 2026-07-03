@@ -522,6 +522,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final canvas = context.canvas;
     _painter.reverseDisplay = _terminal.reverseDisplayMode;
 
+    if (_terminal.reverseDisplayMode) {
+      final paint = Paint()..color = _painter.theme.foreground;
+      canvas.drawRect(offset & size, paint);
+    }
+
     final lines = _terminal.buffer.lines;
     final charHeight = _painter.cellSize.height;
 
