@@ -208,6 +208,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     super.detach();
   }
 
+  @override
+  void dispose() {
+    _stopCursorBlinking();
+    _painter.dispose();
+    super.dispose();
+  }
+
   void _updateCursorBlinking({bool force = false}) {
     final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
     if (!force && enabled == _cursorBlinkWasEnabled) return;
@@ -536,6 +543,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     paragraph.layout(ParagraphConstraints(width: size.width));
 
     canvas.drawParagraph(paragraph, Offset(0, offset.dy));
+    paragraph.dispose();
   }
 
   void _paintSelection(

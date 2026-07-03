@@ -92,6 +92,10 @@ class TerminalPainter {
     _paragraphCache.clear();
   }
 
+  void dispose() {
+    _paragraphCache.dispose();
+  }
+
   /// Paints the cursor based on the current cursor type.
   void paintCursor(
     Canvas canvas,
