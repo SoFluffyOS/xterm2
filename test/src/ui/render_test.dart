@@ -70,6 +70,55 @@ void main() {
 
     setup.focusNode.dispose();
   });
+
+  test('content geometry includes safe-area padding', () {
+    const padding = EdgeInsets.fromLTRB(7, 11, 13, 17);
+    final setup = _createRenderTerminal(padding: padding);
+    final render = setup.render;
+    final segment = BufferSegment(
+      BufferRangeLine(const CellOffset(0, 0), const CellOffset(2, 0)),
+      0,
+      1,
+      2,
+    );
+
+    expect(render.cursorOffset, Offset(padding.left, padding.top));
+    expect(
+      render.getSegmentOffset(segment, const Offset(3, 5)),
+      Offset(3 + padding.left + render.cellSize.width, 5 + padding.top),
+    );
+    expect(
+      render.getCellOffset(
+        Offset(
+          padding.left + render.cellSize.width / 2,
+          padding.top + render.cellSize.height / 2,
+        ),
+      ),
+      const CellOffset(0, 0),
+    );
+
+    setup.focusNode.dispose();
+  });
+
+  test('auto resize excludes safe-area padding from terminal cells', () {
+    const padding = EdgeInsets.fromLTRB(7, 11, 13, 17);
+    final setup = _createRenderTerminal(
+      padding: padding,
+      autoResize: true,
+    );
+    final render = setup.render;
+    final size = Size(
+      render.cellSize.width * 8 + padding.horizontal,
+      render.cellSize.height * 4 + padding.vertical,
+    );
+
+    render.layout(BoxConstraints.tight(size));
+
+    expect(setup.terminal.viewWidth, 8);
+    expect(setup.terminal.viewHeight, 4);
+
+    setup.focusNode.dispose();
+  });
 }
 
 ({
@@ -77,7 +126,10 @@ void main() {
   Terminal terminal,
   TerminalController controller,
   FocusNode focusNode,
-}) _createRenderTerminal() {
+}) _createRenderTerminal({
+  EdgeInsets padding = EdgeInsets.zero,
+  bool autoResize = false,
+}) {
   final terminal = Terminal()..resize(10, 5);
   final controller = TerminalController();
   final focusNode = FocusNode();
@@ -85,8 +137,8 @@ void main() {
     terminal: terminal,
     controller: controller,
     offset: ViewportOffset.fixed(0),
-    padding: EdgeInsets.zero,
-    autoResize: false,
+    padding: padding,
+    autoResize: autoResize,
     textStyle: const TerminalStyle(fontSize: 20, height: 1),
     textScaler: TextScaler.noScaling,
     theme: TerminalThemes.whiteOnBlack,

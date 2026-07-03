@@ -443,13 +443,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   /// Update the viewport size in cells based on the current widget size in
   /// pixels.
   void _updateViewportSize() {
-    if (size <= _painter.cellSize) {
+    final viewportWidth = size.width - _padding.horizontal;
+    final viewportHeight = _viewportHeight;
+    if (viewportWidth < _painter.cellSize.width ||
+        viewportHeight < _painter.cellSize.height) {
       return;
     }
 
     final viewportSize = TerminalSize(
-      size.width ~/ _painter.cellSize.width,
-      _viewportHeight ~/ _painter.cellSize.height,
+      viewportWidth ~/ _painter.cellSize.width,
+      viewportHeight ~/ _painter.cellSize.height,
     );
 
     if (_viewportSize != viewportSize) {
@@ -489,7 +492,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   double get _viewportHeight {
-    return size.height - _padding.vertical;
+    return max(size.height - _padding.vertical, 0);
   }
 
   double get _maxScrollExtent {
@@ -504,7 +507,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   Offset get cursorOffset {
     final cursorColumn = _cursorRenderColumn();
     return Offset(
-      cursorColumn * _painter.cellSize.width,
+      _padding.left + cursorColumn * _painter.cellSize.width,
       _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
     );
   }
@@ -551,7 +554,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
       _painter.paintLineBackgrounds(
         canvas,
-        offset.translate(0, (i * charHeight + _lineOffset).truncateToDouble()),
+        offset.translate(
+          _padding.left,
+          (i * charHeight + _lineOffset).truncateToDouble(),
+        ),
         lines[i],
       );
     }
@@ -610,7 +616,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       hasBlinkingText = _painter.paintLineForegrounds(
             canvas,
             offset.translate(
-              0,
+              _padding.left,
               (i * charHeight + _lineOffset).truncateToDouble(),
             ),
             lines[i],
@@ -687,7 +693,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   Offset _cursorRenderOffset(int cursorColumn) {
     return Offset(
-      cursorColumn * _painter.cellSize.width,
+      _padding.left + cursorColumn * _painter.cellSize.width,
       _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
     );
   }
@@ -803,7 +809,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final start = segment.start ?? 0;
     return paintOffset +
         Offset(
-          start * _painter.cellSize.width,
+          _padding.left + start * _painter.cellSize.width,
           segment.line * _painter.cellSize.height + _lineOffset,
         );
   }
