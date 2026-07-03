@@ -42,6 +42,36 @@ void main() {
     picture.dispose();
   });
 
+  test('procedural glyphs do not bleed outside their cell', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    paintProceduralGlyph(
+      canvas,
+      const Offset(10, 0),
+      const Size(10, 10),
+      0x2588,
+      paint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(30, 10);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected block image bytes');
+    }
+
+    int alphaAt(int x, int y) => bytes.getUint8((y * 30 + x) * 4 + 3);
+    expect(alphaAt(9, 5), 0);
+    expect(alphaAt(10, 5), greaterThan(0));
+    expect(alphaAt(19, 5), greaterThan(0));
+    expect(alphaAt(20, 5), 0);
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural glyph rendering falls back for regular text', () {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);

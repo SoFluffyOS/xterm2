@@ -174,6 +174,26 @@ bool paintProceduralGlyph(
     return false;
   }
 
+  canvas.save();
+  canvas.clipRect(offset & cellSize);
+  final painted = _paintProceduralGlyph(
+    canvas,
+    offset,
+    cellSize,
+    codePoint,
+    paint,
+  );
+  canvas.restore();
+  return painted;
+}
+
+bool _paintProceduralGlyph(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int codePoint,
+  Paint paint,
+) {
   final x = offset.dx;
   final y = offset.dy;
   final width = cellSize.width;
