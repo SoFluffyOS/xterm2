@@ -143,6 +143,28 @@ void main() {
     recorder.endRecording().dispose();
   });
 
+  test('procedural glyph rendering covers the full box drawing block', () {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    for (var codePoint = 0x2500; codePoint <= 0x257f; codePoint++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(10, 20),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+    }
+
+    recorder.endRecording().dispose();
+  });
+
   test('procedural braille blank has no visible dots', () async {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);

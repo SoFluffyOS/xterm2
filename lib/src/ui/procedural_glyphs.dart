@@ -68,6 +68,38 @@ const _singleLineBoxArms = <int>[
   0xaa,
 ];
 
+const _doubleLineBoxArms = <int>[
+  0x0a,
+  0xa0,
+  0x48,
+  0x84,
+  0x88,
+  0x42,
+  0x81,
+  0x82,
+  0x18,
+  0x24,
+  0x28,
+  0x12,
+  0x21,
+  0x22,
+  0x58,
+  0xa4,
+  0xa8,
+  0x52,
+  0xa1,
+  0xa2,
+  0x4a,
+  0x85,
+  0x8a,
+  0x1a,
+  0x25,
+  0x2a,
+  0x5a,
+  0xa5,
+  0xaa,
+];
+
 bool paintProceduralGlyph(
   Canvas canvas,
   Offset offset,
@@ -185,9 +217,37 @@ bool paintProceduralGlyph(
         start, centerY - thickness / 2, end, centerY + thickness / 2));
   }
 
+  void horizontalAt(
+    double start,
+    double end,
+    double lineY,
+    double thickness,
+  ) {
+    fill(Rect.fromLTRB(
+      start,
+      lineY - thickness / 2,
+      end,
+      lineY + thickness / 2,
+    ));
+  }
+
   void vertical(double start, double end, double thickness) {
     fill(Rect.fromLTRB(
         centerX - thickness / 2, start, centerX + thickness / 2, end));
+  }
+
+  void verticalAt(
+    double start,
+    double end,
+    double lineX,
+    double thickness,
+  ) {
+    fill(Rect.fromLTRB(
+      lineX - thickness / 2,
+      start,
+      lineX + thickness / 2,
+      end,
+    ));
   }
 
   void dashedHorizontal(int gaps, double thickness) {
@@ -234,6 +294,41 @@ bool paintProceduralGlyph(
     if (bottom > 0) {
       vertical(centerY, y + height, bottom);
     }
+    return true;
+  }
+
+  if (codePoint >= 0x2550 && codePoint <= 0x256c) {
+    final arms = _doubleLineBoxArms[codePoint - 0x2550];
+    final doubleOffset = max(1.0, thin * 1.5);
+
+    void horizontalArm(double start, double end, int shift) {
+      final style = (arms >> shift) & 3;
+      if (style == 1) {
+        horizontal(start, end, thin);
+        return;
+      }
+      if (style == 2) {
+        horizontalAt(start, end, centerY - doubleOffset, thin);
+        horizontalAt(start, end, centerY + doubleOffset, thin);
+      }
+    }
+
+    void verticalArm(double start, double end, int shift) {
+      final style = (arms >> shift) & 3;
+      if (style == 1) {
+        vertical(start, end, thin);
+        return;
+      }
+      if (style == 2) {
+        verticalAt(start, end, centerX - doubleOffset, thin);
+        verticalAt(start, end, centerX + doubleOffset, thin);
+      }
+    }
+
+    horizontalArm(x, centerX + doubleOffset, 0);
+    horizontalArm(centerX - doubleOffset, x + width, 2);
+    verticalArm(y, centerY + doubleOffset, 4);
+    verticalArm(centerY - doubleOffset, y + height, 6);
     return true;
   }
 
@@ -286,6 +381,33 @@ bool paintProceduralGlyph(
     case 0x254f:
       dashedVertical(1, heavy);
       return true;
+    case 0x256d:
+    case 0x256e:
+    case 0x256f:
+    case 0x2570:
+      final isRight = codePoint == 0x256d || codePoint == 0x2570;
+      final isDown = codePoint == 0x256d || codePoint == 0x256e;
+      final horizontalX = switch (isRight) {
+        true => x + width,
+        false => x,
+      };
+      final verticalY = switch (isDown) {
+        true => y + height,
+        false => y,
+      };
+      final horizontalEnd = Offset(horizontalX, centerY);
+      final verticalEnd = Offset(centerX, verticalY);
+      final arcPath = Path()
+        ..moveTo(horizontalEnd.dx, horizontalEnd.dy)
+        ..quadraticBezierTo(centerX, centerY, verticalEnd.dx, verticalEnd.dy);
+      canvas.drawPath(
+        arcPath,
+        Paint()
+          ..color = paint.color
+          ..strokeWidth = thin
+          ..style = PaintingStyle.stroke,
+      );
+      return true;
     case 0x2571:
     case 0x2572:
     case 0x2573:
@@ -307,6 +429,46 @@ bool paintProceduralGlyph(
           strokePaint,
         );
       }
+      return true;
+    case 0x2574:
+      horizontal(x, centerX, thin);
+      return true;
+    case 0x2575:
+      vertical(y, centerY, thin);
+      return true;
+    case 0x2576:
+      horizontal(centerX, x + width, thin);
+      return true;
+    case 0x2577:
+      vertical(centerY, y + height, thin);
+      return true;
+    case 0x2578:
+      horizontal(x, centerX, heavy);
+      return true;
+    case 0x2579:
+      vertical(y, centerY, heavy);
+      return true;
+    case 0x257a:
+      horizontal(centerX, x + width, heavy);
+      return true;
+    case 0x257b:
+      vertical(centerY, y + height, heavy);
+      return true;
+    case 0x257c:
+      horizontal(x, centerX, thin);
+      horizontal(centerX, x + width, heavy);
+      return true;
+    case 0x257d:
+      vertical(y, centerY, thin);
+      vertical(centerY, y + height, heavy);
+      return true;
+    case 0x257e:
+      horizontal(x, centerX, heavy);
+      horizontal(centerX, x + width, thin);
+      return true;
+    case 0x257f:
+      vertical(y, centerY, heavy);
+      vertical(centerY, y + height, thin);
       return true;
     default:
       return false;
