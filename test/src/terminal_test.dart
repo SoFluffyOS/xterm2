@@ -225,6 +225,23 @@ void main() {
       expect(redraws, 2);
     });
   });
+
+  test('Terminal reports focus only when DEC focus mode is enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.focusInput(true);
+    expect(output, isEmpty);
+
+    terminal.write('\x1b[?1004h');
+    terminal.focusInput(true);
+    terminal.focusInput(false);
+    expect(output, ['\x1b[I', '\x1b[O']);
+
+    terminal.write('\x1b[?1004l');
+    terminal.focusInput(true);
+    expect(output, hasLength(2));
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

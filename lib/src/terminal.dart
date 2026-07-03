@@ -332,6 +332,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     }
   }
 
+  /// Reports a terminal viewport focus change to the underlying application.
+  void focusInput(bool focused) {
+    if (!_reportFocusMode) return;
+    onOutput?.call(switch (focused) {
+      true => _emitter.focusIn(),
+      false => _emitter.focusOut(),
+    });
+  }
+
   // Handle a mouse event and return true if it was handled.
   bool mouseInput(
     TerminalMouseButton button,

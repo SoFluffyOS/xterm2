@@ -30,4 +30,8 @@ class EscapeEmitter {
   String size(int rows, int cols) {
     return '\x1b[8;$rows;${cols}t';
   }
+
+  String focusIn() => '\x1b[I';
+
+  String focusOut() => '\x1b[O';
 }

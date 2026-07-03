@@ -107,6 +107,39 @@ void main() {
   });
 
   group('TerminalView.focusNode', () {
+    testWidgets('reports focus changes when requested by the application', (
+      tester,
+    ) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add)..write('\x1b[?1004h');
+      final terminalFocus = FocusNode();
+      final otherFocus = FocusNode();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Column(
+            children: [
+              SizedBox(
+                height: 200,
+                child: TerminalView(terminal, focusNode: terminalFocus),
+              ),
+              Focus(focusNode: otherFocus, child: const SizedBox()),
+            ],
+          ),
+        ),
+      );
+
+      terminalFocus.requestFocus();
+      await tester.pump();
+      otherFocus.requestFocus();
+      await tester.pump();
+
+      expect(output, ['\x1b[I', '\x1b[O']);
+      await tester.pumpWidget(const SizedBox());
+      terminalFocus.dispose();
+      otherFocus.dispose();
+    });
+
     testWidgets('is not listened when terminal is disposed', (tester) async {
       final terminal = Terminal();
 
