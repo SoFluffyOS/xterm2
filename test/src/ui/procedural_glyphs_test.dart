@@ -246,6 +246,34 @@ void main() {
 
     recorder.endRecording().dispose();
   });
+
+  test('procedural glyph rendering covers legacy computing blocks', () {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    final codePoints = <int>[
+      for (var codePoint = 0x1fb00; codePoint <= 0x1fb3b; codePoint++)
+        codePoint,
+      for (var codePoint = 0x1fb82; codePoint <= 0x1fb8b; codePoint++)
+        codePoint,
+    ];
+
+    for (final codePoint in codePoints) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(10, 20),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+    }
+
+    recorder.endRecording().dispose();
+  });
 }
 
 bool _hasAnyAlpha(ByteData bytes, int width, int height) {

@@ -100,6 +100,69 @@ const _doubleLineBoxArms = <int>[
   0xaa,
 ];
 
+const _sextantMasks = <int>[
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40,
+  41,
+  43,
+  44,
+  45,
+  46,
+  47,
+  48,
+  49,
+  50,
+  51,
+  52,
+  53,
+  54,
+  55,
+  56,
+  57,
+  58,
+  59,
+  60,
+  61,
+  62,
+];
+
 bool paintProceduralGlyph(
   Canvas canvas,
   Offset offset,
@@ -234,6 +297,41 @@ bool paintProceduralGlyph(
         ..strokeWidth = max(1.0, width * 0.12)
         ..style = PaintingStyle.stroke,
     );
+    return true;
+  }
+
+  if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
+    final sextants = _sextantMasks[codePoint - 0x1fb00];
+    final halfWidth = width / 2;
+    final thirdHeight = height / 3;
+    for (var sextant = 0; sextant < 6; sextant++) {
+      if (sextants & (1 << sextant) == 0) {
+        continue;
+      }
+      final column = sextant & 1;
+      final row = sextant >> 1;
+      fill(Rect.fromLTWH(
+        x + column * halfWidth,
+        y + row * thirdHeight,
+        halfWidth,
+        thirdHeight,
+      ));
+    }
+    return true;
+  }
+
+  if (codePoint >= 0x1fb82 && codePoint <= 0x1fb86) {
+    const eighths = [2, 3, 5, 6, 7];
+    final fraction = eighths[codePoint - 0x1fb82] / 8;
+    fill(Rect.fromLTWH(x, y, width, height * fraction));
+    return true;
+  }
+
+  if (codePoint >= 0x1fb87 && codePoint <= 0x1fb8b) {
+    const eighths = [2, 3, 5, 6, 7];
+    final fraction = eighths[codePoint - 0x1fb87] / 8;
+    final blockWidth = width * fraction;
+    fill(Rect.fromLTWH(x + width - blockWidth, y, blockWidth, height));
     return true;
   }
 
