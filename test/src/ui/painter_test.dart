@@ -1,12 +1,49 @@
 import 'dart:typed_data';
 
 import 'dart:ui' as ui;
-import 'package:flutter/widgets.dart' show TextScaler;
+import 'package:flutter/widgets.dart' show TextDecoration, TextScaler;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('TerminalStyle combines underline and strikethrough', () {
+    final style = const TerminalStyle().toTextStyle(
+      underline: true,
+      strikethrough: true,
+    );
+    final decoration = style.decoration;
+    if (decoration == null) {
+      fail('Expected text decoration');
+    }
+
+    expect(decoration.contains(TextDecoration.underline), isTrue);
+    expect(decoration.contains(TextDecoration.lineThrough), isTrue);
+  });
+
+  test('paintLine strikes through procedural glyphs', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(1);
+    final style = CursorStyle()..setStrikethrough();
+    line.setCell(0, 0x2502, 1, style);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final strikeY = (painter.cellSize.height / 2).round();
+    expect(_hasAlphaNear(byteData, image.width, 1, strikeY), isTrue);
+
+    image.dispose();
+  });
+
   test('paintLine skips invisible cell foregrounds', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -188,6 +225,15 @@ bool _hasAnyAlpha(ByteData byteData, int width, int height) {
       if (_alphaAt(byteData, width, x, y) != 0) {
         return true;
       }
+    }
+  }
+  return false;
+}
+
+bool _hasAlphaNear(ByteData byteData, int width, int x, int y) {
+  for (var offsetY = -1; offsetY <= 1; offsetY++) {
+    if (_alphaAt(byteData, width, x, y + offsetY) != 0) {
+      return true;
     }
   }
   return false;

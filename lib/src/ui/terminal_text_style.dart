@@ -57,7 +57,18 @@ class TerminalStyle {
     bool bold = false,
     bool italic = false,
     bool underline = false,
+    bool strikethrough = false,
   }) {
+    final decoration = switch ((underline, strikethrough)) {
+      (true, true) => TextDecoration.combine(const [
+          TextDecoration.underline,
+          TextDecoration.lineThrough,
+        ]),
+      (true, false) => TextDecoration.underline,
+      (false, true) => TextDecoration.lineThrough,
+      (false, false) => TextDecoration.none,
+    };
+
     return TextStyle(
       fontSize: fontSize,
       height: height,
@@ -67,7 +78,7 @@ class TerminalStyle {
       backgroundColor: backgroundColor,
       fontWeight: bold ? FontWeight.bold : FontWeight.normal,
       fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-      decoration: underline ? TextDecoration.underline : TextDecoration.none,
+      decoration: decoration,
     );
   }
 
