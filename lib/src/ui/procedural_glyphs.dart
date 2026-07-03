@@ -43,6 +43,30 @@ bool paintProceduralGlyph(
     fill(Rect.fromLTWH(x + width / 2, y, width / 2, height));
     return true;
   }
+  if (codePoint >= 0x2800 && codePoint <= 0x28ff) {
+    final dots = codePoint - 0x2800;
+    final dotWidth = max(1.0, width * 0.22);
+    final dotHeight = max(1.0, height * 0.16);
+    const dotColumns = [0, 0, 0, 1, 1, 1, 0, 1];
+    const dotRows = [0, 1, 2, 0, 1, 2, 3, 3];
+
+    for (var dot = 0; dot < 8; dot++) {
+      if (dots & (1 << dot) == 0) {
+        continue;
+      }
+      final centerX = x + width * (dotColumns[dot] * 0.5 + 0.25);
+      final centerY = y + height * (dotRows[dot] * 0.25 + 0.125);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(centerX, centerY),
+          width: dotWidth,
+          height: dotHeight,
+        ),
+        paint,
+      );
+    }
+    return true;
+  }
 
   final thin = max(1.0, width * 0.12);
   final heavy = max(2.0, width * 0.22);
