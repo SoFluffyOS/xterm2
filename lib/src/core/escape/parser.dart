@@ -915,12 +915,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cl/
   void _csiHandleInsertLines() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.insertLines(amount);
   }
 
@@ -928,12 +923,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cm/
   void _csiHandleDeleteLines() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.deleteLines(amount);
   }
 
@@ -941,12 +931,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cp/
   void _csiHandleDelete() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.deleteChars(amount);
   }
 
@@ -954,12 +939,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cs/
   void _csiHandleScrollUp() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.scrollUp(amount);
   }
 
@@ -967,12 +947,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ct_1param/
   void _csiHandleScrollDown() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.scrollDown(amount);
   }
 
@@ -980,12 +955,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cx/
   void _csiHandleEraseCharacters() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
+    final amount = _firstParamOrDefault(1);
     handler.eraseChars(amount);
   }
 
@@ -997,13 +967,21 @@ class EscapeParser {
   /// contents to the right. The contents of the amount right-most columns in
   /// the scroll region are lost. The cursor position is not changed.
   void _csiHandleInsertBlankCharacters() {
-    var amount = 1;
+    final amount = _firstParamOrDefault(1);
+    handler.insertBlankChars(amount);
+  }
 
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
+  int _firstParamOrDefault(int defaultValue) {
+    if (_csi.params.isEmpty) {
+      return defaultValue;
     }
 
-    handler.insertBlankChars(amount);
+    final value = _csi.params[0];
+    if (value == 0) {
+      return defaultValue;
+    }
+
+    return value;
   }
 
   void _setMode(int mode, bool enabled) {

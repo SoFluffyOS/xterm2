@@ -322,6 +322,58 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  group('Terminal CSI zero defaults', () {
+    test('delete characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0P');
+
+      expect(terminal.buffer.lines[0].toString(), 'abde');
+    });
+
+    test('erase characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0X');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].toString(), 'abde');
+    });
+
+    test('insert blank characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0@');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].toString(), 'abcd');
+    });
+
+    test('insert lines treats zero as one', () {
+      final terminal = Terminal()..resize(5, 5);
+      terminal.write('one\r\ntwo\r\nthree');
+
+      terminal.setCursor(0, 1);
+      terminal.write('\x1b[0L');
+
+      expect(terminal.buffer.lines[0].toString(), 'one');
+      expect(terminal.buffer.lines[1].toString(), '');
+      expect(terminal.buffer.lines[2].toString(), 'two');
+    });
+
+    test('delete lines treats zero as one', () {
+      final terminal = Terminal()..resize(5, 5);
+      terminal.write('one\r\ntwo\r\nthree');
+
+      terminal.setCursor(0, 1);
+      terminal.write('\x1b[0M');
+
+      expect(terminal.buffer.lines[0].toString(), 'one');
+      expect(terminal.buffer.lines[1].toString(), 'three');
+      expect(terminal.buffer.lines[2].toString(), '');
+    });
+  });
+
   test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
     final terminal = Terminal();
 
