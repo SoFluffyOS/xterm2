@@ -12,7 +12,7 @@ void main() {
         MouseReportMode.normal,
       );
 
-      expect(output, equals('\x1B[M !"'));
+      expect(output, equals('\x1B[M !!'));
     });
 
     test('report() supports utf mode', () {
@@ -23,7 +23,7 @@ void main() {
         MouseReportMode.utf,
       );
 
-      expect(output, equals('\x1B[M !"'));
+      expect(output, equals('\x1B[M !!'));
     });
 
     test('report() supports sgr mode', () {
