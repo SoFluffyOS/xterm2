@@ -435,7 +435,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       cursor.dy + _painter.cellSize.height,
     );
 
-    final caretRect = cursor & _painter.cellSize;
+    final caretRect = cursor & cursorSize;
 
     _onEditableRect?.call(rect, caretRect);
   }
@@ -502,14 +502,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// The offset of the cursor from the top left corner of this render object.
   Offset get cursorOffset {
+    final cursorColumn = _cursorRenderColumn();
     return Offset(
-      _terminal.buffer.cursorX * _painter.cellSize.width,
+      cursorColumn * _painter.cellSize.width,
       _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
     );
   }
 
   Size get cellSize {
     return _painter.cellSize;
+  }
+
+  Size get cursorSize {
+    final cursorWidth = _cursorRenderWidth(_cursorRenderColumn());
+    return Size(
+      _painter.cellSize.width * cursorWidth,
+      _painter.cellSize.height,
+    );
   }
 
   @override

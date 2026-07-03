@@ -56,10 +56,25 @@ void main() {
 
     setup.focusNode.dispose();
   });
+
+  test('cursor offset uses wide glyph origin when cursor is on spacer', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final terminal = setup.terminal;
+
+    terminal.write('好');
+    terminal.buffer.setCursor(1, 0);
+
+    expect(render.cursorOffset.dx, 0);
+    expect(render.cursorSize.width, render.cellSize.width * 2);
+
+    setup.focusNode.dispose();
+  });
 }
 
 ({
   RenderTerminal render,
+  Terminal terminal,
   TerminalController controller,
   FocusNode focusNode,
 }) _createRenderTerminal() {
@@ -81,6 +96,7 @@ void main() {
   );
   return (
     render: render,
+    terminal: terminal,
     controller: controller,
     focusNode: focusNode,
   );

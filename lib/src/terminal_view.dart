@@ -328,7 +328,8 @@ class TerminalViewState extends State<TerminalView> {
     );
 
     child = Container(
-      color: widget.theme.background.withValues(alpha: widget.backgroundOpacity),
+      color:
+          widget.theme.background.withValues(alpha: widget.backgroundOpacity),
       padding: widget.padding,
       child: child,
     );
@@ -345,12 +346,12 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   Rect get cursorRect {
-    return renderTerminal.cursorOffset & renderTerminal.cellSize;
+    return renderTerminal.cursorOffset & renderTerminal.cursorSize;
   }
 
   Rect get globalCursorRect {
     return renderTerminal.localToGlobal(renderTerminal.cursorOffset) &
-        renderTerminal.cellSize;
+        renderTerminal.cursorSize;
   }
 
   void _onTapUp(TapUpDetails details) {
