@@ -112,6 +112,10 @@ class Buffer {
     codePoint = charset.translate(codePoint);
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
+    if (_previousCellEndsWithJoiner()) {
+      _addCombiningCharacter(codePoint);
+      return;
+    }
     if (cellWidth == 0) {
       _addCombiningCharacter(codePoint);
       return;
@@ -164,6 +168,16 @@ class Buffer {
       index--;
     }
     currentLine.addCombiningCharacter(index, codePoint);
+  }
+
+  bool _previousCellEndsWithJoiner() {
+    if (_cursorX == 0) return false;
+    var index = min(_cursorX - 1, viewWidth - 1);
+    if (index > 0 && currentLine.getWidth(index) == 0) {
+      index--;
+    }
+    return currentLine.getCombiningCharacters(index)?.endsWith('\u200d') ??
+        false;
   }
 
   void _wrapInput() {

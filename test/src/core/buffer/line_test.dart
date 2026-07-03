@@ -14,6 +14,18 @@ void main() {
       expect(terminal.buffer.cursorX, 1);
     });
 
+    test('preserves zero-width joiner emoji as one terminal glyph', () {
+      final terminal = Terminal();
+      const family = '👨‍👩‍👧‍👦';
+
+      terminal.write(family);
+
+      final line = terminal.buffer.lines[0];
+      expect(line.getText(), family);
+      expect(line.getCombiningCharacters(0), '‍👩‍👧‍👦');
+      expect(terminal.buffer.cursorX, 2);
+    });
+
     test('bounds combining characters per cell', () {
       final terminal = Terminal();
 
