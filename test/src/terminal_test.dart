@@ -340,6 +340,28 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal supports colon-delimited SGR truecolor foreground', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[38:2:1:2:3mX');
+
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.rgb | 0x010203,
+    );
+  });
+
+  test('Terminal supports colon-delimited SGR truecolor background', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[48:2:4:5:6mX');
+
+    expect(
+      terminal.buffer.lines[0].getBackground(0),
+      CellColor.rgb | 0x040506,
+    );
+  });
+
   group('Terminal CSI zero defaults', () {
     test('scroll margins treat zero as default', () {
       final terminal = Terminal()..resize(5, 5);

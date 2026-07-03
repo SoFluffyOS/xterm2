@@ -279,7 +279,7 @@ class EscapeParser {
         return true;
       }
 
-      if (char == Ascii.semicolon) {
+      if (char == Ascii.semicolon || char == Ascii.colon) {
         if (_csi.params.length < _maxCsiParams) {
           _csi.params.add(switch (hasParam) {
             true => param,
