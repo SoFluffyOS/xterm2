@@ -273,6 +273,26 @@ void main() {
     expect(output, hasLength(2));
   });
 
+  test('Terminal restores main cursor when leaving 1049 alternate screen', () {
+    final terminal = Terminal()..resize(5, 5);
+
+    terminal.write('\x1b[3;4H');
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 2);
+
+    terminal.write('\x1b[?1049h');
+    terminal.write('\x1b[1;1Halt');
+    expect(terminal.isUsingAltBuffer, isTrue);
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[?1049l');
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 2);
+  });
+
   test('Terminal applies DECSCUSR cursor shape and blinking state', () {
     final terminal = Terminal();
 

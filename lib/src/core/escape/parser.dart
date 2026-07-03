@@ -1112,6 +1112,7 @@ class EscapeParser {
           handler.useAltBuffer();
         } else {
           handler.useMainBuffer();
+          handler.restoreCursor();
         }
         return;
       case 2004:
