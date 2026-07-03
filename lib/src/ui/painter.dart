@@ -3,6 +3,7 @@ import 'package:flutter/painting.dart';
 
 import 'package:xterm/src/ui/palette_builder.dart';
 import 'package:xterm/src/ui/paragraph_cache.dart';
+import 'package:xterm/src/ui/procedural_glyphs.dart';
 import 'package:xterm/xterm.dart';
 
 /// Encapsulates the logic for painting various terminal elements.
@@ -174,21 +175,38 @@ class TerminalPainter {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
 
+    final cellFlags = cellData.flags;
+    final isHyperlink = cellData.hyperlinkId != 0;
+    var color = switch (cellFlags & CellFlags.inverse) {
+      0 => resolveForegroundColor(cellData.foreground),
+      _ => resolveBackgroundColor(cellData.background),
+    };
+    if (cellFlags & CellFlags.faint != 0) {
+      color = color.withValues(alpha: 0.5);
+    }
+
+    final proceduralPaint = Paint()..color = color;
+    if (paintProceduralGlyph(
+      canvas,
+      offset,
+      _cellSize,
+      charCode,
+      proceduralPaint,
+    )) {
+      if (isHyperlink || cellFlags & CellFlags.underline != 0) {
+        canvas.drawLine(
+          offset.translate(0, _cellSize.height - 1),
+          offset.translate(_cellSize.width, _cellSize.height - 1),
+          proceduralPaint,
+        );
+      }
+      return;
+    }
+
     final cacheKey = cellData.getHash() ^ _textScaler.hashCode;
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 
     if (paragraph == null) {
-      final cellFlags = cellData.flags;
-      final isHyperlink = cellData.hyperlinkId != 0;
-
-      var color = cellFlags & CellFlags.inverse == 0
-          ? resolveForegroundColor(cellData.foreground)
-          : resolveBackgroundColor(cellData.background);
-
-      if (cellData.flags & CellFlags.faint != 0) {
-        color = color.withValues(alpha: 0.5);
-      }
-
       final style = _textStyle.toTextStyle(
         color: color,
         bold: cellFlags & CellFlags.bold != 0,
