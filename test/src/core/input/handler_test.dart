@@ -10,6 +10,26 @@ void main() {
       terminal.keyInput(TerminalKey.numpadEnter);
       expect(output, ['\r']);
     });
+
+    test('keeps cursor keys normal in application keypad mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b=');
+      terminal.keyInput(TerminalKey.arrowUp);
+
+      expect(output, ['\x1b[A']);
+    });
+
+    test('uses application cursor keys in DECCKM mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1h');
+      terminal.keyInput(TerminalKey.arrowUp);
+
+      expect(output, ['\x1bOA']);
+    });
   });
 
   group('KeytabInputHandler', () {
