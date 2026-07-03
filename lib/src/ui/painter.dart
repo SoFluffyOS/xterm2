@@ -395,14 +395,12 @@ class TerminalPainter {
       false => 0,
     };
     final cacheKey = (
-      cellData.foreground,
-      cellData.background,
-      cellData.underlineColor,
+      color,
+      decorationColor,
       visualFlags | hyperlinkFlag,
       cellData.content,
       _textScaler,
       combiningCharacters,
-      foregroundOverride,
     );
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 

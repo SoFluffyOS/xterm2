@@ -102,6 +102,24 @@ void main() {
     painter.dispose();
   });
 
+  test('paintLine reuses glyph layout across background colors', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('\x1b[41mX\x1b[42mX');
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    painter.paintLineForegrounds(canvas, Offset.zero, terminal.buffer.lines[0]);
+
+    expect(painter.paragraphCacheLength, 1);
+
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
   test('block cursor spans the requested cell width', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
