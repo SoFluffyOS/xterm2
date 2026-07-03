@@ -7,6 +7,34 @@ import 'package:xterm/src/ui/painter.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  test('paintLine batches same-color backgrounds without seams', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(4);
+    for (var i = 0; i < line.length; i++) {
+      line.setBackground(i, CellColor.rgb | 0x123456);
+    }
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final paintedWidth = (painter.cellSize.width * line.length).ceil();
+    final y = (painter.cellSize.height / 2).round();
+    for (var x = 0; x < paintedWidth; x++) {
+      final alpha = _alphaAt(byteData, image.width, x, y);
+      expect(alpha, greaterThan(0));
+    }
+
+    image.dispose();
+  });
+
   test('underline cursor is painted at the requested row offset', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -91,9 +119,26 @@ Future<ui.Image> _paintCursor(
   return image;
 }
 
+Future<ui.Image> _paintLine(
+  TerminalPainter painter,
+  BufferLine line,
+) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  painter.paintLine(
+    canvas,
+    ui.Offset.zero,
+    line,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(120, 40);
+  picture.dispose();
+  return image;
+}
+
 bool _hasAlphaInRow(ByteData byteData, int width, int y) {
   for (var x = 0; x < width; x++) {
-    final alpha = byteData.getUint8((y * width + x) * 4 + 3);
+    final alpha = _alphaAt(byteData, width, x, y);
     if (alpha != 0) {
       return true;
     }
@@ -103,10 +148,14 @@ bool _hasAlphaInRow(ByteData byteData, int width, int y) {
 
 bool _hasAlphaInColumn(ByteData byteData, int width, int x, int startY) {
   for (var y = startY; y < startY + 20; y++) {
-    final alpha = byteData.getUint8((y * width + x) * 4 + 3);
+    final alpha = _alphaAt(byteData, width, x, y);
     if (alpha != 0) {
       return true;
     }
   }
   return false;
+}
+
+int _alphaAt(ByteData byteData, int width, int x, int y) {
+  return byteData.getUint8((y * width + x) * 4 + 3);
 }

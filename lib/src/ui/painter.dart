@@ -152,13 +152,87 @@ class TerminalPainter {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
 
+    var backgroundRunStart = 0;
+    var backgroundRunEnd = 0;
+    Color? backgroundRunColor;
+
+    for (var i = 0; i < line.length; i++) {
+      line.getCellData(i, cellData);
+
+      final charWidth = cellData.content >> CellContent.widthShift;
+      final cellSpan = switch (charWidth == 2) {
+        true => 2,
+        false => 1,
+      };
+      final color = resolveCellBackgroundColor(cellData);
+      final runColor = backgroundRunColor;
+
+      if (color == null) {
+        if (runColor != null) {
+          paintBackgroundRun(
+            canvas,
+            offset,
+            backgroundRunStart,
+            backgroundRunEnd,
+            runColor,
+          );
+        }
+        backgroundRunColor = null;
+        backgroundRunStart = i + cellSpan;
+        backgroundRunEnd = backgroundRunStart;
+
+        if (charWidth == 2) {
+          i++;
+        }
+        continue;
+      }
+
+      if (runColor != null && runColor == color && backgroundRunEnd == i) {
+        backgroundRunEnd += cellSpan;
+
+        if (charWidth == 2) {
+          i++;
+        }
+        continue;
+      }
+
+      if (runColor != null) {
+        paintBackgroundRun(
+          canvas,
+          offset,
+          backgroundRunStart,
+          backgroundRunEnd,
+          runColor,
+        );
+      }
+
+      backgroundRunColor = color;
+      backgroundRunStart = i;
+      backgroundRunEnd = i + cellSpan;
+
+      if (charWidth == 2) {
+        i++;
+      }
+    }
+
+    final runColor = backgroundRunColor;
+    if (runColor != null) {
+      paintBackgroundRun(
+        canvas,
+        offset,
+        backgroundRunStart,
+        backgroundRunEnd,
+        runColor,
+      );
+    }
+
     for (var i = 0; i < line.length; i++) {
       line.getCellData(i, cellData);
 
       final charWidth = cellData.content >> CellContent.widthShift;
       final cellOffset = offset.translate(i * cellWidth, 0);
 
-      paintCell(canvas, cellOffset, cellData);
+      paintCellForeground(canvas, cellOffset, cellData);
 
       if (charWidth == 2) {
         i++;
@@ -245,16 +319,8 @@ class TerminalPainter {
   /// [offset].
   @pragma('vm:prefer-inline')
   void paintCellBackground(Canvas canvas, Offset offset, CellData cellData) {
-    late Color color;
-    final colorType = cellData.background & CellColor.typeMask;
-
-    if (cellData.flags & CellFlags.inverse != 0) {
-      color = resolveForegroundColor(cellData.foreground);
-    } else if (colorType == CellColor.normal) {
-      return;
-    } else {
-      color = resolveBackgroundColor(cellData.background);
-    }
+    final color = resolveCellBackgroundColor(cellData);
+    if (color == null) return;
 
     _backgroundPaint.color = color;
     final doubleWidth = cellData.content >> CellContent.widthShift == 2;
@@ -264,6 +330,38 @@ class TerminalPainter {
     };
     final size = Size(_cellSize.width * widthScale + 1, _cellSize.height);
     canvas.drawRect(offset & size, _backgroundPaint);
+  }
+
+  @pragma('vm:prefer-inline')
+  void paintBackgroundRun(
+    Canvas canvas,
+    Offset offset,
+    int start,
+    int end,
+    Color color,
+  ) {
+    _backgroundPaint.color = color;
+    final runOffset = offset.translate(start * _cellSize.width, 0);
+    final runSize = Size(
+      (end - start) * _cellSize.width + 1,
+      _cellSize.height,
+    );
+    canvas.drawRect(runOffset & runSize, _backgroundPaint);
+  }
+
+  /// Get the effective background color for a cell, or null when the cell uses
+  /// the normal transparent terminal background.
+  @pragma('vm:prefer-inline')
+  Color? resolveCellBackgroundColor(CellData cellData) {
+    final colorType = cellData.background & CellColor.typeMask;
+
+    if (cellData.flags & CellFlags.inverse != 0) {
+      return resolveForegroundColor(cellData.foreground);
+    }
+
+    if (colorType == CellColor.normal) return null;
+
+    return resolveBackgroundColor(cellData.background);
   }
 
   /// Get the effective foreground color for a cell from information encoded in
