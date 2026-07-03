@@ -2,6 +2,39 @@ import 'package:test/test.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  group('Buffer.writeChar()', () {
+    test('wraps a wide character before the right margin', () {
+      final terminal = Terminal()..resize(4, 3);
+
+      terminal.write('abc界');
+
+      expect(terminal.buffer.lines[0].toString(), 'abc');
+      expect(terminal.buffer.lines[1].toString(), '界');
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+      expect(terminal.buffer.lines[1].getWidth(0), 2);
+      expect(terminal.buffer.lines[1].getWidth(1), 0);
+      expect(terminal.buffer.cursorX, 2);
+      expect(terminal.buffer.cursorY, 1);
+      expect(terminal.buffer.getText(), startsWith('abc界'));
+    });
+
+    test('overwrites the last column when autowrap is disabled', () {
+      final terminal = Terminal()..resize(4, 3);
+      terminal.write('\x1b[?7labcdX');
+
+      expect(terminal.buffer.lines[0].toString(), 'abcX');
+      expect(terminal.buffer.cursorY, 0);
+    });
+
+    test('suppresses a wide character that cannot fit without wrap', () {
+      final terminal = Terminal()..resize(4, 3);
+      terminal.write('\x1b[?7labc界X');
+
+      expect(terminal.buffer.lines[0].toString(), 'abcX');
+      expect(terminal.buffer.cursorY, 0);
+    });
+  });
+
   group('Buffer.getText()', () {
     test('should return the text', () {
       final terminal = Terminal();

@@ -112,24 +112,46 @@ class Buffer {
     codePoint = charset.translate(codePoint);
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
+    if (cellWidth <= 0) return;
+
     if (_cursorX >= terminal.viewWidth) {
-      index();
-      setCursorX(0);
       if (terminal.autoWrapMode) {
-        currentLine.isWrapped = true;
+        _wrapInput();
+      } else {
+        _cursorX = viewWidth - 1;
       }
+    }
+
+    if (cellWidth > viewWidth) {
+      _cursorX = viewWidth;
+      return;
+    }
+
+    if (cellWidth == 2 && _cursorX == viewWidth - 1) {
+      if (!terminal.autoWrapMode) {
+        _cursorX = viewWidth;
+        return;
+      }
+
+      currentLine.setCell(_cursorX, 0, 1, terminal.cursor);
+      _cursorX = viewWidth;
+      _wrapInput();
     }
 
     final line = currentLine;
     line.setCell(_cursorX, codePoint, cellWidth, terminal.cursor);
 
-    if (_cursorX < viewWidth) {
-      _cursorX++;
+    if (cellWidth == 2) {
+      line.setCell(_cursorX + 1, 0, 0, terminal.cursor);
     }
 
-    if (cellWidth == 2) {
-      writeChar(0);
-    }
+    _cursorX += cellWidth;
+  }
+
+  void _wrapInput() {
+    index();
+    setCursorX(0);
+    currentLine.isWrapped = true;
   }
 
   /// The line at the current cursor position.
