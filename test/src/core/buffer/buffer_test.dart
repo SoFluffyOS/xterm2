@@ -244,4 +244,34 @@ void main() {
       expect(terminal.buffer.lines[2].toString(), '');
     });
   });
+
+  group('Buffer.eraseLineToCursor()', () {
+    test('erases the cursor cell', () {
+      final terminal = Terminal();
+      terminal.resize(5, 3);
+      terminal.write('abcde');
+
+      terminal.setCursor(2, 0);
+      terminal.buffer.eraseLineToCursor();
+
+      expect(terminal.buffer.lines[0].toString(), 'de');
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+    });
+  });
+
+  group('Buffer.eraseDisplayToCursor()', () {
+    test('erases the cursor cell', () {
+      final terminal = Terminal();
+      terminal.resize(3, 3);
+      terminal.write('123\r\n456\r\n789');
+
+      terminal.setCursor(1, 1);
+      terminal.buffer.eraseDisplayToCursor();
+
+      expect(terminal.buffer.lines[0].toString(), '');
+      expect(terminal.buffer.lines[1].toString(), '6');
+      expect(terminal.buffer.lines[1].getCodePoint(1), 0);
+      expect(terminal.buffer.lines[2].toString(), '789');
+    });
+  });
 }
