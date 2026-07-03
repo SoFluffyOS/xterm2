@@ -152,6 +152,24 @@ void main() {
       expect(output, ['\x1B[M ++']);
     });
 
+    test('reports mouse modifiers', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1000h\x1b[?1006h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(0, 0),
+        modifiers: const TerminalMouseModifiers(
+          shift: true,
+          control: true,
+        ),
+      );
+
+      expect(output, ['\x1B[<20;1;1M']);
+    });
+
     test('ignores invalid collapsed mouse mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

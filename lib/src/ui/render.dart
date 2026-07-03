@@ -9,6 +9,7 @@ import 'package:xterm/src/core/buffer/range.dart';
 import 'package:xterm/src/core/buffer/segment.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
+import 'package:xterm/src/core/mouse/modifiers.dart';
 import 'package:xterm/src/terminal.dart';
 import 'package:xterm/src/ui/controller.dart';
 import 'package:xterm/src/ui/cursor_type.dart';
@@ -410,6 +411,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     TerminalMouseButtonState buttonState,
     Offset offset, {
     bool motion = false,
+    TerminalMouseModifiers modifiers = TerminalMouseModifiers.none,
   }) {
     final position = getCellOffset(offset);
     return _terminal.mouseInput(
@@ -417,6 +419,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       buttonState,
       position,
       motion: motion,
+      modifiers: modifiers,
     );
   }
 

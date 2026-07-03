@@ -1,8 +1,10 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
 import 'package:xterm/src/core/mouse/mode.dart';
+import 'package:xterm/src/core/mouse/modifiers.dart';
 import 'package:xterm/src/terminal_view.dart';
 import 'package:xterm/src/ui/controller.dart';
 import 'package:xterm/src/ui/gesture/gesture_detector.dart';
@@ -103,6 +105,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       TerminalMouseButtonState.down,
       event.localPosition,
       motion: true,
+      modifiers: _currentModifiers(),
     );
   }
 
@@ -137,6 +140,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
         button,
         TerminalMouseButtonState.down,
         details.localPosition,
+        modifiers: _currentModifiers(),
       );
     }
     // If the event was not handled by the terminal, use the supplied callback.
@@ -158,12 +162,25 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
         button,
         TerminalMouseButtonState.up,
         details.localPosition,
+        modifiers: _currentModifiers(),
       );
     }
     // If the event was not handled by the terminal, use the supplied callback.
     if (!handled || forceCallback) {
       callback?.call(details);
     }
+  }
+
+  TerminalMouseModifiers _currentModifiers() {
+    final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
+    return TerminalMouseModifiers(
+      shift: pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.shiftRight),
+      alt: pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.altRight),
+      control: pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.controlRight),
+    );
   }
 
   void onTapDown(TapDownDetails details) {

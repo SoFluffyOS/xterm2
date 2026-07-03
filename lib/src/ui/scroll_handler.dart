@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm/core.dart';
 import 'package:xterm/src/ui/infinite_scroll_view.dart';
@@ -90,6 +91,7 @@ class _TerminalScrollGestureHandlerState
       up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
       TerminalMouseButtonState.down,
       position,
+      modifiers: _currentModifiers(),
     );
 
     if (!handled && widget.simulateScroll) {
@@ -97,6 +99,18 @@ class _TerminalScrollGestureHandlerState
         up ? TerminalKey.arrowUp : TerminalKey.arrowDown,
       );
     }
+  }
+
+  TerminalMouseModifiers _currentModifiers() {
+    final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
+    return TerminalMouseModifiers(
+      shift: pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.shiftRight),
+      alt: pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.altRight),
+      control: pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.controlRight),
+    );
   }
 
   void _onScroll(double offset) {

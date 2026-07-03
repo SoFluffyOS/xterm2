@@ -2,6 +2,7 @@ import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/mouse/mode.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
+import 'package:xterm/src/core/mouse/modifiers.dart';
 
 abstract class MouseReporter {
   static String report(
@@ -10,6 +11,7 @@ abstract class MouseReporter {
     CellOffset position,
     MouseReportMode reportMode, {
     bool motion = false,
+    TerminalMouseModifiers modifiers = TerminalMouseModifiers.none,
   }) {
     // x and y offsets have to be incremented by 1 as the offset if 0-based,
     // The position has to be reported using 1-based coordinates.
@@ -21,7 +23,10 @@ abstract class MouseReporter {
         // Button ID 3 is used to signal a button release.
         final baseButtonID =
             state == TerminalMouseButtonState.up ? 3 : button.id;
-        final buttonID = baseButtonID + (motion ? 32 : 0);
+        var buttonID = baseButtonID + modifiers.reportOffset;
+        if (motion) {
+          buttonID += 32;
+        }
         // The button ID is reported as shifted by 32 to produce a printable
         // character.
         final btn = String.fromCharCode(32 + buttonID);
@@ -38,14 +43,20 @@ abstract class MouseReporter {
             : String.fromCharCode(32 + y);
         return "\x1b[M$btn$col$row";
       case MouseReportMode.sgr:
-        final buttonID = button.id + (motion ? 32 : 0);
+        var buttonID = button.id + modifiers.reportOffset;
+        if (motion) {
+          buttonID += 32;
+        }
         final upDown = state == TerminalMouseButtonState.down ? 'M' : 'm';
         return "\x1b[<$buttonID;$x;$y$upDown";
       case MouseReportMode.urxvt:
         // The button ID uses the same id as to report it as in normal mode.
         final baseButtonID =
             state == TerminalMouseButtonState.up ? 3 : button.id;
-        final buttonID = 32 + baseButtonID + (motion ? 32 : 0);
+        var buttonID = 32 + baseButtonID + modifiers.reportOffset;
+        if (motion) {
+          buttonID += 32;
+        }
         return "\x1b[$buttonID;$x;${y}M";
     }
   }
