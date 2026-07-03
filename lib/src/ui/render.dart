@@ -543,11 +543,19 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       canvas.drawRect(offset & size, paint);
     }
 
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(
+      offset.dx + _padding.left,
+      offset.dy + _padding.top,
+      max(size.width - _padding.horizontal, 0),
+      _viewportHeight,
+    ));
+
     final lines = _terminal.buffer.lines;
     final charHeight = _painter.cellSize.height;
 
-    final firstLineOffset = _scrollOffset - _padding.top;
-    final lastLineOffset = _scrollOffset + size.height + _padding.bottom;
+    final firstLineOffset = _scrollOffset;
+    final lastLineOffset = _scrollOffset + _viewportHeight;
 
     final firstLine = firstLineOffset ~/ charHeight;
     final lastLine = lastLineOffset ~/ charHeight;
@@ -652,6 +660,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         );
       }
     }
+    canvas.restore();
   }
 
   int _cursorRenderColumn() {
