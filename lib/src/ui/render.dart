@@ -463,10 +463,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// Notify the underlying terminal that the viewport size has changed.
   void _resizeTerminalIfNeeded() {
-    if (_autoResize && _viewportSize != null) {
+    if (!_autoResize) {
+      return;
+    }
+    if (_viewportSize case final viewportSize?) {
       _terminal.resize(
-        _viewportSize!.width,
-        _viewportSize!.height,
+        viewportSize.width,
+        viewportSize.height,
         _painter.cellSize.width.round(),
         _painter.cellSize.height.round(),
       );
@@ -481,7 +484,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   bool get _isComposingText {
-    return _composingText != null && _composingText!.isNotEmpty;
+    if (_composingText case final composingText?) {
+      return composingText.isNotEmpty;
+    }
+    return false;
   }
 
   bool get _shouldShowCursor {
