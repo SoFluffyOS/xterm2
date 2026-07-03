@@ -224,6 +224,28 @@ void main() {
     image.dispose();
     picture.dispose();
   });
+
+  test('procedural glyph rendering covers powerline separators', () {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    for (var codePoint = 0xe0b0; codePoint <= 0xe0b3; codePoint++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(10, 20),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+    }
+
+    recorder.endRecording().dispose();
+  });
 }
 
 bool _hasAnyAlpha(ByteData bytes, int width, int height) {

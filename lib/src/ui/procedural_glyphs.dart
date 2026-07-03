@@ -207,6 +207,36 @@ bool paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0xe0b0 && codePoint <= 0xe0b3) {
+    final pointsRight = codePoint == 0xe0b0 || codePoint == 0xe0b1;
+    final isFilled = codePoint == 0xe0b0 || codePoint == 0xe0b2;
+    final baseX = switch (pointsRight) {
+      true => x,
+      false => x + width,
+    };
+    final tipX = switch (pointsRight) {
+      true => x + width,
+      false => x,
+    };
+    final path = Path()
+      ..moveTo(baseX, y)
+      ..lineTo(tipX, y + height / 2)
+      ..lineTo(baseX, y + height);
+    if (isFilled) {
+      path.close();
+      canvas.drawPath(path, paint);
+      return true;
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = paint.color
+        ..strokeWidth = max(1.0, width * 0.12)
+        ..style = PaintingStyle.stroke,
+    );
+    return true;
+  }
+
   final thin = max(1.0, width * 0.12);
   final heavy = max(2.0, width * 0.22);
   final centerX = x + width / 2;
