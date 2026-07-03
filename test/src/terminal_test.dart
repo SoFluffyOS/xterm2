@@ -87,6 +87,18 @@ void main() {
     expect(terminal.cursor.isBlink, isTrue);
   });
 
+  test('Terminal resets bold and faint intensity with SGR 22', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[1;2mbold-faint\x1b[22mplain');
+
+    final styledAttrs = terminal.buffer.lines[0].getAttributes(0);
+    expect(styledAttrs & CellAttr.bold, isNot(0));
+    expect(styledAttrs & CellAttr.faint, isNot(0));
+    expect(terminal.cursor.isBold, isFalse);
+    expect(terminal.cursor.isFaint, isFalse);
+  });
+
   test('Terminal applies overline SGR', () {
     final terminal = Terminal()..resize(20, 5);
 

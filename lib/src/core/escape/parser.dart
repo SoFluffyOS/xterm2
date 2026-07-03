@@ -596,6 +596,7 @@ class EscapeParser {
           handler.setCursorDoubleUnderline();
           continue;
         case 22:
+          handler.unsetCursorBold();
           handler.unsetCursorFaint();
           continue;
         case 23:
