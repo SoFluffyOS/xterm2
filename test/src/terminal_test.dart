@@ -49,6 +49,14 @@ void main() {
     expect(terminal.buffer.cursorY, 0);
   });
 
+  test('Terminal treats rapid blink SGR as blinking text', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[6mrapid');
+
+    expect(terminal.cursor.isBlink, isTrue);
+  });
+
   group('Terminal.maxLines', () {
     test('never truncates the viewport', () {
       final terminal = Terminal(maxLines: 2);

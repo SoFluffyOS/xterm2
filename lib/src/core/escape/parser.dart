@@ -522,6 +522,9 @@ class EscapeParser {
         case 5:
           handler.setCursorBlink();
           continue;
+        case 6:
+          handler.setCursorBlink();
+          continue;
         case 7:
           handler.setCursorInverse();
           continue;
