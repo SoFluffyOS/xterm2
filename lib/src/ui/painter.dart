@@ -307,11 +307,19 @@ class TerminalPainter {
       return;
     }
 
-    final combiningHash = switch (combiningCharacters) {
-      final value? => value.hashCode,
-      null => 0,
+    final visualFlags = cellData.flags & CellAttr.visualMask;
+    final hyperlinkFlag = switch (isHyperlink) {
+      true => CellAttr.hyperlinkMarker,
+      false => 0,
     };
-    final cacheKey = cellData.getHash() ^ _textScaler.hashCode ^ combiningHash;
+    final cacheKey = (
+      cellData.foreground,
+      cellData.background,
+      visualFlags | hyperlinkFlag,
+      cellData.content,
+      _textScaler,
+      combiningCharacters,
+    );
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 
     if (paragraph == null) {

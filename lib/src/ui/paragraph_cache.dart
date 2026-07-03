@@ -13,11 +13,11 @@ class ParagraphCache {
 
   final int maximumSize;
 
-  final _cache = <int, Paragraph>{};
+  final _cache = <Object, Paragraph>{};
 
   /// Returns a [Paragraph] for the given [key]. [key] is the same as the
   /// key argument to [performAndCacheLayout].
-  Paragraph? getLayoutFromCache(int key) {
+  Paragraph? getLayoutFromCache(Object key) {
     final paragraph = _cache.remove(key);
     if (paragraph == null) return null;
     _cache[key] = paragraph;
@@ -31,7 +31,7 @@ class ParagraphCache {
     String text,
     TextStyle style,
     TextScaler textScaler,
-    int key,
+    Object key,
   ) {
     final builder = ParagraphBuilder(style.getParagraphStyle());
     builder.pushStyle(style.getTextStyle(textScaler: textScaler));
