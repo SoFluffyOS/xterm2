@@ -314,6 +314,29 @@ void main() {
     image.dispose();
   });
 
+  test('paintLine backgrounds do not bleed into transparent cells', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(2)..setBackground(0, CellColor.rgb | 0x123456);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final transparentCellX = painter.cellSize.width.ceil();
+    final y = (painter.cellSize.height / 2).round();
+    expect(_alphaAt(byteData, image.width, transparentCellX, y), 0);
+
+    image.dispose();
+    painter.dispose();
+  });
+
   test('underline cursor is painted at the requested row offset', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

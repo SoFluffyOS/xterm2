@@ -577,7 +577,7 @@ class TerminalPainter {
       true => 2,
       false => 1,
     };
-    final size = Size(_cellSize.width * widthScale + 1, _cellSize.height);
+    final size = Size(_cellSize.width * widthScale, _cellSize.height);
     canvas.drawRect(offset & size, _backgroundPaint);
   }
 
@@ -592,7 +592,7 @@ class TerminalPainter {
     _backgroundPaint.color = color;
     final runOffset = offset.translate(start * _cellSize.width, 0);
     final runSize = Size(
-      (end - start) * _cellSize.width + 1,
+      (end - start) * _cellSize.width,
       _cellSize.height,
     );
     canvas.drawRect(runOffset & runSize, _backgroundPaint);
