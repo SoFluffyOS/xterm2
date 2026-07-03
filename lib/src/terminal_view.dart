@@ -35,6 +35,7 @@ class TerminalView extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.onTapUp,
+    this.onHyperlinkTap,
     this.onSecondaryTapDown,
     this.onSecondaryTapUp,
     this.mouseCursor = SystemMouseCursors.text,
@@ -86,6 +87,9 @@ class TerminalView extends StatefulWidget {
 
   /// Callback for when the user taps on the terminal.
   final void Function(TapUpDetails, CellOffset)? onTapUp;
+
+  /// Called when a cell containing an OSC 8 hyperlink is tapped.
+  final void Function(String uri)? onHyperlinkTap;
 
   /// Function called when the user taps on the terminal with a secondary
   /// button.
@@ -324,7 +328,7 @@ class TerminalViewState extends State<TerminalView> {
     );
 
     child = Container(
-      color: widget.theme.background.withOpacity(widget.backgroundOpacity),
+      color: widget.theme.background.withValues(alpha: widget.backgroundOpacity),
       padding: widget.padding,
       child: child,
     );
@@ -351,6 +355,8 @@ class TerminalViewState extends State<TerminalView> {
 
   void _onTapUp(TapUpDetails details) {
     final offset = renderTerminal.getCellOffset(details.localPosition);
+    final hyperlink = widget.terminal.hyperlinkAt(offset);
+    if (hyperlink != null) widget.onHyperlinkTap?.call(hyperlink);
     widget.onTapUp?.call(details, offset);
   }
 

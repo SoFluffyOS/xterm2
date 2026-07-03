@@ -325,6 +325,7 @@ class Buffer {
     _savedCursorStyle.foreground = terminal.cursor.foreground;
     _savedCursorStyle.background = terminal.cursor.background;
     _savedCursorStyle.attrs = terminal.cursor.attrs;
+    _savedCursorStyle.hyperlinkId = terminal.cursor.hyperlinkId;
     charset.save();
   }
 
@@ -335,6 +336,7 @@ class Buffer {
     terminal.cursor.foreground = _savedCursorStyle.foreground;
     terminal.cursor.background = _savedCursorStyle.background;
     terminal.cursor.attrs = _savedCursorStyle.attrs;
+    terminal.cursor.hyperlinkId = _savedCursorStyle.hyperlinkId;
     charset.restore();
   }
 

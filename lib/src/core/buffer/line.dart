@@ -49,6 +49,11 @@ class BufferLine with IndexedItem {
     return _data[index * _cellSize + _cellAttributes];
   }
 
+  int getHyperlinkId(int index) {
+    return (getAttributes(index) & CellAttr.hyperlinkMask) >>
+        CellAttr.hyperlinkShift;
+  }
+
   int getContent(int index) {
     return _data[index * _cellSize + _cellContent];
   }
@@ -104,7 +109,8 @@ class BufferLine with IndexedItem {
     final offset = index * _cellSize;
     _data[offset + _cellForeground] = style.foreground;
     _data[offset + _cellBackground] = style.background;
-    _data[offset + _cellAttributes] = style.attrs;
+    _data[offset + _cellAttributes] =
+        style.attrs | (style.hyperlinkId << CellAttr.hyperlinkShift);
     _data[offset + _cellContent] = char | (witdh << CellContent.widthShift);
   }
 

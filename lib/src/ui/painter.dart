@@ -179,6 +179,7 @@ class TerminalPainter {
 
     if (paragraph == null) {
       final cellFlags = cellData.flags;
+      final isHyperlink = cellData.hyperlinkId != 0;
 
       var color = cellFlags & CellFlags.inverse == 0
           ? resolveForegroundColor(cellData.foreground)
@@ -192,7 +193,7 @@ class TerminalPainter {
         color: color,
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
-        underline: cellFlags & CellFlags.underline != 0,
+        underline: cellFlags & CellFlags.underline != 0 || isHyperlink,
       );
 
       // Flutter does not draw an underline below a space which is not between
@@ -202,7 +203,8 @@ class TerminalPainter {
       // the CodePoint 0xA0. This is a non breaking space and a underline can be
       // drawn below it.
       var char = String.fromCharCode(charCode);
-      if (cellFlags & CellFlags.underline != 0 && charCode == 0x20) {
+      if ((cellFlags & CellFlags.underline != 0 || isHyperlink) &&
+          charCode == 0x20) {
         char = String.fromCharCode(0xA0);
       }
 

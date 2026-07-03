@@ -240,6 +240,29 @@ void main() {
     focusNode.dispose();
   });
 
+  testWidgets('TerminalView activates OSC 8 hyperlinks', (tester) async {
+    final terminal = Terminal()
+      ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');
+    String? activatedUri;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          onHyperlinkTap: (uri) => activatedUri = uri,
+        ),
+      ),
+    );
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.tapAt(
+      state.renderTerminal.localToGlobal(const Offset(2, 2)),
+    );
+    await tester.pump();
+
+    expect(activatedUri, 'https://example.com');
+  });
+
   group('TerminalController.pointerInputs', () {
     testWidgets('works', (tester) async {
       final output = <String>[];

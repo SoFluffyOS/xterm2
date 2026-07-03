@@ -302,6 +302,68 @@ void main() {
 
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
+
+  test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]8;id=docs;https://example.com/a;b\x1b\\'
+      'link'
+      '\x1b[0m'
+      '\x1b]8;;\x1b\\ plain',
+    );
+
+    for (var column = 0; column < 4; column++) {
+      expect(
+        terminal.hyperlinkAt(CellOffset(column, 0)),
+        'https://example.com/a;b',
+      );
+    }
+    expect(terminal.hyperlinkAt(const CellOffset(4, 0)), isNull);
+  });
+
+  test('Terminal preserves OSC 8 hyperlinks across wrapped lines', () {
+    final terminal = Terminal()..resize(3, 3);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\abcdef\x1b]8;;\x1b\\');
+
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal clears OSC 8 metadata when linked cells are erased', () {
+    final terminal = Terminal()
+      ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');
+
+    terminal.write('\r\x1b[2K');
+
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+  });
+
+  test('Terminal bounds the OSC 8 hyperlink registry', () {
+    final terminal = Terminal(maxLines: 100);
+    for (var index = 0; index < 4096; index++) {
+      terminal.write(
+        '\x1b]8;;https://example.com/$index\x1b\\x\x1b]8;;\x1b\\',
+      );
+    }
+
+    final overflowPosition = CellOffset(
+      terminal.buffer.cursorX,
+      terminal.buffer.absoluteCursorY,
+    );
+    terminal.write(
+      '\x1b]8;;https://example.com/overflow\x1b\\x\x1b]8;;\x1b\\',
+    );
+
+    expect(terminal.hyperlinkAt(overflowPosition), isNull);
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

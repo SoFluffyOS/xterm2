@@ -13,7 +13,14 @@ class CursorStyle {
 
   int attrs;
 
-  CursorStyle({this.foreground = 0, this.background = 0, this.attrs = 0});
+  int hyperlinkId;
+
+  CursorStyle({
+    this.foreground = 0,
+    this.background = 0,
+    this.attrs = 0,
+    this.hyperlinkId = 0,
+  });
 
   static final empty = CursorStyle();
 

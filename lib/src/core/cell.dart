@@ -26,8 +26,18 @@ class CellData {
   int content;
 
   int getHash() {
-    return hashValues(foreground, background, flags, content);
+    final visualFlags = flags & CellAttr.visualMask;
+    final hyperlinkFlag = hyperlinkId == 0 ? 0 : CellAttr.hyperlinkMarker;
+    return hashValues(
+      foreground,
+      background,
+      visualFlags | hyperlinkFlag,
+      content,
+    );
   }
+
+  int get hyperlinkId =>
+      (flags & CellAttr.hyperlinkMask) >> CellAttr.hyperlinkShift;
 
   @override
   String toString() {
@@ -44,6 +54,11 @@ abstract class CellAttr {
   static const inverse = 1 << 5;
   static const invisible = 1 << 6;
   static const strikethrough = 1 << 7;
+
+  static const visualMask = 0xff;
+  static const hyperlinkShift = 8;
+  static const hyperlinkMask = 0xffffff << hyperlinkShift;
+  static const hyperlinkMarker = 1 << hyperlinkShift;
 }
 
 abstract class CellColor {

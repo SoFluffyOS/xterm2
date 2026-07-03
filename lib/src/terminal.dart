@@ -27,6 +27,8 @@ import 'package:xterm/src/utils/circular_buffer.dart';
 /// translating user input into escape sequences that the application can
 /// understand.
 class Terminal with Observable implements TerminalState, EscapeHandler {
+  static const _maxHyperlinks = 4096;
+
   /// The number of lines that the scrollback buffer can hold. If the buffer
   /// exceeds this size, the lines at the top of the buffer will be removed.
   final int maxLines;
@@ -93,6 +95,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   late final _parser = EscapeParser(this);
 
   final _emitter = const EscapeEmitter();
+
+  final Map<int, String> _hyperlinks = {};
+
+  final Map<String, int> _explicitHyperlinkIds = {};
+
+  int _nextHyperlinkId = 1;
 
   late var _buffer = _mainBuffer;
 
@@ -228,6 +236,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   /// Lines of the active buffer.
   IndexAwareCircularBuffer<BufferLine> get lines => _buffer.lines;
+
+  String? hyperlinkAt(CellOffset position) {
+    if (position.y < 0 || position.y >= _buffer.lines.length) return null;
+    final line = _buffer.lines[position.y];
+    if (position.x < 0 || position.x >= line.length) return null;
+
+    return _hyperlinks[line.getHyperlinkId(position.x)];
+  }
 
   /// Whether the terminal performs reflow when the viewport size changes or
   /// simply truncates lines. true by default.
@@ -950,6 +966,37 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setCurrentDirectory(String uri) {
     onCurrentDirectoryChange?.call(uri);
+  }
+
+  @override
+  void setHyperlink(String params, String uri) {
+    if (uri.isEmpty) {
+      _cursorStyle.hyperlinkId = 0;
+      return;
+    }
+
+    String? explicitId;
+    for (final param in params.split(':')) {
+      if (!param.startsWith('id=')) continue;
+      explicitId = param.substring(3);
+      break;
+    }
+
+    final key = explicitId == null ? null : '$explicitId\x00$uri';
+    final existingId = key == null ? null : _explicitHyperlinkIds[key];
+    if (existingId != null) {
+      _cursorStyle.hyperlinkId = existingId;
+      return;
+    }
+    if (_hyperlinks.length >= _maxHyperlinks) {
+      _cursorStyle.hyperlinkId = 0;
+      return;
+    }
+
+    final hyperlinkId = _nextHyperlinkId++;
+    _hyperlinks[hyperlinkId] = uri;
+    if (key != null) _explicitHyperlinkIds[key] = hyperlinkId;
+    _cursorStyle.hyperlinkId = hyperlinkId;
   }
 
   @override

@@ -876,6 +876,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setHyperlink(String? params, String? uri) => super.noSuchMethod(
+        Invocation.method(
+          #setHyperlink,
+          [params, uri],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void unknownOSC(String? code, List<String>? args) => super.noSuchMethod(
         Invocation.method(
           #unknownOSC,

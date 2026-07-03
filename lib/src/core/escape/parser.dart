@@ -1144,6 +1144,10 @@ class EscapeParser {
         case '7':
           handler.setCurrentDirectory(pt);
           return true;
+        case '8':
+          if (_osc.length < 3) return true;
+          handler.setHyperlink(pt, _osc.sublist(2).join(';'));
+          return true;
       }
     }
 

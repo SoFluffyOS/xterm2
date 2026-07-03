@@ -217,5 +217,7 @@ abstract class EscapeHandler {
 
   void setCurrentDirectory(String uri);
 
+  void setHyperlink(String params, String uri);
+
   void unknownOSC(String code, List<String> args);
 }
