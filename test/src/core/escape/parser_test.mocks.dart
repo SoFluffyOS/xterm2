@@ -533,6 +533,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setIsoProtectedMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setIsoProtectedMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setInsertMode(bool? enabled) => super.noSuchMethod(
         Invocation.method(
           #setInsertMode,

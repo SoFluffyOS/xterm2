@@ -862,6 +862,31 @@ void main() {
     expect(terminal.buffer.lines[2].toString(), '');
   });
 
+  test('Terminal ISO protected areas survive normal erase operations', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1bVAB\x1bWCD\r\x1b[K');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+  });
+
+  test('Terminal DEC protected areas do not survive normal erase', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1b[1"qAB\x1b[2"qCD\r\x1b[K');
+
+    expect(terminal.buffer.lines[0].toString(), '');
+  });
+
+  test('Terminal ISO protected areas survive erase characters', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1bVAB\x1bWCD\r\x1b[4X');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.protected, 0);
+  });
+
   test('Terminal saves and restores DEC private mode state', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

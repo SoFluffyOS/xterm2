@@ -216,6 +216,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setIsoProtectedMode(bool enabled) {
+    onCommand('setIsoProtectedMode($enabled)');
+  }
+
+  @override
   void setCursor(int x, int y) {
     onCommand('setCursor($x, $y)');
   }

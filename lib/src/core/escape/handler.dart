@@ -141,6 +141,8 @@ abstract class EscapeHandler {
 
   void setProtectedMode(bool enabled);
 
+  void setIsoProtectedMode(bool enabled);
+
   /* Modes */
 
   void setInsertMode(bool enabled);

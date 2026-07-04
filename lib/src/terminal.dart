@@ -25,6 +25,8 @@ import 'package:xterm/src/core/tabs.dart';
 import 'package:xterm/src/utils/ascii.dart';
 import 'package:xterm/src/utils/circular_buffer.dart';
 
+enum _ProtectionMode { off, iso, dec }
+
 /// [Terminal] is an interface to interact with command line applications. It
 /// translates escape sequences from the application into updates to the
 /// [buffer] and events such as [onTitleChange] or [onBell], as well as
@@ -198,6 +200,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   int _cellPixelHeight = 0;
 
   final _cursorStyle = CursorStyle();
+
+  _ProtectionMode _protectionMode = _ProtectionMode.off;
 
   bool _insertMode = false;
 
@@ -639,6 +643,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _precedingCodepoint = 0;
     _cursorStyle.reset();
     _cursorStyle.hyperlinkId = 0;
+    _protectionMode = _ProtectionMode.off;
     _insertMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
@@ -674,6 +679,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _precedingCodepoint = 0;
     _cursorStyle.reset();
     _cursorStyle.hyperlinkId = 0;
+    _protectionMode = _ProtectionMode.off;
     _insertMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
@@ -924,7 +930,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseDisplayBelow() {
-    _buffer.eraseDisplayFromCursor();
+    _buffer.eraseDisplayFromCursor(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -934,7 +940,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseDisplayAbove() {
-    _buffer.eraseDisplayToCursor();
+    _buffer.eraseDisplayToCursor(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -944,7 +950,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseDisplay() {
-    _buffer.eraseDisplay();
+    _buffer.eraseDisplay(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -959,7 +965,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseLineRight() {
-    _buffer.eraseLineFromCursor();
+    _buffer.eraseLineFromCursor(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -969,7 +975,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseLineLeft() {
-    _buffer.eraseLineToCursor();
+    _buffer.eraseLineToCursor(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -979,7 +985,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseLine() {
-    _buffer.eraseLine();
+    _buffer.eraseLine(respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -1014,7 +1020,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseChars(int amount) {
-    _buffer.eraseChars(amount);
+    _buffer.eraseChars(amount, respectProtected: _usesIsoProtection);
   }
 
   @override
@@ -1059,10 +1065,22 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setProtectedMode(bool enabled) {
     if (enabled) {
+      _protectionMode = _ProtectionMode.dec;
       return _cursorStyle.setProtected();
     }
     _cursorStyle.unsetProtected();
   }
+
+  @override
+  void setIsoProtectedMode(bool enabled) {
+    if (enabled) {
+      _protectionMode = _ProtectionMode.iso;
+      return _cursorStyle.setProtected();
+    }
+    _cursorStyle.unsetProtected();
+  }
+
+  bool get _usesIsoProtection => _protectionMode == _ProtectionMode.iso;
 
   /* Modes */
 

@@ -136,6 +136,8 @@ class EscapeParser {
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
     'P'.charCode: _escHandleDcs,
+    'V'.charCode: _escHandleStartProtectedArea,
+    'W'.charCode: _escHandleEndProtectedArea,
     'X'.charCode: _escHandleStringControl,
     '^'.charCode: _escHandleStringControl,
     '_'.charCode: _escHandleStringControl,
@@ -149,6 +151,18 @@ class EscapeParser {
     '>'.charCode: _escHandleResetAppKeypadMode, // TODO: Normal Keypad
     '='.charCode: _escHandleSetAppKeypadMode, // TODO: Application Keypad
   });
+
+  /// `ESC V` Start of Protected Area (SPA).
+  bool _escHandleStartProtectedArea() {
+    handler.setIsoProtectedMode(true);
+    return true;
+  }
+
+  /// `ESC W` End of Protected Area (EPA).
+  bool _escHandleEndProtectedArea() {
+    handler.setIsoProtectedMode(false);
+    return true;
+  }
 
   /// `ESC 7` Save Cursor (DECSC)
   ///

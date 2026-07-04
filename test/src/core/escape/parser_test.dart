@@ -74,5 +74,15 @@ void main() {
       verify(handler.eraseLineLeftSelective()).called(1);
       verify(handler.eraseLineSelective()).called(1);
     });
+
+    test('parses ISO protected areas', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1bV\x1bW');
+
+      verify(handler.setIsoProtectedMode(true)).called(1);
+      verify(handler.setIsoProtectedMode(false)).called(1);
+    });
   });
 }
