@@ -832,22 +832,36 @@ class Buffer {
       if (start == 0) {
         break;
       }
-      final char = line.getCodePoint(start - 1);
+      var previous = start - 1;
+      if (previous > 0 &&
+          line.getWidth(previous) == 0 &&
+          line.getWidth(previous - 1) == 2) {
+        previous--;
+      }
+      final char = line.getCodePoint(previous);
       if (separators.contains(char)) {
         break;
       }
-      start--;
+      start = previous;
     } while (true);
 
     do {
       if (end >= viewWidth) {
         break;
       }
+      final width = line.getWidth(end);
+      if (width == 0 && end > 0 && line.getWidth(end - 1) == 2) {
+        end++;
+        continue;
+      }
       final char = line.getCodePoint(end);
       if (separators.contains(char)) {
         break;
       }
-      end++;
+      end += switch (width) {
+        2 => 2,
+        _ => 1,
+      };
     } while (true);
 
     if (start == end) {

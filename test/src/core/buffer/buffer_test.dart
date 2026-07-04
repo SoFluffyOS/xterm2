@@ -309,6 +309,21 @@ void main() {
     });
   });
 
+  group('Buffer.getWordBoundary preserves wide graphemes', () {
+    test('selects a CJK word across spacer cells', () {
+      final terminal = Terminal()..resize(10, 2);
+      terminal.write('你好 world');
+
+      final boundary = terminal.buffer.getWordBoundary(
+        const CellOffset(1, 0),
+      );
+
+      expect(boundary?.begin, const CellOffset(0, 0));
+      expect(boundary?.end, const CellOffset(4, 0));
+      expect(terminal.buffer.getText(boundary), '你好');
+    });
+  });
+
   test('does not delete lines beyond the scroll region', () {
     final terminal = Terminal();
     terminal.resize(10, 10);
