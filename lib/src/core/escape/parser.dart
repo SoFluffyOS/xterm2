@@ -132,7 +132,7 @@ class EscapeParser {
     '_'.charCode: _escHandleStringControl,
     'c'.charCode: _escHandleReset,
     // 'c'.charCode: _unsupportedHandler,
-    // '#'.charCode: _unsupportedHandler,
+    '#'.charCode: _escHandleHash,
     '('.charCode: _escHandleDesignateCharset0, //  SCS - G0
     ')'.charCode: _escHandleDesignateCharset1, //  SCS - G1
     // '*'.charCode: _voidHandler(1), // TODO: G2 (vt220)
@@ -184,6 +184,18 @@ class EscapeParser {
   /// `ESC c` Full Reset (RIS)
   bool _escHandleReset() {
     handler.reset();
+    return true;
+  }
+
+  /// `ESC # 8` DEC Screen Alignment Test (DECALN).
+  bool _escHandleHash() {
+    if (_queue.isEmpty) return false;
+    final command = _queue.consume();
+    if (command == '8'.charCode) {
+      handler.screenAlignmentTest();
+      return true;
+    }
+    handler.unkownEscape(command);
     return true;
   }
 

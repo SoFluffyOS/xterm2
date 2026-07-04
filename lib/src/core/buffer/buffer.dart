@@ -486,6 +486,18 @@ class Buffer {
     resetVerticalMargins();
   }
 
+  void screenAlignmentTest() {
+    final viewportStart = scrollBack;
+    final viewportEnd = viewportStart + viewHeight;
+    for (var row = viewportStart; row < viewportEnd; row++) {
+      final line = lines[row];
+      line.isWrapped = false;
+      for (var column = 0; column < viewWidth; column++) {
+        line.setCell(column, 0x45, 1, CursorStyle.empty);
+      }
+    }
+  }
+
   void insertBlankChars(int count) {
     currentLine.insertCells(_cursorX, count, terminal.cursor);
   }

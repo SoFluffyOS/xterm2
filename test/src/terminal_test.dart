@@ -50,6 +50,27 @@ void main() {
     expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
   });
 
+  test('Terminal applies the DEC screen alignment test', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('scrollback\ncontent');
+    final scrollbackText = terminal.buffer.lines[0].toString();
+    terminal.write('\x1b#');
+    terminal.write('8');
+
+    expect(terminal.buffer.lines[0].toString(), scrollbackText);
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.toString()),
+      everyElement('EEEE'),
+    );
+    expect(
+      terminal.buffer.lines[terminal.buffer.lines.length - 1].getAttributes(0),
+      0,
+    );
+  });
+
   test('Terminal dispose clears listeners and stops deferred updates',
       () async {
     var updates = 0;

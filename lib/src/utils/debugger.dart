@@ -169,6 +169,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void screenAlignmentTest() {
+    onCommand('screenAlignmentTest');
+  }
+
+  @override
   void reverseIndex() {
     onCommand('reverseIndex');
   }

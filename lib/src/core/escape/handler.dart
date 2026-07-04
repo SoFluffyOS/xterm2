@@ -37,6 +37,8 @@ abstract class EscapeHandler {
 
   void softReset();
 
+  void screenAlignmentTest();
+
   void reverseIndex();
 
   void designateCharset(int charset, int name);

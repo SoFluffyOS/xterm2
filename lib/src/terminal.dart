@@ -654,6 +654,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void screenAlignmentTest() {
+    _buffer.screenAlignmentTest();
+  }
+
+  @override
   void reverseIndex() {
     _buffer.reverseIndex();
   }
