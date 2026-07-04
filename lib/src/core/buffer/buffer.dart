@@ -170,7 +170,7 @@ class Buffer {
       }
 
       currentLine.setCell(_cursorX, 0, 1, terminal.cursor);
-      _cursorX = viewWidth;
+      _cursorX = rightLimit;
       _wrapInput();
     }
 
@@ -535,6 +535,7 @@ class Buffer {
   /// margin, a scroll up is performed.
   void index() {
     if (isInVerticalMargin) {
+      if (!isInHorizontalMarginOrPendingWrap) return;
       if (_cursorY == _marginBottom) {
         if (marginTop == 0 && !isAltBuffer) {
           lines.insert(absoluteMarginBottom + 1, _newEmptyLine());
@@ -571,6 +572,7 @@ class Buffer {
   /// https://terminalguide.namepad.de/seq/a_esc_cm/
   void reverseIndex() {
     if (isInVerticalMargin) {
+      if (!isInHorizontalMarginOrPendingWrap) return;
       if (_cursorY == _marginTop) {
         scrollDown(1);
       } else {
@@ -691,6 +693,10 @@ class Buffer {
 
   bool get isInHorizontalMargin {
     return _cursorX >= _marginLeft && _cursorX <= _marginRight;
+  }
+
+  bool get isInHorizontalMarginOrPendingWrap {
+    return _cursorX >= _marginLeft && _cursorX <= _marginRight + 1;
   }
 
   void resetVerticalMargins() {

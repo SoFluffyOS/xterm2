@@ -1639,6 +1639,26 @@ void main() {
       expect(terminal.buffer.lines[2].getText(0, 6), 'mtuvqr');
       expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
     });
+
+    test('index outside horizontal margins does not scroll', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[3;1H\x1bDX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'ghijkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'Xnopqr');
+    });
+
+    test('reverse index outside horizontal margins does not scroll', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[2;1H\x1bMX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'Xhijkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mnopqr');
+    });
   });
 
   test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
