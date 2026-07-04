@@ -235,6 +235,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _bracketedPasteMode = false;
 
+  bool _graphemeClusterMode = true;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -305,6 +307,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get bracketedPasteMode => _bracketedPasteMode;
+
+  @override
+  bool get graphemeClusterMode => _graphemeClusterMode;
 
   @override
   int get kittyKeyboardMode => _kittyKeyboardMode;
@@ -659,6 +664,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _graphemeClusterMode = true;
     _kittyKeyboardMode = 0;
     _kittyKeyboardModeStack.clear();
     _title = null;
@@ -695,6 +701,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _graphemeClusterMode = true;
     _kittyKeyboardMode = 0;
     _kittyKeyboardModeStack.clear();
     _tabStops.reset();
@@ -1196,6 +1203,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setGraphemeClusterMode(bool enabled) {
+    _graphemeClusterMode = enabled;
+  }
+
+  @override
   void reportMode(int mode, bool decPrivate) {
     final state = switch (decPrivate) {
       true => _decModeState(mode),
@@ -1239,6 +1251,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
       2004 => _reportedState(_bracketedPasteMode),
       2026 => 2,
+      2027 => _reportedState(_graphemeClusterMode),
       _ => 0,
     };
   }
@@ -1287,6 +1300,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1015 => _mouseReportMode == MouseReportMode.urxvt,
       1016 => _mouseReportMode == MouseReportMode.sgrPixels,
       2004 => _bracketedPasteMode,
+      2027 => _graphemeClusterMode,
       _ => null,
     };
   }
@@ -1362,6 +1376,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         });
       case 2004:
         return setBracketedPasteMode(enabled);
+      case 2027:
+        return setGraphemeClusterMode(enabled);
     }
   }
 

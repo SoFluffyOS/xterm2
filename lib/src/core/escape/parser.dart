@@ -1436,6 +1436,8 @@ class EscapeParser {
         return handler.setBracketedPasteMode(enabled);
       case 2026:
         return handler.setSynchronizedUpdateMode(enabled);
+      case 2027:
+        return handler.setGraphemeClusterMode(enabled);
       default:
         return handler.setUnknownDecMode(mode, enabled);
     }

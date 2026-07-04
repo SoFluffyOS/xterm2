@@ -221,6 +221,74 @@ void main() {
     expect(line.getCodePoint(1), 0x78);
   });
 
+  test('Terminal VS16 expands an emoji grapheme to two cells', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u2764\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCombiningCharacters(0), '\ufe0f');
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal VS15 narrows a wide emoji grapheme', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u231a\ufe0ex');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCombiningCharacters(0), '\ufe0e');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal can disable grapheme width adjustment', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\x1b[?2027l\u2764\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal ignores emoji variation selectors on invalid bases', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('x\ufe0fy');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x79);
+  });
+
+  test('Terminal disables extended grapheme joining with mode 2027', () {
+    final terminal = Terminal()..resize(12, 2);
+
+    terminal.write('\x1b[?2027l\u{1F468}\u200d\u{1F469}');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F468);
+    expect(line.getCodePoint(2), 0x1F469);
+    expect(terminal.buffer.cursorX, 4);
+  });
+
+  test('Terminal wraps a VS16-expanded grapheme at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u2764\ufe0f');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getCodePoint(0), 0x2764);
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getCombiningCharacters(0), '\ufe0f');
+    expect(terminal.buffer.cursorX, 2);
+  });
+
   test('Terminal resets bold and faint intensity with SGR 22', () {
     final terminal = Terminal()..resize(20, 5);
 

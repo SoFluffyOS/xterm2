@@ -5,6 +5,7 @@ import 'package:xterm/src/core/buffer/line.dart';
 import 'package:xterm/src/core/buffer/range_line.dart';
 import 'package:xterm/src/core/buffer/range.dart';
 import 'package:xterm/src/core/charset.dart';
+import 'package:xterm/src/core/cell.dart';
 import 'package:xterm/src/core/cursor.dart';
 import 'package:xterm/src/core/reflow.dart';
 import 'package:xterm/src/core/state.dart';
@@ -112,11 +113,20 @@ class Buffer {
     codePoint = charset.translate(codePoint);
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
-    if (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint)) {
+    if (terminal.graphemeClusterMode &&
+        (codePoint == 0xFE0E || codePoint == 0xFE0F) &&
+        _resizePreviousGrapheme(codePoint)) {
       _addCombiningCharacter(codePoint);
       return;
     }
-    if (_joinRegionalIndicator(codePoint)) return;
+    if (terminal.graphemeClusterMode &&
+        (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint))) {
+      _addCombiningCharacter(codePoint);
+      return;
+    }
+    if (terminal.graphemeClusterMode && _joinRegionalIndicator(codePoint)) {
+      return;
+    }
     if (cellWidth == 0) {
       _addCombiningCharacter(codePoint);
       return;
@@ -177,6 +187,58 @@ class Buffer {
     currentLine.addCombiningCharacter(index, codePoint);
   }
 
+  bool _resizePreviousGrapheme(int variationSelector) {
+    if (_cursorX == 0) return false;
+
+    var index = min(_cursorX - 1, viewWidth - 1);
+    if (index > 0 && currentLine.getWidth(index) == 0) {
+      index--;
+    }
+    if (currentLine.getCodePoint(index) == 0) return false;
+
+    final baseCodePoint = currentLine.getCodePoint(index);
+    if (!_supportsEmojiVariation(baseCodePoint)) return false;
+
+    final width = currentLine.getWidth(index);
+    if (variationSelector == 0xFE0F && width == 1) {
+      if (index + 1 >= viewWidth) {
+        if (!terminal.autoWrapMode) return false;
+
+        final sourceLine = currentLine;
+        final cellData = CellData.empty();
+        sourceLine.getCellData(index, cellData);
+        final combining = sourceLine.getCombiningCharacters(index);
+        sourceLine.eraseCell(index, terminal.cursor);
+        _cursorX = viewWidth;
+        _wrapInput();
+        currentLine.setCellData(0, cellData);
+        currentLine.setWidth(0, 2);
+        if (combining != null) {
+          for (final codePoint in combining.runes) {
+            currentLine.addCombiningCharacter(0, codePoint);
+          }
+        }
+        currentLine.setCell(1, 0, 0, terminal.cursor);
+        _cursorX = 2;
+        return true;
+      }
+      currentLine.clearWideCellAt(index + 1, terminal.cursor);
+      currentLine.setWidth(index, 2);
+      currentLine.setCell(index + 1, 0, 0, terminal.cursor);
+      if (_cursorX == index + 1) _cursorX++;
+      return true;
+    }
+
+    if (variationSelector == 0xFE0E && width == 2) {
+      currentLine.setWidth(index, 1);
+      currentLine.eraseCell(index + 1, terminal.cursor);
+      if (_cursorX == index + 2) _cursorX--;
+      return true;
+    }
+
+    return false;
+  }
+
   bool _previousCellEndsWithJoiner() {
     if (_cursorX == 0) return false;
     var index = min(_cursorX - 1, viewWidth - 1);
@@ -213,6 +275,40 @@ class Buffer {
 
   static bool _isEmojiModifier(int codePoint) {
     return codePoint >= 0x1F3FB && codePoint <= 0x1F3FF;
+  }
+
+  static bool _supportsEmojiVariation(int codePoint) {
+    return switch (codePoint) {
+      0x23 || 0x2A || >= 0x30 && <= 0x39 => true,
+      0xA9 || 0xAE || 0x203C || 0x2049 || 0x2122 || 0x2139 => true,
+      >= 0x2194 && <= 0x2199 || >= 0x21A9 && <= 0x21AA => true,
+      >= 0x231A && <= 0x231B || 0x2328 || 0x23CF => true,
+      >= 0x23E9 && <= 0x23F3 || >= 0x23F8 && <= 0x23FA => true,
+      0x24C2 || >= 0x25AA && <= 0x25AB || 0x25B6 || 0x25C0 => true,
+      >= 0x25FB && <= 0x25FE || >= 0x2600 && <= 0x2604 => true,
+      0x260E || 0x2611 || >= 0x2614 && <= 0x2615 || 0x2618 || 0x261D => true,
+      0x2620 || >= 0x2622 && <= 0x2623 || 0x2626 || 0x262A => true,
+      >= 0x262E && <= 0x262F || >= 0x2638 && <= 0x263A => true,
+      0x2640 || 0x2642 || >= 0x2648 && <= 0x2653 => true,
+      >= 0x265F && <= 0x2660 || 0x2663 || >= 0x2665 && <= 0x2666 => true,
+      0x2668 || 0x267B || >= 0x267E && <= 0x267F => true,
+      >= 0x2692 && <= 0x2697 || 0x2699 || >= 0x269B && <= 0x269C => true,
+      >= 0x26A0 && <= 0x26A1 || 0x26A7 || >= 0x26AA && <= 0x26AB => true,
+      >= 0x26B0 && <= 0x26B1 || >= 0x26BD && <= 0x26BE => true,
+      >= 0x26C4 && <= 0x26C5 || 0x26C8 || >= 0x26CE && <= 0x26CF => true,
+      0x26D1 || >= 0x26D3 && <= 0x26D4 || >= 0x26E9 && <= 0x26EA => true,
+      >= 0x26F0 && <= 0x26F5 || >= 0x26F7 && <= 0x26FA || 0x26FD => true,
+      0x2702 || 0x2705 || >= 0x2708 && <= 0x270D || 0x270F => true,
+      0x2712 || 0x2714 || 0x2716 || 0x271D || 0x2721 || 0x2728 => true,
+      >= 0x2733 && <= 0x2734 || 0x2744 || 0x2747 || 0x274C || 0x274E => true,
+      >= 0x2753 && <= 0x2755 || 0x2757 || >= 0x2763 && <= 0x2764 => true,
+      >= 0x2795 && <= 0x2797 || 0x27A1 || 0x27B0 || 0x27BF => true,
+      >= 0x2934 && <= 0x2935 || >= 0x2B05 && <= 0x2B07 => true,
+      >= 0x2B1B && <= 0x2B1C || 0x2B50 || 0x2B55 => true,
+      0x3030 || 0x303D || 0x3297 || 0x3299 => true,
+      >= 0x1F000 && <= 0x1FAFF => true,
+      _ => false,
+    };
   }
 
   void _wrapInput() {

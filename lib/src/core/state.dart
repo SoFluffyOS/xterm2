@@ -42,5 +42,7 @@ abstract class TerminalState {
 
   bool get bracketedPasteMode;
 
+  bool get graphemeClusterMode;
+
   int get kittyKeyboardMode;
 }

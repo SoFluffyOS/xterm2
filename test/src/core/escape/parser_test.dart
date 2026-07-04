@@ -84,5 +84,15 @@ void main() {
       verify(handler.setIsoProtectedMode(true)).called(1);
       verify(handler.setIsoProtectedMode(false)).called(1);
     });
+
+    test('parses grapheme cluster mode', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?2027h\x1b[?2027l');
+
+      verify(handler.setGraphemeClusterMode(true)).called(1);
+      verify(handler.setGraphemeClusterMode(false)).called(1);
+    });
   });
 }

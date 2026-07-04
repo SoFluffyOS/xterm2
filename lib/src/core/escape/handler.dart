@@ -187,6 +187,8 @@ abstract class EscapeHandler {
 
   void setSynchronizedUpdateMode(bool enabled);
 
+  void setGraphemeClusterMode(bool enabled);
+
   void reportMode(int mode, bool decPrivate);
 
   void saveDecMode(int mode);

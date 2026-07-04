@@ -555,6 +555,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setGraphemeClusterMode(bool enabled) {
+    onCommand('setGraphemeClusterMode($enabled)');
+  }
+
+  @override
   void reportMode(int mode, bool decPrivate) {
     onCommand('reportMode($mode, $decPrivate)');
   }
