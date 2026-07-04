@@ -105,6 +105,19 @@ void main() {
     );
   });
 
+  test('Terminal restores origin mode with saved cursor', () {
+    final terminal = Terminal()..resize(8, 4);
+
+    terminal.write('\x1b[?69h\x1b[3;6s\x1b[2;4r\x1b[?6h');
+    terminal.saveCursor();
+    terminal.write('\x1b[?6l');
+    terminal.restoreCursor();
+    terminal.write('\x1b[1;1HX');
+
+    expect(terminal.originMode, true);
+    expect(terminal.buffer.lines[1].getCodePoint(2), 0x58);
+  });
+
   test('Terminal applies DECCOLM screen reset side effects', () {
     final terminal = Terminal(maxLines: 10)..resize(4, 2);
     terminal.write('scrollback\n\x1b[31;44mcontent\x1b[2;2r\x1b[2;3H');

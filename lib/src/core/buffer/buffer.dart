@@ -53,6 +53,8 @@ class Buffer {
 
   var _savedCursorY = 0;
 
+  var _savedOriginMode = false;
+
   final _savedCursorStyle = CursorStyle();
 
   final charset = Charset();
@@ -643,9 +645,10 @@ class Buffer {
   }
 
   /// Save cursor position, charmap and text attributes.
-  void saveCursor() {
+  void saveCursor({required bool originMode}) {
     _savedCursorX = _cursorX;
     _savedCursorY = _cursorY;
+    _savedOriginMode = originMode;
     _savedCursorStyle.foreground = terminal.cursor.foreground;
     _savedCursorStyle.background = terminal.cursor.background;
     _savedCursorStyle.underlineColor = terminal.cursor.underlineColor;
@@ -655,7 +658,7 @@ class Buffer {
   }
 
   /// Restore cursor position, charmap and text attributes.
-  void restoreCursor() {
+  bool restoreCursor() {
     _cursorX = _savedCursorX;
     _cursorY = _savedCursorY;
     terminal.cursor.foreground = _savedCursorStyle.foreground;
@@ -664,6 +667,7 @@ class Buffer {
     terminal.cursor.attrs = _savedCursorStyle.attrs;
     terminal.cursor.hyperlinkId = _savedCursorStyle.hyperlinkId;
     charset.restore();
+    return _savedOriginMode;
   }
 
   /// Sets the vertical scrolling margin to [top] and [bottom].
@@ -770,6 +774,7 @@ class Buffer {
     _cursorY = 0;
     _savedCursorX = 0;
     _savedCursorY = 0;
+    _savedOriginMode = false;
     _savedCursorStyle.reset();
     _savedCursorStyle.hyperlinkId = 0;
     charset.reset();
