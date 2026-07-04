@@ -236,6 +236,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void moveForwardTabs(int count) {
+    onCommand('moveForwardTabs($count)');
+  }
+
+  @override
+  void moveBackwardTabs(int count) {
+    onCommand('moveBackwardTabs($count)');
+  }
+
+  @override
   void moveCursorX(int offset) {
     onCommand('moveCursorX($offset)');
   }

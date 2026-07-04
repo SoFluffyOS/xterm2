@@ -10,6 +10,22 @@ void main() {
     expect(terminal.buffer.cursorX, 3);
   });
 
+  test('Terminal moves across multiple horizontal tab stops', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b[2I');
+    expect(terminal.buffer.cursorX, 16);
+
+    terminal.write('\x1b[Z');
+    expect(terminal.buffer.cursorX, 8);
+
+    terminal.write('\x1b[9Z');
+    expect(terminal.buffer.cursorX, 0);
+
+    terminal.write('\x1b[9I');
+    expect(terminal.buffer.cursorX, 19);
+  });
+
   test('Terminal applies a full reset', () {
     final terminal = Terminal()..resize(20, 5);
     terminal.write(

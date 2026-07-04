@@ -48,6 +48,20 @@ class TabStops {
     return null;
   }
 
+  /// Finds the previous tab stop satisfying [start] >= index >= [end].
+  int? findPrevious(int start, int end) {
+    if (start < end) {
+      return null;
+    }
+    _ensureLength(start + 1);
+    for (var i = start; i >= end; i--) {
+      if (_stops[i]) {
+        return i;
+      }
+    }
+    return null;
+  }
+
   /// Sets the tab stop at [index]. If there is already a tab stop at [index],
   /// this method does nothing.
   ///

@@ -387,6 +387,7 @@ class EscapeParser {
     'F'.codeUnitAt(0): _csiHandleCursorPrecedingLine,
     'G'.codeUnitAt(0): _csiHandleCursorHorizontalAbsolute,
     'H'.codeUnitAt(0): _csiHandleCursorPosition,
+    'I'.codeUnitAt(0): _csiHandleCursorForwardTabulation,
     'J'.codeUnitAt(0): _csiHandleEraseDisplay,
     'K'.codeUnitAt(0): _csiHandleEraseLine,
     'L'.codeUnitAt(0): _csiHandleInsertLines,
@@ -395,6 +396,7 @@ class EscapeParser {
     'S'.codeUnitAt(0): _csiHandleScrollUp,
     'T'.codeUnitAt(0): _csiHandleScrollDown,
     'X'.codeUnitAt(0): _csiHandleEraseCharacters,
+    'Z'.codeUnitAt(0): _csiHandleCursorBackwardTabulation,
     '@'.codeUnitAt(0): _csiHandleInsertBlankCharacters,
   });
 
@@ -1162,6 +1164,14 @@ class EscapeParser {
   void _csiHandleInsertBlankCharacters() {
     final amount = _firstParamOrDefault(1);
     handler.insertBlankChars(amount);
+  }
+
+  void _csiHandleCursorForwardTabulation() {
+    handler.moveForwardTabs(_firstParamOrDefault(1));
+  }
+
+  void _csiHandleCursorBackwardTabulation() {
+    handler.moveBackwardTabs(_firstParamOrDefault(1));
   }
 
   int _firstParamOrDefault(int defaultValue) {

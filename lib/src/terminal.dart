@@ -722,6 +722,30 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void moveForwardTabs(int count) {
+    for (var i = 0; i < count; i++) {
+      final nextStop = _tabStops.find(_buffer.cursorX + 1, _viewWidth);
+      if (nextStop == null) {
+        _buffer.setCursorX(_viewWidth - 1);
+        return;
+      }
+      _buffer.setCursorX(nextStop);
+    }
+  }
+
+  @override
+  void moveBackwardTabs(int count) {
+    for (var i = 0; i < count; i++) {
+      final previousStop = _tabStops.findPrevious(_buffer.cursorX - 1, 0);
+      if (previousStop == null) {
+        _buffer.setCursorX(0);
+        return;
+      }
+      _buffer.setCursorX(previousStop);
+    }
+  }
+
+  @override
   void sendPrimaryDeviceAttributes() {
     onOutput?.call(_emitter.primaryDeviceAttributes());
   }
