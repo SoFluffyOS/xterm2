@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show max;
+import 'dart:math' show max, min;
 import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
@@ -405,21 +405,54 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   /// least one cell is selected even if [from] and [to] are same.
   void selectCharacters(Offset from, [Offset? to]) {
     final fromPosition = getCellOffset(from);
+    final fromStart = _cellSelectionStart(fromPosition);
+    final fromEnd = _cellSelectionEnd(fromPosition);
     if (to == null) {
       _controller.setSelection(
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
+        _terminal.buffer.createAnchorFromOffset(fromStart),
+        _terminal.buffer.createAnchorFromOffset(fromEnd),
       );
     } else {
-      var toPosition = getCellOffset(to);
+      final toPosition = getCellOffset(to);
       if (toPosition.isAfterOrSame(fromPosition)) {
-        toPosition = CellOffset(toPosition.x + 1, toPosition.y);
+        _controller.setSelection(
+          _terminal.buffer.createAnchorFromOffset(fromStart),
+          _terminal.buffer.createAnchorFromOffset(
+            _cellSelectionEnd(toPosition),
+          ),
+        );
+        return;
       }
       _controller.setSelection(
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
-        _terminal.buffer.createAnchorFromOffset(toPosition),
+        _terminal.buffer.createAnchorFromOffset(fromEnd),
+        _terminal.buffer.createAnchorFromOffset(
+          _cellSelectionStart(toPosition),
+        ),
       );
     }
+  }
+
+  CellOffset _cellSelectionStart(CellOffset position) {
+    final line = _terminal.buffer.lines[position.y];
+    if (position.x > 0 &&
+        line.getWidth(position.x) == 0 &&
+        line.getWidth(position.x - 1) == 2) {
+      return CellOffset(position.x - 1, position.y);
+    }
+    return position;
+  }
+
+  CellOffset _cellSelectionEnd(CellOffset position) {
+    final start = _cellSelectionStart(position);
+    final line = _terminal.buffer.lines[start.y];
+    final width = switch (line.getWidth(start.x)) {
+      2 => 2,
+      _ => 1,
+    };
+    return CellOffset(
+      min(start.x + width, _terminal.viewWidth),
+      start.y,
+    );
   }
 
   /// Send a mouse event at [offset] with [button] being currently in [buttonState].

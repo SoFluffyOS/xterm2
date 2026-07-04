@@ -90,6 +90,31 @@ void main() {
       expect(terminal.buffer.getText(), startsWith('Hello World'));
     });
 
+    test('includes content in the final column', () {
+      final terminal = Terminal()..resize(3, 2);
+      terminal.write('abc');
+
+      expect(terminal.buffer.getText(), startsWith('abc'));
+    });
+
+    test('expands ranges that split a wide grapheme', () {
+      final terminal = Terminal()..resize(4, 2);
+      terminal.write('好x');
+
+      expect(
+        terminal.buffer.getText(
+          BufferRangeLine(const CellOffset(1, 0), const CellOffset(2, 0)),
+        ),
+        '好',
+      );
+      expect(
+        terminal.buffer.getText(
+          BufferRangeLine(const CellOffset(0, 0), const CellOffset(1, 0)),
+        ),
+        '好',
+      );
+    });
+
     test('can handle line wrap', () {
       final terminal = Terminal();
       terminal.resize(10, 10);

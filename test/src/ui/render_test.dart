@@ -33,8 +33,42 @@ void main() {
     );
 
     final selection = setup.controller.selection;
-    expect(selection?.begin, const CellOffset(1, 1));
+    expect(selection?.begin, const CellOffset(2, 1));
     expect(selection?.end, const CellOffset(5, 0));
+
+    setup.focusNode.dispose();
+  });
+
+  test('character selection includes one cell when drag is collapsed', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final cellSize = render.cellSize;
+
+    render.selectCharacters(
+      Offset(cellSize.width * 2.5, cellSize.height * 0.5),
+    );
+
+    final selection = setup.controller.selection;
+    expect(selection?.begin, const CellOffset(2, 0));
+    expect(selection?.end, const CellOffset(3, 0));
+
+    setup.focusNode.dispose();
+  });
+
+  test('character selection snaps to both cells of a wide grapheme', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final cellSize = render.cellSize;
+    setup.terminal.write('好');
+
+    render.selectCharacters(
+      Offset(cellSize.width * 1.5, cellSize.height * 0.5),
+    );
+
+    final selection = setup.controller.selection;
+    expect(selection?.begin, const CellOffset(0, 0));
+    expect(selection?.end, const CellOffset(2, 0));
+    expect(setup.terminal.buffer.getText(selection), '好');
 
     setup.focusNode.dispose();
   });

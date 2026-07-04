@@ -500,6 +500,16 @@ class BufferLine with IndexedItem {
       to = _length;
     }
 
+    if (from > 0 &&
+        from < _length &&
+        getWidth(from) == 0 &&
+        getWidth(from - 1) == 2) {
+      from--;
+    }
+    if (to > 0 && to < _length && getWidth(to) == 0 && getWidth(to - 1) == 2) {
+      to++;
+    }
+
     final builder = StringBuffer();
     for (var i = from; i < to; i++) {
       final codePoint = getCodePoint(i);

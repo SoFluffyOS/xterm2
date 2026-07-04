@@ -865,7 +865,7 @@ class Buffer {
   String getText([BufferRange? range]) {
     range ??= BufferRangeLine(
       CellOffset(0, 0),
-      CellOffset(viewWidth - 1, height - 1),
+      CellOffset(viewWidth, height - 1),
     );
 
     range = range.normalized;
