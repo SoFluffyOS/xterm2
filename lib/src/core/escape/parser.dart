@@ -877,6 +877,16 @@ class EscapeParser {
   void _csiHandleDeviceStatusReport() {
     if (_csi.params.isEmpty) return;
 
+    if (_csi.prefix == Ascii.questionMark) {
+      switch (_csi.params[0]) {
+        case 996:
+          return handler.sendColorScheme();
+      }
+      return;
+    }
+
+    if (_csi.prefix != null) return;
+
     switch (_csi.params[0]) {
       case 5:
         return handler.sendOperatingStatus();

@@ -1,0 +1,4 @@
+enum TerminalColorScheme {
+  dark,
+  light,
+}

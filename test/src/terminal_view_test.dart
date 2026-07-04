@@ -41,7 +41,8 @@ void main() {
 
     terminal.write(
       '\x1b]4;1;?\x1b\\'
-      '\x1b]10;?;?;?\x1b\\',
+      '\x1b]10;?;?;?\x1b\\'
+      '\x1b[?996n',
     );
 
     expect(output, [
@@ -49,10 +50,12 @@ void main() {
       '\x1b]10;rgb:ffff/ffff/ffff\x1b\\',
       '\x1b]11;rgb:0000/0000/0000\x1b\\',
       '\x1b]12;rgb:aeae/afaf/adad\x1b\\',
+      '\x1b[?997;1n',
     ]);
 
     await tester.pumpWidget(const SizedBox());
     expect(terminal.onColorQuery, isNull);
+    expect(terminal.onColorSchemeQuery, isNull);
   });
 
   final binding = TestWidgetsFlutterBinding.ensureInitialized();

@@ -6,6 +6,7 @@ import 'package:xterm/src/base/observable.dart';
 import 'package:xterm/src/core/buffer/buffer.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/buffer/line.dart';
+import 'package:xterm/src/core/color_scheme.dart';
 import 'package:xterm/src/core/cursor.dart';
 import 'package:xterm/src/core/escape/emitter.dart';
 import 'package:xterm/src/core/escape/handler.dart';
@@ -58,6 +59,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// only for code 4. The return value is a 24-bit RGB color.
   int? Function(int code, int? index)? onColorQuery;
 
+  /// Resolves the current terminal color scheme for CSI ? 996 n queries.
+  /// Return null to ignore the query.
+  TerminalColorScheme? Function()? onColorSchemeQuery;
+
   /// Called when the application requests copying text through OSC 52.
   ///
   /// [selector] is usually `c` for clipboard or `p`/`s` for primary selection.
@@ -104,6 +109,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onIconChange,
     this.onCurrentDirectoryChange,
     this.onColorQuery,
+    this.onColorSchemeQuery,
     this.onClipboardStore,
     this.onClipboardQuery,
     this.onOutput,
@@ -785,6 +791,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void sendCursorPosition() {
     onOutput?.call(_emitter.cursorPosition(_buffer.cursorX, _buffer.cursorY));
+  }
+
+  @override
+  void sendColorScheme() {
+    final colorScheme = onColorSchemeQuery?.call();
+    if (colorScheme == null) return;
+    onOutput?.call(_emitter.colorScheme(colorScheme));
   }
 
   @override

@@ -77,6 +77,8 @@ abstract class EscapeHandler {
 
   void sendCursorPosition();
 
+  void sendColorScheme();
+
   void setMargins(int i, [int? bottom]);
 
   void cursorNextLine(int amount);

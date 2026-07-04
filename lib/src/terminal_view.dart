@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
+import 'package:xterm/src/core/color_scheme.dart';
 import 'package:xterm/src/core/input/event.dart';
 import 'package:xterm/src/core/input/keys.dart';
 import 'package:xterm/src/terminal.dart';
@@ -200,6 +201,7 @@ class TerminalViewState extends State<TerminalView> {
       shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
     );
     _installColorQuery(widget.terminal);
+    _installColorSchemeQuery(widget.terminal);
     _installClipboardHandlers(widget.terminal);
     super.initState();
   }
@@ -208,8 +210,10 @@ class TerminalViewState extends State<TerminalView> {
   void didUpdateWidget(TerminalView oldWidget) {
     if (oldWidget.terminal != widget.terminal) {
       _removeColorQuery(oldWidget.terminal);
+      _removeColorSchemeQuery(oldWidget.terminal);
       _removeClipboardHandlers(oldWidget.terminal);
       _installColorQuery(widget.terminal);
+      _installColorSchemeQuery(widget.terminal);
       _installClipboardHandlers(widget.terminal);
     }
     if (oldWidget.focusNode != widget.focusNode) {
@@ -239,6 +243,7 @@ class TerminalViewState extends State<TerminalView> {
   @override
   void dispose() {
     _removeColorQuery(widget.terminal);
+    _removeColorSchemeQuery(widget.terminal);
     _removeClipboardHandlers(widget.terminal);
     _focusNode.removeListener(_reportFocusChange);
     if (widget.focusNode == null) {
@@ -261,6 +266,16 @@ class TerminalViewState extends State<TerminalView> {
   void _removeColorQuery(Terminal terminal) {
     if (terminal.onColorQuery == _colorQuery) {
       terminal.onColorQuery = null;
+    }
+  }
+
+  void _installColorSchemeQuery(Terminal terminal) {
+    terminal.onColorSchemeQuery ??= _resolveColorSchemeQuery;
+  }
+
+  void _removeColorSchemeQuery(Terminal terminal) {
+    if (terminal.onColorSchemeQuery == _resolveColorSchemeQuery) {
+      terminal.onColorSchemeQuery = null;
     }
   }
 
@@ -303,6 +318,15 @@ class TerminalViewState extends State<TerminalView> {
     };
     if (color == null) return null;
     return color.toARGB32() & 0x00ffffff;
+  }
+
+  TerminalColorScheme _resolveColorSchemeQuery() {
+    final luminance = widget.theme.background.computeLuminance();
+    final isDark = luminance < 0.5;
+    return switch (isDark) {
+      true => TerminalColorScheme.dark,
+      false => TerminalColorScheme.light,
+    };
   }
 
   void _reportFocusChange() {

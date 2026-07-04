@@ -270,6 +270,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void sendColorScheme() => super.noSuchMethod(
+        Invocation.method(
+          #sendColorScheme,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setMargins(
     int? i, [
     int? bottom,

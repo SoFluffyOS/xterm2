@@ -1,3 +1,5 @@
+import 'package:xterm/src/core/color_scheme.dart';
+
 class EscapeEmitter {
   const EscapeEmitter();
 
@@ -23,6 +25,14 @@ class EscapeEmitter {
 
   String cursorPosition(int x, int y) {
     return '\x1b[${y + 1};${x + 1}R';
+  }
+
+  String colorScheme(TerminalColorScheme colorScheme) {
+    final scheme = switch (colorScheme) {
+      TerminalColorScheme.dark => 1,
+      TerminalColorScheme.light => 2,
+    };
+    return '\x1b[?997;${scheme}n';
   }
 
   String bracketedPaste(String text) {

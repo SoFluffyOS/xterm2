@@ -833,6 +833,32 @@ void main() {
     ]);
   });
 
+  test('Terminal reports Ghostty-compatible color scheme DSR', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorSchemeQuery: () => TerminalColorScheme.dark,
+    );
+
+    terminal.write('\x1b[?996n');
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.light;
+    terminal.write('\x1b[?996n');
+
+    expect(output, [
+      '\x1b[?997;1n',
+      '\x1b[?997;2n',
+    ]);
+  });
+
+  test('Terminal ignores color scheme DSR without callback', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[?996n');
+
+    expect(output, isEmpty);
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
