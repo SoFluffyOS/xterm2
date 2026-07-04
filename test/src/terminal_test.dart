@@ -909,6 +909,39 @@ void main() {
     expect(output, isEmpty);
   });
 
+  test('Terminal reports DECRQSS status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write(
+      '\x1b[1;3;4m'
+      '\x1b[3;10r'
+      '\x1b[5 q'
+      '\x1bP\$qm\x1b\\'
+      '\x1bP\$qr\x1b\\'
+      '\x1bP\$q q\x1b\\'
+      '\x1bP\$qx\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r0;1;3;4m\x1b\\',
+      '\x1bP1\$r3;10r\x1b\\',
+      '\x1bP1\$r5 q\x1b\\',
+      '\x1bP0\$r\x1b\\',
+    ]);
+  });
+
+  test('Terminal handles split DECRQSS payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP\$');
+    terminal.write('qm\x1b');
+    terminal.write('\\');
+
+    expect(output, ['\x1bP1\$r0m\x1b\\']);
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

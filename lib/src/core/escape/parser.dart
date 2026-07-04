@@ -21,6 +21,8 @@ class EscapeParser {
 
   static const _maxOscParams = 256;
 
+  static const _maxDcsRawLength = 256;
+
   final EscapeHandler handler;
 
   EscapeParser(this.handler);
@@ -56,6 +58,12 @@ class EscapeParser {
       if (_discardingStringControl) {
         _discardStringControlInput();
         if (_discardingStringControl) return;
+        continue;
+      }
+
+      if (_collectingDcs) {
+        _collectDcsInput();
+        if (_collectingDcs) return;
         continue;
       }
 
@@ -127,7 +135,7 @@ class EscapeParser {
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
-    'P'.charCode: _escHandleStringControl,
+    'P'.charCode: _escHandleDcs,
     'X'.charCode: _escHandleStringControl,
     '^'.charCode: _escHandleStringControl,
     '_'.charCode: _escHandleStringControl,
@@ -242,6 +250,15 @@ class EscapeParser {
     _discardingStringControl = true;
     _discardStringControlSawEscape = false;
     _discardStringControlInput();
+    return true;
+  }
+
+  bool _escHandleDcs() {
+    _collectingDcs = true;
+    _dcsSawEscape = false;
+    _dcsOverflowed = false;
+    _dcsBuffer.clear();
+    _collectDcsInput();
     return true;
   }
 
@@ -1528,6 +1545,59 @@ class EscapeParser {
         _discardStringControlSawEscape = true;
       }
     }
+  }
+
+  bool _collectingDcs = false;
+
+  bool _dcsSawEscape = false;
+
+  bool _dcsOverflowed = false;
+
+  final _dcsBuffer = StringBuffer();
+
+  void _collectDcsInput() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+
+      if (_dcsSawEscape) {
+        _dcsSawEscape = false;
+        if (char == Ascii.backslash) {
+          _collectingDcs = false;
+          _handleDcs();
+          return;
+        }
+        _writeDcsChar(Ascii.ESC);
+      }
+
+      if (char == Ascii.BEL) {
+        _collectingDcs = false;
+        _handleDcs();
+        return;
+      }
+
+      if (char == Ascii.ESC) {
+        _dcsSawEscape = true;
+        continue;
+      }
+
+      _writeDcsChar(char);
+    }
+  }
+
+  void _writeDcsChar(int char) {
+    if (_dcsOverflowed) return;
+    if (_dcsBuffer.length >= _maxDcsRawLength) {
+      _dcsOverflowed = true;
+      return;
+    }
+    _dcsBuffer.writeCharCode(char);
+  }
+
+  void _handleDcs() {
+    if (_dcsOverflowed) return;
+    final payload = _dcsBuffer.toString();
+    if (!payload.startsWith('\$q')) return;
+    handler.sendStatusString(payload.substring(2));
   }
 }
 

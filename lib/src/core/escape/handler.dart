@@ -83,6 +83,8 @@ abstract class EscapeHandler {
 
   void sendXtVersion();
 
+  void sendStatusString(String query);
+
   void setMargins(int i, [int? bottom]);
 
   void cursorNextLine(int amount);

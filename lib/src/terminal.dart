@@ -6,6 +6,7 @@ import 'package:xterm/src/base/observable.dart';
 import 'package:xterm/src/core/buffer/buffer.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/buffer/line.dart';
+import 'package:xterm/src/core/cell.dart';
 import 'package:xterm/src/core/color_scheme.dart';
 import 'package:xterm/src/core/cursor.dart';
 import 'package:xterm/src/core/escape/emitter.dart';
@@ -820,6 +821,46 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void sendXtVersion() {
     onOutput?.call(_emitter.xtVersion(onXtVersionQuery?.call()));
+  }
+
+  @override
+  void sendStatusString(String query) {
+    onOutput?.call(_emitter.statusString(_statusString(query)));
+  }
+
+  String? _statusString(String query) {
+    return switch (query) {
+      'm' => _sgrStatusString(),
+      ' q' => '${_cursorShapeStatus()} q',
+      'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
+      _ => null,
+    };
+  }
+
+  String _sgrStatusString() {
+    final attributes = <int>[0];
+    if (_cursorStyle.isBold) attributes.add(1);
+    if (_cursorStyle.isFaint) attributes.add(2);
+    if (_cursorStyle.isItalis) attributes.add(3);
+    if (_cursorStyle.isUnderline) attributes.add(4);
+    if (_cursorStyle.isBlink) attributes.add(5);
+    if (_cursorStyle.isInverse) attributes.add(7);
+    if (_cursorStyle.isInvisible) attributes.add(8);
+    if (_cursorStyle.attrs & CellAttr.strikethrough != 0) attributes.add(9);
+    if (_cursorStyle.isDoubleUnderline) attributes.add(21);
+    if (_cursorStyle.isOverline) attributes.add(53);
+    return '${attributes.join(';')}m';
+  }
+
+  int _cursorShapeStatus() {
+    return switch ((_applicationCursorType, _cursorBlinkMode)) {
+      (TerminalCursorType.block || null, true) => 1,
+      (TerminalCursorType.block || null, false) => 2,
+      (TerminalCursorType.underline, true) => 3,
+      (TerminalCursorType.underline, false) => 4,
+      (TerminalCursorType.verticalBar, true) => 5,
+      (TerminalCursorType.verticalBar, false) => 6,
+    };
   }
 
   @override

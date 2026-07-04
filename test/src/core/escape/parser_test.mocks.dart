@@ -294,6 +294,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void sendStatusString(String? query) => super.noSuchMethod(
+        Invocation.method(
+          #sendStatusString,
+          [query],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setMargins(
     int? i, [
     int? bottom,

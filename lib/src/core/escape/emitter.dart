@@ -42,6 +42,11 @@ class EscapeEmitter {
     return '\x1bP>|$payload\x1b\\';
   }
 
+  String statusString(String? value) {
+    if (value == null) return '\x1bP0\$r\x1b\\';
+    return '\x1bP1\$r$value\x1b\\';
+  }
+
   String bracketedPaste(String text) {
     final filtered = text.replaceAll(RegExp('[\x1b\x03]'), '');
     return '\x1b[200~$filtered\x1b[201~';
