@@ -970,6 +970,10 @@ void main() {
       '\x1b[4\x24p'
       '\x1b[20\x24p'
       '\x1b[?7\x24p'
+      '\x1b[?45h'
+      '\x1b[?45\x24p'
+      '\x1b[?1045h'
+      '\x1b[?1045\x24p'
       '\x1b[?25l'
       '\x1b[?25\x24p'
       '\x1b[?9999\x24p',
@@ -979,6 +983,8 @@ void main() {
       '\x1b[4;1\x24y',
       '\x1b[20;2\x24y',
       '\x1b[?7;1\x24y',
+      '\x1b[?45;1\x24y',
+      '\x1b[?1045;1\x24y',
       '\x1b[?25;2\x24y',
       '\x1b[?9999;0\x24y',
     ]);
@@ -1248,6 +1254,33 @@ void main() {
     terminal.write('\x1b[3;5H\x1b[6n');
 
     expect(output, ['\x1b[3;5R']);
+  });
+
+  test('Terminal supports reverse wrap mode for cursor left', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?45hABCDE1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCDX');
+    expect(terminal.buffer.lines[1].toString(), '1');
+  });
+
+  test('Terminal reverse wrap stops at unwrapped previous line', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?45hABCD\r\n1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCD');
+    expect(terminal.buffer.lines[1].toString(), 'X');
+  });
+
+  test('Terminal supports extended reverse wrap mode', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?1045hABCD\r\n1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCDX');
+    expect(terminal.buffer.lines[1].toString(), '1');
   });
 
   test('Terminal negotiates Kitty keyboard modes', () {

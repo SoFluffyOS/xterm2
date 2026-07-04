@@ -515,6 +515,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setReverseWrapMode(bool enabled) {
+    onCommand('setReverseWrapMode($enabled)');
+  }
+
+  @override
+  void setReverseWrapExtendedMode(bool enabled) {
+    onCommand('setReverseWrapExtendedMode($enabled)');
+  }
+
+  @override
   void setMouseMode(MouseMode mode) {
     onCommand('setMouseMode($mode)');
   }

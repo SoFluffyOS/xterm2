@@ -171,6 +171,10 @@ abstract class EscapeHandler {
 
   void setAutoWrapMode(bool enabled);
 
+  void setReverseWrapMode(bool enabled);
+
+  void setReverseWrapExtendedMode(bool enabled);
+
   void setMouseMode(MouseMode mode);
 
   void setCursorBlinkMode(bool enabled);

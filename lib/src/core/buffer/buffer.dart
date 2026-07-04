@@ -599,7 +599,83 @@ class Buffer {
   }
 
   void moveCursorX(int offset) {
+    if (offset < 0) {
+      _moveCursorLeft(-offset);
+      return;
+    }
+
     setCursorX(_cursorX + offset);
+  }
+
+  void _moveCursorLeft(int count) {
+    if (count <= 0) return;
+
+    final wrapMode = _cursorLeftWrapMode;
+    if (_isPendingWrap) {
+      _cursorX = _rightLimit - 1;
+      count -= 1;
+      if (count == 0) return;
+    }
+
+    if (wrapMode == _CursorLeftWrapMode.none) {
+      setCursorX(_cursorX - count);
+      return;
+    }
+
+    final top = _marginTop;
+    final bottom = _marginBottom;
+    final right = _marginRight;
+    final left = switch (_cursorX < _marginLeft) {
+      true => 0,
+      false => _marginLeft,
+    };
+
+    if (_cursorX == left &&
+        wrapMode == _CursorLeftWrapMode.reverse &&
+        _cursorY <= top) {
+      _cursorX = left;
+      _cursorY = top;
+      return;
+    }
+
+    while (count > 0) {
+      final amount = min(_cursorX - left, count);
+      _cursorX -= amount;
+      count -= amount;
+      if (count == 0) return;
+
+      if (_cursorY == top) {
+        if (wrapMode != _CursorLeftWrapMode.reverseExtended) return;
+
+        _cursorX = right;
+        _cursorY = bottom;
+        count -= 1;
+        continue;
+      }
+
+      if (_cursorY == 0) return;
+
+      if (wrapMode == _CursorLeftWrapMode.reverse) {
+        if (!currentLine.isWrapped) return;
+      }
+
+      _cursorX = right;
+      _cursorY -= 1;
+      count -= 1;
+    }
+  }
+
+  bool get _isPendingWrap {
+    return _cursorX == _rightLimit;
+  }
+
+  _CursorLeftWrapMode get _cursorLeftWrapMode {
+    if (!terminal.autoWrapMode) return _CursorLeftWrapMode.none;
+    if (terminal.reverseWrapExtendedMode) {
+      return _CursorLeftWrapMode.reverseExtended;
+    }
+    if (terminal.reverseWrapMode) return _CursorLeftWrapMode.reverse;
+    return _CursorLeftWrapMode.none;
   }
 
   void moveCursorY(int offset) {
@@ -1109,4 +1185,10 @@ class Buffer {
 
     return builder.toString();
   }
+}
+
+enum _CursorLeftWrapMode {
+  none,
+  reverse,
+  reverseExtended,
 }

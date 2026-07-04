@@ -215,6 +215,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _autoWrapMode = true;
 
+  bool _reverseWrapMode = false;
+
+  bool _reverseWrapExtendedMode = false;
+
   MouseMode _mouseMode = MouseMode.none;
 
   MouseReportMode _mouseReportMode = MouseReportMode.normal;
@@ -285,6 +289,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get autoWrapMode => _autoWrapMode;
+
+  @override
+  bool get reverseWrapMode => _reverseWrapMode;
+
+  @override
+  bool get reverseWrapExtendedMode => _reverseWrapExtendedMode;
 
   @override
   MouseMode get mouseMode => _mouseMode;
@@ -659,6 +669,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reverseDisplayMode = false;
     _originMode = false;
     _autoWrapMode = true;
+    _reverseWrapMode = false;
+    _reverseWrapExtendedMode = false;
     _mouseMode = MouseMode.none;
     _mouseReportMode = MouseReportMode.normal;
     _cursorBlinkMode = false;
@@ -697,6 +709,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reverseDisplayMode = false;
     _originMode = false;
     _autoWrapMode = true;
+    _reverseWrapMode = false;
+    _reverseWrapExtendedMode = false;
     _mouseMode = MouseMode.none;
     _mouseReportMode = MouseReportMode.normal;
     _cursorBlinkMode = false;
@@ -1234,6 +1248,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setReverseWrapMode(bool enabled) {
+    _reverseWrapMode = enabled;
+  }
+
+  @override
+  void setReverseWrapExtendedMode(bool enabled) {
+    _reverseWrapExtendedMode = enabled;
+  }
+
+  @override
   void setMouseMode(MouseMode mode) {
     _mouseMode = mode;
   }
@@ -1337,6 +1361,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       9 => _reportedState(_mouseMode == MouseMode.clickOnly),
       12 || 13 => _reportedState(_cursorBlinkMode),
       25 => _reportedState(_cursorVisibleMode),
+      45 => _reportedState(_reverseWrapMode),
       47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
       66 => _reportedState(_appKeypadMode),
       69 => _reportedState(_leftRightMarginMode),
@@ -1349,6 +1374,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _reportedState(_altBufferMouseScrollMode),
       1015 => _reportedState(_mouseReportMode == MouseReportMode.urxvt),
       1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
+      1045 => _reportedState(_reverseWrapExtendedMode),
       2004 => _reportedState(_bracketedPasteMode),
       2026 => 2,
       2027 => _reportedState(_graphemeClusterMode),
@@ -1388,6 +1414,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       9 => _mouseMode == MouseMode.clickOnly,
       12 || 13 => _cursorBlinkMode,
       25 => _cursorVisibleMode,
+      45 => _reverseWrapMode,
       47 || 1047 || 1049 => isUsingAltBuffer,
       66 => _appKeypadMode,
       69 => _leftRightMarginMode,
@@ -1400,6 +1427,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _altBufferMouseScrollMode,
       1015 => _mouseReportMode == MouseReportMode.urxvt,
       1016 => _mouseReportMode == MouseReportMode.sgrPixels,
+      1045 => _reverseWrapExtendedMode,
       2004 => _bracketedPasteMode,
       2027 => _graphemeClusterMode,
       _ => null,
@@ -1426,6 +1454,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return setCursorBlinkMode(enabled);
       case 25:
         return setCursorVisibleMode(enabled);
+      case 45:
+        return setReverseWrapMode(enabled);
       case 47:
       case 1047:
       case 1049:
@@ -1477,6 +1507,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           true => MouseReportMode.sgrPixels,
           false => MouseReportMode.normal,
         });
+      case 1045:
+        return setReverseWrapExtendedMode(enabled);
       case 2004:
         return setBracketedPasteMode(enabled);
       case 2027:

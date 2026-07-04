@@ -1516,6 +1516,8 @@ class EscapeParser {
         return handler.setCursorBlinkMode(enabled);
       case 25:
         return handler.setCursorVisibleMode(enabled);
+      case 45:
+        return handler.setReverseWrapMode(enabled);
       case 47:
         if (enabled) {
           return handler.useAltBuffer();
@@ -1562,6 +1564,8 @@ class EscapeParser {
         return enabled
             ? handler.setMouseReportMode(MouseReportMode.sgrPixels)
             : handler.setMouseReportMode(MouseReportMode.normal);
+      case 1045:
+        return handler.setReverseWrapExtendedMode(enabled);
       case 1047:
         if (enabled) {
           handler.useAltBuffer();
