@@ -859,6 +859,33 @@ void main() {
     expect(output, isEmpty);
   });
 
+  test('Terminal reports XTVERSION with default and callback values', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[>q');
+    terminal.onXtVersionQuery = () => 'lumide-term 1.0';
+    terminal.write('\x1b[>0q');
+
+    expect(output, [
+      '\x1bP>|xterm.dart 4.0.1\x1b\\',
+      '\x1bP>|lumide-term 1.0\x1b\\',
+    ]);
+  });
+
+  test('Terminal sanitizes and bounds XTVERSION callback output', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onXtVersionQuery: () => 'bad\x1b[31m${'x' * 300}',
+    );
+
+    terminal.write('\x1b[>q');
+
+    expect(output.single, startsWith('\x1bP>|bad[31m'));
+    expect(output.single, hasLength('\x1bP>|\x1b\\'.length + 256));
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

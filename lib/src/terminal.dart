@@ -63,6 +63,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Return null to ignore the query.
   TerminalColorScheme? Function()? onColorSchemeQuery;
 
+  /// Resolves the terminal version string for XTVERSION (CSI > q) queries.
+  /// Return null or an empty string to use the default xterm.dart version.
+  String? Function()? onXtVersionQuery;
+
   /// Called when the application requests copying text through OSC 52.
   ///
   /// [selector] is usually `c` for clipboard or `p`/`s` for primary selection.
@@ -110,6 +114,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onCurrentDirectoryChange,
     this.onColorQuery,
     this.onColorSchemeQuery,
+    this.onXtVersionQuery,
     this.onClipboardStore,
     this.onClipboardQuery,
     this.onOutput,
@@ -798,6 +803,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final colorScheme = onColorSchemeQuery?.call();
     if (colorScheme == null) return;
     onOutput?.call(_emitter.colorScheme(colorScheme));
+  }
+
+  @override
+  void sendXtVersion() {
+    onOutput?.call(_emitter.xtVersion(onXtVersionQuery?.call()));
   }
 
   @override

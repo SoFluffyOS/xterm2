@@ -4,6 +4,8 @@ class EscapeEmitter {
   const EscapeEmitter();
 
   static const _packageVersion = '4.0.1';
+  static const _defaultXtVersion = 'xterm.dart $_packageVersion';
+  static const _maxXtVersionLength = 256;
 
   String primaryDeviceAttributes() {
     return '\x1b[?6c';
@@ -33,6 +35,11 @@ class EscapeEmitter {
       TerminalColorScheme.light => 2,
     };
     return '\x1b[?997;${scheme}n';
+  }
+
+  String xtVersion(String? version) {
+    final payload = _sanitizeXtVersion(version);
+    return '\x1bP>|$payload\x1b\\';
   }
 
   String bracketedPaste(String text) {
@@ -65,5 +72,18 @@ class EscapeEmitter {
     }
 
     return number;
+  }
+
+  String _sanitizeXtVersion(String? version) {
+    final effectiveVersion = switch (version) {
+      final value? when value.isNotEmpty => value,
+      _ => _defaultXtVersion,
+    };
+    final withoutControls = effectiveVersion.replaceAll(
+      RegExp('[\x00-\x1f\x7f]'),
+      '',
+    );
+    if (withoutControls.length <= _maxXtVersionLength) return withoutControls;
+    return withoutControls.substring(0, _maxXtVersionLength);
   }
 }

@@ -401,6 +401,12 @@ class EscapeParser {
   });
 
   void _csiHandleCursorStyle() {
+    if (_csi.prefix == Ascii.greaterThan &&
+        _csi.intermediates.isEmpty &&
+        _csi.params.length <= 1) {
+      return handler.sendXtVersion();
+    }
+
     if (_csi.intermediates.length != 1 ||
         _csi.intermediates.single != Ascii.space) {
       return handler.unknownCSI(_csi.finalByte);
