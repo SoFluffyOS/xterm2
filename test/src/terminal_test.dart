@@ -108,6 +108,27 @@ void main() {
     expect(terminal.cursor.isBlink, isTrue);
   });
 
+  test('Terminal allocates two cells for modern Unicode emoji', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1FAE0}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal attaches modern Unicode combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('a\u{1E2AE}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCombiningCharacters(0), '\u{1E2AE}');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
   test('Terminal resets bold and faint intensity with SGR 22', () {
     final terminal = Terminal()..resize(20, 5);
 
