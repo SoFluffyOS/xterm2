@@ -261,6 +261,7 @@ void main() {
 
     final line = terminal.buffer.lines[0];
     expect(line.getWidth(0), 1);
+    expect(line.getCombiningCharacters(0), isNull);
     expect(line.getCodePoint(1), 0x79);
   });
 
@@ -286,6 +287,32 @@ void main() {
     expect(wrappedLine.getCodePoint(0), 0x2764);
     expect(wrappedLine.getWidth(0), 2);
     expect(wrappedLine.getCombiningCharacters(0), '\ufe0f');
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal expands width when a ZWJ grapheme gains a wide codepoint', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u2764\u200d\u{1F525}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x2764);
+    expect(line.getCombiningCharacters(0), '\u200d\u{1F525}');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal wraps a widening ZWJ grapheme at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u2764\u200d\u{1F525}');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getText(), '\u2764\u200d\u{1F525}');
+    expect(wrappedLine.getWidth(0), 2);
     expect(terminal.buffer.cursorX, 2);
   });
 

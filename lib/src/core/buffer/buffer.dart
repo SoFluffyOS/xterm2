@@ -114,13 +114,17 @@ class Buffer {
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
     if (terminal.graphemeClusterMode &&
-        (codePoint == 0xFE0E || codePoint == 0xFE0F) &&
-        _resizePreviousGrapheme(codePoint)) {
-      _addCombiningCharacter(codePoint);
+        (codePoint == 0xFE0E || codePoint == 0xFE0F)) {
+      if (_previousSupportsEmojiVariation()) {
+        _resizePreviousGrapheme(codePoint);
+        _addCombiningCharacter(codePoint);
+      }
       return;
     }
-    if (terminal.graphemeClusterMode &&
-        (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint))) {
+    final joinsPreviousGrapheme = terminal.graphemeClusterMode &&
+        (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint));
+    if (joinsPreviousGrapheme) {
+      if (cellWidth == 2) _setPreviousGraphemeWidth(2);
       _addCombiningCharacter(codePoint);
       return;
     }
@@ -188,19 +192,27 @@ class Buffer {
   }
 
   bool _resizePreviousGrapheme(int variationSelector) {
-    if (_cursorX == 0) return false;
+    final desiredWidth = switch (variationSelector) {
+      0xFE0F => 2,
+      0xFE0E => 1,
+      _ => null,
+    };
+    if (desiredWidth == null) return false;
+    return _setPreviousGraphemeWidth(desiredWidth);
+  }
 
-    var index = min(_cursorX - 1, viewWidth - 1);
-    if (index > 0 && currentLine.getWidth(index) == 0) {
-      index--;
-    }
-    if (currentLine.getCodePoint(index) == 0) return false;
+  bool _previousSupportsEmojiVariation() {
+    final index = _previousCellIndex();
+    if (index == null) return false;
+    return _supportsEmojiVariation(currentLine.getCodePoint(index));
+  }
 
-    final baseCodePoint = currentLine.getCodePoint(index);
-    if (!_supportsEmojiVariation(baseCodePoint)) return false;
+  bool _setPreviousGraphemeWidth(int desiredWidth) {
+    final index = _previousCellIndex();
+    if (index == null || currentLine.getCodePoint(index) == 0) return false;
 
     final width = currentLine.getWidth(index);
-    if (variationSelector == 0xFE0F && width == 1) {
+    if (desiredWidth == 2 && width == 1) {
       if (index + 1 >= viewWidth) {
         if (!terminal.autoWrapMode) return false;
 
@@ -229,7 +241,7 @@ class Buffer {
       return true;
     }
 
-    if (variationSelector == 0xFE0E && width == 2) {
+    if (desiredWidth == 1 && width == 2) {
       currentLine.setWidth(index, 1);
       currentLine.eraseCell(index + 1, terminal.cursor);
       if (_cursorX == index + 2) _cursorX--;
@@ -237,6 +249,13 @@ class Buffer {
     }
 
     return false;
+  }
+
+  int? _previousCellIndex() {
+    if (_cursorX == 0) return null;
+    var index = min(_cursorX - 1, viewWidth - 1);
+    if (index > 0 && currentLine.getWidth(index) == 0) index--;
+    return index;
   }
 
   bool _previousCellEndsWithJoiner() {
