@@ -14,6 +14,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
   static const _reportEventTypes = 0x02;
   static const _reportAlternateKeys = 0x04;
   static const _reportAllKeysAsEscapeCodes = 0x08;
+  static const _reportAssociatedText = 0x10;
 
   @override
   String? call(TerminalKeyboardEvent event) {
@@ -37,6 +38,11 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       return _sequence(numpadCode, event);
     }
 
+    final functionalSequence = _functionalSequence(event, mode);
+    if (functionalSequence != null) {
+      return functionalSequence;
+    }
+
     if (_shouldEncodeControlKey(event, mode)) {
       final controlCode = _controlKeyCode(event.key);
       if (controlCode != null) {
@@ -44,7 +50,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       }
     }
 
-    final characterCode = _characterKeyCode(event.key);
+    final characterCode = _characterKeyCode(event);
     if (characterCode == null) {
       return null;
     }
@@ -54,10 +60,9 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
 
     var payload = characterCode.toString();
     final reportsAlternateKeys = mode & _reportAlternateKeys != 0;
-    final isLetter = event.key.index >= TerminalKey.keyA.index &&
-        event.key.index <= TerminalKey.keyZ.index;
-    if (reportsAlternateKeys && event.shift && isLetter) {
-      payload = '$payload:${characterCode - 32}';
+    final alternateCode = _alternateCharacterCode(event, characterCode);
+    if (reportsAlternateKeys && alternateCode != null) {
+      payload = '$payload:$alternateCode';
     }
 
     return _sequence(payload, event);
@@ -70,6 +75,10 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (event.key == TerminalKey.escape) {
       return mode & (_disambiguateEscapeCodes | _reportEventTypes) != 0;
     }
+    if (event.type == TerminalKeyEventType.release &&
+        mode & _reportEventTypes != 0) {
+      return true;
+    }
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;
     }
@@ -80,18 +89,46 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (mode & _reportAllKeysAsEscapeCodes != 0) {
       return true;
     }
+    if (event.type == TerminalKeyEventType.release &&
+        mode & _reportEventTypes != 0) {
+      return true;
+    }
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;
     }
     return event.ctrl || event.alt;
   }
 
-  String _sequence(Object payload, TerminalKeyboardEvent event) {
+  String _sequence(
+    Object payload,
+    TerminalKeyboardEvent event, {
+    String terminator = 'u',
+  }) {
     final modifiers = _encodedModifiers(event);
-    if (modifiers == 1) {
-      return '\x1b[${payload}u';
+    final reportsEventType =
+        event.state.kittyKeyboardMode & _reportEventTypes != 0;
+    final eventType = switch (event.type) {
+      TerminalKeyEventType.press => null,
+      TerminalKeyEventType.repeat when reportsEventType => 2,
+      TerminalKeyEventType.release when reportsEventType => 3,
+      _ => null,
+    };
+    final associatedText = _associatedText(event);
+    final hasExtendedParameters =
+        modifiers != 1 || eventType != null || associatedText != null;
+    if (!hasExtendedParameters) {
+      return '\x1b[$payload$terminator';
     }
-    return '\x1b[$payload;${modifiers}u';
+
+    final eventParameter = switch (eventType) {
+      null => '$modifiers',
+      final value => '$modifiers:$value',
+    };
+    final textParameter = switch (associatedText) {
+      null => '',
+      final value => ';$value',
+    };
+    return '\x1b[$payload;$eventParameter$textParameter$terminator';
   }
 
   int _encodedModifiers(TerminalKeyboardEvent event) {
@@ -108,7 +145,8 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     return modifiers;
   }
 
-  int? _characterKeyCode(TerminalKey key) {
+  int? _characterKeyCode(TerminalKeyboardEvent event) {
+    final key = event.key;
     if (key.index >= TerminalKey.keyA.index &&
         key.index <= TerminalKey.keyZ.index) {
       return key.index - TerminalKey.keyA.index + 97;
@@ -117,7 +155,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
         key.index <= TerminalKey.digit9.index) {
       return key.index - TerminalKey.digit1.index + 49;
     }
-    return switch (key) {
+    final mappedCode = switch (key) {
       TerminalKey.digit0 => 48,
       TerminalKey.space => 32,
       TerminalKey.minus => 45,
@@ -133,6 +171,100 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       TerminalKey.slash => 47,
       _ => null,
     };
+    if (mappedCode != null) {
+      return mappedCode;
+    }
+
+    final text = event.text;
+    if (text == null || text.runes.isEmpty) {
+      return null;
+    }
+    final character = String.fromCharCode(text.runes.first);
+    final unshiftedCharacter = switch (event.shift) {
+      true => character.toLowerCase(),
+      false => character,
+    };
+    return unshiftedCharacter.runes.first;
+  }
+
+  int? _alternateCharacterCode(
+    TerminalKeyboardEvent event,
+    int characterCode,
+  ) {
+    final text = event.text;
+    if (text == null) {
+      final isLetter = event.key.index >= TerminalKey.keyA.index &&
+          event.key.index <= TerminalKey.keyZ.index;
+      if (event.shift && isLetter) {
+        return characterCode - 32;
+      }
+      return null;
+    }
+    if (text.runes.length != 1) {
+      return null;
+    }
+    final alternateCode = text.runes.first;
+    if (alternateCode == characterCode) {
+      return null;
+    }
+    return alternateCode;
+  }
+
+  String? _associatedText(TerminalKeyboardEvent event) {
+    final mode = event.state.kittyKeyboardMode;
+    if (mode & _reportAssociatedText == 0 ||
+        event.type == TerminalKeyEventType.release) {
+      return null;
+    }
+    final text = event.text;
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+    final codepoints = text.runes.toList(growable: false);
+    final hasControlCharacter = codepoints.any(
+      (codepoint) =>
+          codepoint < 0x20 || (codepoint >= 0x7f && codepoint <= 0x9f),
+    );
+    if (hasControlCharacter) {
+      return null;
+    }
+    return codepoints.join(':');
+  }
+
+  String? _functionalSequence(TerminalKeyboardEvent event, int mode) {
+    if (event.type == TerminalKeyEventType.press ||
+        mode & _reportEventTypes == 0) {
+      return null;
+    }
+    final mapping = switch (event.key) {
+      TerminalKey.pageUp => ('5', '~'),
+      TerminalKey.pageDown => ('6', '~'),
+      TerminalKey.insert => ('2', '~'),
+      TerminalKey.delete => ('3', '~'),
+      TerminalKey.home => ('1', 'H'),
+      TerminalKey.end => ('1', 'F'),
+      TerminalKey.arrowLeft => ('1', 'D'),
+      TerminalKey.arrowRight => ('1', 'C'),
+      TerminalKey.arrowUp => ('1', 'A'),
+      TerminalKey.arrowDown => ('1', 'B'),
+      TerminalKey.f1 => ('1', 'P'),
+      TerminalKey.f2 => ('1', 'Q'),
+      TerminalKey.f3 => ('1', 'R'),
+      TerminalKey.f4 => ('1', 'S'),
+      TerminalKey.f5 => ('15', '~'),
+      TerminalKey.f6 => ('17', '~'),
+      TerminalKey.f7 => ('18', '~'),
+      TerminalKey.f8 => ('19', '~'),
+      TerminalKey.f9 => ('20', '~'),
+      TerminalKey.f10 => ('21', '~'),
+      TerminalKey.f11 => ('23', '~'),
+      TerminalKey.f12 => ('24', '~'),
+      _ => null,
+    };
+    if (mapping == null) {
+      return null;
+    }
+    return _sequence(mapping.$1, event, terminator: mapping.$2);
   }
 
   int? _controlKeyCode(TerminalKey key) {

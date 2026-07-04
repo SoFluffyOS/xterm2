@@ -2,6 +2,8 @@ import 'package:xterm/src/core/input/keys.dart';
 import 'package:xterm/src/core/platform.dart';
 import 'package:xterm/src/core/state.dart';
 
+enum TerminalKeyEventType { press, repeat, release }
+
 /// The key event received from the keyboard, along with the state of the
 /// modifier keys and state of the terminal. Typically consumed by the
 /// [TerminalInputHandler] to produce an escape sequence that can be recognized
@@ -21,6 +23,10 @@ class TerminalKeyboardEvent {
 
   final TerminalTargetPlatform platform;
 
+  final TerminalKeyEventType type;
+
+  final String? text;
+
   TerminalKeyboardEvent({
     required this.key,
     required this.shift,
@@ -29,6 +35,8 @@ class TerminalKeyboardEvent {
     required this.state,
     required this.altBuffer,
     required this.platform,
+    this.type = TerminalKeyEventType.press,
+    this.text,
   });
 
   TerminalKeyboardEvent copyWith({
@@ -39,6 +47,8 @@ class TerminalKeyboardEvent {
     TerminalState? state,
     bool? altBuffer,
     TerminalTargetPlatform? platform,
+    TerminalKeyEventType? type,
+    String? text,
   }) {
     return TerminalKeyboardEvent(
       key: key ?? this.key,
@@ -48,12 +58,14 @@ class TerminalKeyboardEvent {
       state: state ?? this.state,
       altBuffer: altBuffer ?? this.altBuffer,
       platform: platform ?? this.platform,
+      type: type ?? this.type,
+      text: text ?? this.text,
     );
   }
 
   @override
   String toString() {
-    return 'TerminalKeyboardEvent(key: $key, shift: $shift, ctrl: $ctrl, alt: $alt, state: $state, altBuffer: $altBuffer, platform: $platform)';
+    return 'TerminalKeyboardEvent(key: $key, shift: $shift, ctrl: $ctrl, alt: $alt, state: $state, altBuffer: $altBuffer, platform: $platform, type: $type, text: $text)';
   }
 }
 

@@ -570,6 +570,45 @@ void main() {
       verify(inputHandler.call(any));
       expect(terminalOutput.join(), 'AAA');
     });
+
+    testWidgets('forwards Kitty key release events', (tester) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[=2u');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowUp);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowUp);
+
+      expect(terminalOutput, ['\x1b[A', '\x1b[1;1:3A']);
+    });
+
+    testWidgets('encodes unmapped text with Kitty associated text', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[=24u');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      binding.testTextInput.enterText('é');
+      await binding.idle();
+
+      binding.testTextInput.enterText('你好');
+      await binding.idle();
+
+      expect(terminalOutput, ['\x1b[233;1;233u', '你好']);
+    });
   });
 
   group('TerminalView.simulateScroll', () {

@@ -92,6 +92,52 @@ void main() {
 
       expect(output, ['\x1b[57376u', '\x1b[57399;3u']);
     });
+
+    test('reports Kitty repeat and release events', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=3u');
+      terminal.keyInput(
+        TerminalKey.keyA,
+        ctrl: true,
+        type: TerminalKeyEventType.repeat,
+      );
+      terminal.keyInput(
+        TerminalKey.keyA,
+        type: TerminalKeyEventType.release,
+      );
+      terminal.keyInput(
+        TerminalKey.arrowUp,
+        type: TerminalKeyEventType.release,
+      );
+
+      expect(output, ['\x1b[97;5:2u', '\x1b[97;1:3u', '\x1b[1;1:3A']);
+    });
+
+    test('does not emit key releases outside Kitty event reporting', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      final handled = terminal.keyInput(
+        TerminalKey.arrowUp,
+        type: TerminalKeyEventType.release,
+      );
+
+      expect(handled, isFalse);
+      expect(output, isEmpty);
+    });
+
+    test('reports associated text codepoints', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=24u');
+      terminal.keyInput(TerminalKey.keyA, text: 'a');
+      terminal.keyInput(TerminalKey.none, text: 'é');
+
+      expect(output, ['\x1b[97;1;97u', '\x1b[233;1;233u']);
+    });
   });
 
   group('KeytabInputHandler', () {

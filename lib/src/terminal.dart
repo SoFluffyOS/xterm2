@@ -336,6 +336,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     bool shift = false,
     bool alt = false,
     bool ctrl = false,
+    TerminalKeyEventType type = TerminalKeyEventType.press,
+    String? text,
   }) {
     if (_isDisposed) return false;
     final output = inputHandler?.call(
@@ -347,6 +349,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         state: this,
         altBuffer: isUsingAltBuffer,
         platform: platform,
+        type: type,
+        text: text,
       ),
     );
 

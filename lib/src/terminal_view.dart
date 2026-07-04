@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
+import 'package:xterm/src/core/input/event.dart';
 import 'package:xterm/src/core/input/keys.dart';
 import 'package:xterm/src/terminal.dart';
 import 'package:xterm/src/ui/controller.dart';
@@ -470,12 +471,18 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onInsert(String text) {
-    final key = charToTerminalKey(text.trim());
+    final mappedKey = charToTerminalKey(text);
+    if (mappedKey == null && text.runes.length != 1) {
+      widget.terminal.textInput(text);
+      _scrollToBottom();
+      return;
+    }
+    final key = mappedKey ?? TerminalKey.none;
 
     // On mobile platforms there is no guarantee that virtual keyboard will
     // generate hardware key events. So we need first try to send the key
     // as a hardware key event. If it fails, then we send it as a text input.
-    final consumed = key == null ? false : widget.terminal.keyInput(key);
+    final consumed = widget.terminal.keyInput(key, text: text);
 
     if (!consumed) {
       widget.terminal.textInput(text);
@@ -509,21 +516,29 @@ class TerminalViewState extends State<TerminalView> {
       return shortcutResult;
     }
 
-    if (event is KeyUpEvent) {
-      return KeyEventResult.ignored;
-    }
-
     final key = keyToTerminalKey(event.logicalKey);
-
-    if (key == null) {
+    final text = event.character;
+    if (key == null && text == null) {
       return KeyEventResult.ignored;
     }
+
+    final eventType = switch (event) {
+      KeyRepeatEvent() => TerminalKeyEventType.repeat,
+      KeyUpEvent() => TerminalKeyEventType.release,
+      _ => TerminalKeyEventType.press,
+    };
+    final terminalKey = key ?? TerminalKey.none;
 
     final handled = widget.terminal.keyInput(
-      key,
+      terminalKey,
       ctrl: HardwareKeyboard.instance.isControlPressed,
       alt: HardwareKeyboard.instance.isAltPressed,
       shift: HardwareKeyboard.instance.isShiftPressed,
+      type: eventType,
+      text: switch (eventType) {
+        TerminalKeyEventType.release => null,
+        _ => text,
+      },
     );
 
     if (handled) {

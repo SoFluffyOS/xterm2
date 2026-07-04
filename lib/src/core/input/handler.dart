@@ -41,6 +41,9 @@ class KeytabInputHandler implements TerminalInputHandler {
 
   @override
   String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) {
+      return null;
+    }
     final keytab = this.keytab ?? Keytab.defaultKeytab;
     final record = keytab.find(
       event.key,
@@ -85,6 +88,9 @@ class CtrlInputHandler implements TerminalInputHandler {
 
   @override
   String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) {
+      return null;
+    }
     if (!event.ctrl || event.shift || event.alt) {
       return null;
     }
@@ -105,6 +111,9 @@ class AltInputHandler implements TerminalInputHandler {
 
   @override
   String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) {
+      return null;
+    }
     if (!event.alt || event.ctrl || event.shift) {
       return null;
     }
