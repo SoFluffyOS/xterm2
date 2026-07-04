@@ -839,6 +839,28 @@ void main() {
     ]);
   });
 
+  test('Terminal saves and restores DEC private mode state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[?7;25s'
+      '\x1b[?7;25l'
+      '\x1b[?7\x24p'
+      '\x1b[?25\x24p'
+      '\x1b[?7;25r'
+      '\x1b[?7\x24p'
+      '\x1b[?25\x24p',
+    );
+
+    expect(output, [
+      '\x1b[?7;2\x24y',
+      '\x1b[?25;2\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?25;1\x24y',
+    ]);
+  });
+
   test('Terminal reports Alacritty-compatible device attributes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

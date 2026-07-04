@@ -173,6 +173,10 @@ abstract class EscapeHandler {
 
   void reportMode(int mode, bool decPrivate);
 
+  void saveDecMode(int mode);
+
+  void restoreDecMode(int mode);
+
   void reportKittyKeyboardMode();
 
   void setKittyKeyboardMode(int mode, int behavior);

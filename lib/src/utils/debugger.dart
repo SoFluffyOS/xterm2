@@ -92,6 +92,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   /* SBC */
 
   @override
+  void enquiry() {
+    onCommand('enquiry');
+  }
+
+  @override
   void bell() {
     onCommand('bell');
   }
@@ -236,6 +241,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void resetTabStops() {
+    onCommand('resetTabStops');
+  }
+
+  @override
   void moveForwardTabs(int count) {
     onCommand('moveForwardTabs($count)');
   }
@@ -273,6 +283,26 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void sendCursorPosition() {
     onCommand('sendCursorPosition');
+  }
+
+  @override
+  void sendColorScheme() {
+    onCommand('sendColorScheme');
+  }
+
+  @override
+  void sendXtVersion() {
+    onCommand('sendXtVersion');
+  }
+
+  @override
+  void sendStatusString(String query) {
+    onCommand('sendStatusString($query)');
+  }
+
+  @override
+  void sendTerminfoCapability(String query) {
+    onCommand('sendTerminfoCapability($query)');
   }
 
   @override
@@ -487,6 +517,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void reportMode(int mode, bool decPrivate) {
     onCommand('reportMode($mode, $decPrivate)');
+  }
+
+  @override
+  void saveDecMode(int mode) {
+    onCommand('saveDecMode($mode)');
+  }
+
+  @override
+  void restoreDecMode(int mode) {
+    onCommand('restoreDecMode($mode)');
   }
 
   @override

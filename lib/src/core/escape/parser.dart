@@ -397,6 +397,7 @@ class EscapeParser {
     'p'.codeUnitAt(0): _csiHandleSoftReset,
     'q'.codeUnitAt(0): _csiHandleCursorStyle,
     'r'.codeUnitAt(0): _csiHandleSetMargins,
+    's'.codeUnitAt(0): _csiHandleSaveModeOrCursor,
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     't'.codeUnitAt(0): _csiWindowManipulation,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
@@ -957,6 +958,15 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
+    if (_csi.prefix == Ascii.questionMark) {
+      for (final mode in _csi.params) {
+        handler.restoreDecMode(mode);
+      }
+      return;
+    }
+
+    if (_csi.prefix != null) return;
+
     var top = 0;
     int? bottom;
 
@@ -979,6 +989,21 @@ class EscapeParser {
     }
 
     handler.setMargins(top, bottom);
+  }
+
+  /// `ESC [ ? Pm s` Save DEC Private Mode Values
+  ///
+  /// `ESC [ s` Save Cursor (SCOSC)
+  void _csiHandleSaveModeOrCursor() {
+    if (_csi.prefix == null && _csi.params.isEmpty) {
+      return handler.saveCursor();
+    }
+
+    if (_csi.prefix != Ascii.questionMark) return;
+
+    for (final mode in _csi.params) {
+      handler.saveDecMode(mode);
+    }
   }
 
   /// `ESC [ Ps t` Window operations [DISPATCH]

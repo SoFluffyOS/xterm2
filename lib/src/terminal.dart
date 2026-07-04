@@ -235,6 +235,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   Timer? _synchronizedUpdateTimer;
 
+  final _savedDecModes = <int, bool>{};
+
   int _kittyKeyboardMode = 0;
 
   final _kittyKeyboardModeStack = <int>[];
@@ -1190,6 +1192,121 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       true => 1,
       false => 2,
     };
+  }
+
+  @override
+  void saveDecMode(int mode) {
+    final state = _decModeEnabled(mode);
+    if (state == null) return;
+
+    _savedDecModes[mode] = state;
+  }
+
+  @override
+  void restoreDecMode(int mode) {
+    final state = _savedDecModes[mode];
+    if (state == null) return;
+
+    _applyDecMode(mode, state);
+  }
+
+  bool? _decModeEnabled(int mode) {
+    return switch (mode) {
+      1 => _cursorKeysMode,
+      5 => _reverseDisplayMode,
+      6 => _originMode,
+      7 => _autoWrapMode,
+      9 => _mouseMode == MouseMode.clickOnly,
+      12 || 13 => _cursorBlinkMode,
+      25 => _cursorVisibleMode,
+      47 || 1047 || 1049 => isUsingAltBuffer,
+      66 => _appKeypadMode,
+      1000 || 1001 => _mouseMode == MouseMode.upDownScroll,
+      1002 => _mouseMode == MouseMode.upDownScrollDrag,
+      1003 => _mouseMode == MouseMode.upDownScrollMove,
+      1004 => _reportFocusMode,
+      1005 => _mouseReportMode == MouseReportMode.utf,
+      1006 => _mouseReportMode == MouseReportMode.sgr,
+      1007 => _altBufferMouseScrollMode,
+      1015 => _mouseReportMode == MouseReportMode.urxvt,
+      1016 => _mouseReportMode == MouseReportMode.sgrPixels,
+      2004 => _bracketedPasteMode,
+      _ => null,
+    };
+  }
+
+  void _applyDecMode(int mode, bool enabled) {
+    switch (mode) {
+      case 1:
+        return setCursorKeysMode(enabled);
+      case 5:
+        return setReverseDisplayMode(enabled);
+      case 6:
+        return setOriginMode(enabled);
+      case 7:
+        return setAutoWrapMode(enabled);
+      case 9:
+        return setMouseMode(switch (enabled) {
+          true => MouseMode.clickOnly,
+          false => MouseMode.none,
+        });
+      case 12:
+      case 13:
+        return setCursorBlinkMode(enabled);
+      case 25:
+        return setCursorVisibleMode(enabled);
+      case 47:
+      case 1047:
+      case 1049:
+        if (enabled) {
+          return useAltBuffer();
+        }
+        return useMainBuffer();
+      case 66:
+        return setAppKeypadMode(enabled);
+      case 1000:
+      case 1001:
+        return setMouseMode(switch (enabled) {
+          true => MouseMode.upDownScroll,
+          false => MouseMode.none,
+        });
+      case 1002:
+        return setMouseMode(switch (enabled) {
+          true => MouseMode.upDownScrollDrag,
+          false => MouseMode.none,
+        });
+      case 1003:
+        return setMouseMode(switch (enabled) {
+          true => MouseMode.upDownScrollMove,
+          false => MouseMode.none,
+        });
+      case 1004:
+        return setReportFocusMode(enabled);
+      case 1005:
+        return setMouseReportMode(switch (enabled) {
+          true => MouseReportMode.utf,
+          false => MouseReportMode.normal,
+        });
+      case 1006:
+        return setMouseReportMode(switch (enabled) {
+          true => MouseReportMode.sgr,
+          false => MouseReportMode.normal,
+        });
+      case 1007:
+        return setAltBufferMouseScrollMode(enabled);
+      case 1015:
+        return setMouseReportMode(switch (enabled) {
+          true => MouseReportMode.urxvt,
+          false => MouseReportMode.normal,
+        });
+      case 1016:
+        return setMouseReportMode(switch (enabled) {
+          true => MouseReportMode.sgrPixels,
+          false => MouseReportMode.normal,
+        });
+      case 2004:
+        return setBracketedPasteMode(enabled);
+    }
   }
 
   @override

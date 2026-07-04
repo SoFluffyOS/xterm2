@@ -636,6 +636,22 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void saveDecMode(int? mode) => super.noSuchMethod(
+        Invocation.method(
+          #saveDecMode,
+          [mode],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void restoreDecMode(int? mode) => super.noSuchMethod(
+        Invocation.method(
+          #restoreDecMode,
+          [mode],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setUnknownDecMode(
     int? mode,
     bool? enabled,

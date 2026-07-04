@@ -45,5 +45,17 @@ void main() {
       verify(handler.moveCursorX(2)).called(1);
       verify(handler.moveCursorY(3)).called(1);
     });
+
+    test('parses DEC private mode save and restore', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?7;25s\x1b[?7;25r');
+
+      verify(handler.saveDecMode(7)).called(1);
+      verify(handler.saveDecMode(25)).called(1);
+      verify(handler.restoreDecMode(7)).called(1);
+      verify(handler.restoreDecMode(25)).called(1);
+    });
   });
 }
