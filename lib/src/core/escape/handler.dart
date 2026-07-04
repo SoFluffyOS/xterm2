@@ -95,6 +95,10 @@ abstract class EscapeHandler {
 
   void setMargins(int i, [int? bottom]);
 
+  void setLeftRightMargins(int left, [int? right]);
+
+  void setLeftRightMarginMode(bool enabled);
+
   void cursorNextLine(int amount);
 
   void cursorPrecedingLine(int amount);

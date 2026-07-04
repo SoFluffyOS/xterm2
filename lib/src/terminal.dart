@@ -237,6 +237,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _graphemeClusterMode = true;
 
+  bool _leftRightMarginMode = false;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -593,7 +595,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void carriageReturn() {
-    _buffer.setCursorX(0);
+    _buffer.carriageReturn();
   }
 
   @override
@@ -665,6 +667,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _graphemeClusterMode = true;
+    _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
     _kittyKeyboardModeStack.clear();
     _title = null;
@@ -702,11 +705,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _graphemeClusterMode = true;
+    _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
     _kittyKeyboardModeStack.clear();
     _tabStops.reset();
     _buffer.charset.reset();
     _buffer.resetVerticalMargins();
+    _buffer.resetHorizontalMargins();
   }
 
   @override
@@ -968,6 +973,17 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final effectiveBottom = bottom ?? viewHeight - 1;
     if (top >= effectiveBottom) return;
     _buffer.setVerticalMargins(top, effectiveBottom);
+    _buffer.setCursor(0, 0);
+  }
+
+  @override
+  void setLeftRightMargins(int left, [int? right]) {
+    if (!_leftRightMarginMode) return;
+
+    final effectiveRight = right ?? viewWidth - 1;
+    if (left >= effectiveRight) return;
+
+    _buffer.setHorizontalMargins(left, effectiveRight);
     _buffer.setCursor(0, 0);
   }
 
@@ -1288,6 +1304,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       25 => _reportedState(_cursorVisibleMode),
       47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
       66 => _reportedState(_appKeypadMode),
+      69 => _reportedState(_leftRightMarginMode),
       1000 || 1001 => _reportedState(_mouseMode == MouseMode.upDownScroll),
       1002 => _reportedState(_mouseMode == MouseMode.upDownScrollDrag),
       1003 => _reportedState(_mouseMode == MouseMode.upDownScrollMove),
@@ -1338,6 +1355,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       25 => _cursorVisibleMode,
       47 || 1047 || 1049 => isUsingAltBuffer,
       66 => _appKeypadMode,
+      69 => _leftRightMarginMode,
       1000 || 1001 => _mouseMode == MouseMode.upDownScroll,
       1002 => _mouseMode == MouseMode.upDownScrollDrag,
       1003 => _mouseMode == MouseMode.upDownScrollMove,
@@ -1382,6 +1400,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return useMainBuffer();
       case 66:
         return setAppKeypadMode(enabled);
+      case 69:
+        return setLeftRightMarginMode(enabled);
       case 1000:
       case 1001:
         return setMouseMode(switch (enabled) {
@@ -1473,6 +1493,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setUnknownDecMode(int mode, bool enabled) {
     // no-op
+  }
+
+  @override
+  void setLeftRightMarginMode(bool enabled) {
+    _leftRightMarginMode = enabled;
+    if (enabled) return;
+
+    _buffer.resetHorizontalMargins();
   }
 
   /* Select Graphic Rendition (SGR) */

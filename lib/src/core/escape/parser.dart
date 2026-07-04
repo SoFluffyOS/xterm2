@@ -1126,10 +1126,37 @@ class EscapeParser {
   /// `ESC [ ? Pm s` Save DEC Private Mode Values
   ///
   /// `ESC [ s` Save Cursor (SCOSC)
+  ///
+  /// `ESC [ Ps ; Ps s` Set Left and Right Margins (DECSLRM)
   void _csiHandleSaveModeOrCursor() {
     if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == null && _csi.params.isEmpty) {
       return handler.saveCursor();
+    }
+
+    if (_csi.prefix == null) {
+      if (_csi.params.length > 2) return;
+
+      var left = 0;
+      int? right;
+
+      if (_csi.params.isNotEmpty) {
+        final leftParam = _csi.params[0];
+        left = switch (leftParam) {
+          0 => 0,
+          _ => leftParam - 1,
+        };
+
+        if (_csi.params.length == 2) {
+          final rightParam = _csi.params[1];
+          right = switch (rightParam) {
+            0 => null,
+            _ => rightParam - 1,
+          };
+        }
+      }
+
+      return handler.setLeftRightMargins(left, right);
     }
 
     if (_csi.prefix != Ascii.questionMark) return;
@@ -1497,6 +1524,8 @@ class EscapeParser {
         }
       case 66:
         return handler.setAppKeypadMode(enabled);
+      case 69:
+        return handler.setLeftRightMarginMode(enabled);
       case 1000:
         return enabled
             ? handler.setMouseMode(MouseMode.upDownScroll)

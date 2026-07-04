@@ -1491,6 +1491,84 @@ void main() {
     });
   });
 
+  group('Terminal left and right margins', () {
+    test('DECSLRM is ignored until DECLRMM is enabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[2;4s');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+    });
+
+    test('DECSLRM sets horizontal margins and homes cursor', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s');
+
+      expect(terminal.buffer.marginLeft, 1);
+      expect(terminal.buffer.marginRight, 3);
+      expect(terminal.buffer.cursorX, 0);
+      expect(terminal.buffer.cursorY, 0);
+    });
+
+    test('DECLRMM reset clears horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[?69l');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+    });
+
+    test('carriage return respects left margin after the margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[1;6H\rX');
+
+      expect(terminal.buffer.cursorX, 3);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x58);
+    });
+
+    test('carriage return before left margin moves to zero', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[1;1H\rX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x58);
+    });
+
+    test('origin mode uses left margin for absolute cursor position', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[?6h\x1b[1;1HX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x58);
+    });
+
+    test('auto wrap returns to left margin at right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;2Habcde');
+
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x62);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x63);
+      expect(terminal.buffer.lines[1].getCodePoint(1), 0x64);
+      expect(terminal.buffer.lines[1].getCodePoint(2), 0x65);
+    });
+
+    test('wide characters wrap before right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;4Hあ');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[1].getCodePoint(1), 0x3042);
+      expect(terminal.buffer.lines[1].getWidth(1), 2);
+    });
+  });
+
   test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
     final terminal = Terminal();
 

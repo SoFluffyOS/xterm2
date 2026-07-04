@@ -34,6 +34,7 @@ class Buffer {
     }
 
     resetVerticalMargins();
+    resetHorizontalMargins();
   }
 
   int _cursorX = 0;
@@ -43,6 +44,10 @@ class Buffer {
   late int _marginTop;
 
   late int _marginBottom;
+
+  late int _marginLeft;
+
+  late int _marginRight;
 
   var _savedCursorX = 0;
 
@@ -81,6 +86,12 @@ class Buffer {
 
   /// Index of the last line in the scroll region.
   int get marginBottom => _marginBottom;
+
+  /// Index of the first column in the horizontal scroll region.
+  int get marginLeft => _marginLeft;
+
+  /// Index of the last column in the horizontal scroll region.
+  int get marginRight => _marginRight;
 
   /// The number of lines above the viewport.
   int get scrollBack => height - viewHeight;
@@ -137,22 +148,24 @@ class Buffer {
     }
     if (cellWidth < 0) return;
 
-    if (_cursorX >= terminal.viewWidth) {
+    final rightLimit = _rightLimit;
+
+    if (_cursorX >= rightLimit) {
       if (terminal.autoWrapMode) {
         _wrapInput();
       } else {
-        _cursorX = viewWidth - 1;
+        _cursorX = rightLimit - 1;
       }
     }
 
-    if (cellWidth > viewWidth) {
-      _cursorX = viewWidth;
+    if (cellWidth > rightLimit - _marginLeft) {
+      _cursorX = rightLimit;
       return;
     }
 
-    if (cellWidth == 2 && _cursorX == viewWidth - 1) {
+    if (cellWidth == 2 && _cursorX == rightLimit - 1) {
       if (!terminal.autoWrapMode) {
-        _cursorX = viewWidth;
+        _cursorX = rightLimit;
         return;
       }
 
@@ -332,7 +345,7 @@ class Buffer {
 
   void _wrapInput() {
     index();
-    setCursorX(0);
+    setCursorX(_marginLeft);
     currentLine.isWrapped = true;
   }
 
@@ -522,11 +535,12 @@ class Buffer {
   }
 
   void cursorGoForward() {
-    _cursorX = min(_cursorX + 1, viewWidth);
+    _cursorX = min(_cursorX + 1, _rightLimit);
   }
 
   void setCursorX(int cursorX) {
-    _cursorX = cursorX.clamp(0, viewWidth - 1);
+    _cursorX =
+        cursorX.clamp(_minimumCursorX(cursorX), _maximumCursorX(cursorX));
   }
 
   void setCursorY(int cursorY) {
@@ -558,7 +572,19 @@ class Buffer {
       maxCursorY = _marginBottom;
     }
 
-    _cursorX = cursorX.clamp(0, viewWidth - 1);
+    final minimumCursorX = switch (terminal.originMode) {
+      true => _marginLeft,
+      false => 0,
+    };
+    final maximumCursorX = switch (terminal.originMode) {
+      true => _marginRight,
+      false => viewWidth - 1,
+    };
+    if (terminal.originMode) {
+      cursorX += _marginLeft;
+    }
+
+    _cursorX = cursorX.clamp(minimumCursorX, maximumCursorX);
     _cursorY = cursorY.clamp(0, maxCursorY);
   }
 
@@ -601,12 +627,61 @@ class Buffer {
     _marginBottom = max(_marginTop, _marginBottom);
   }
 
+  /// Sets the horizontal scrolling margin to [left] and [right].
+  /// Both values must be between 0 and [viewWidth] - 1.
+  void setHorizontalMargins(int left, int right) {
+    final effectiveLeft = left.clamp(0, viewWidth - 1);
+    final effectiveRight = right.clamp(0, viewWidth - 1);
+    if (effectiveLeft >= effectiveRight) return;
+
+    _marginLeft = effectiveLeft;
+    _marginRight = effectiveRight;
+  }
+
   bool get isInVerticalMargin {
     return _cursorY >= _marginTop && _cursorY <= _marginBottom;
   }
 
+  bool get isInHorizontalMargin {
+    return _cursorX >= _marginLeft && _cursorX <= _marginRight;
+  }
+
   void resetVerticalMargins() {
     setVerticalMargins(0, viewHeight - 1);
+  }
+
+  void resetHorizontalMargins() {
+    _marginLeft = 0;
+    _marginRight = viewWidth - 1;
+  }
+
+  void carriageReturn() {
+    final left = switch (terminal.originMode || _cursorX >= _marginLeft) {
+      true => _marginLeft,
+      false => 0,
+    };
+    setCursorX(left);
+  }
+
+  int _minimumCursorX(int targetX) {
+    if (terminal.originMode) return _marginLeft;
+    if (_cursorX < _marginLeft && targetX < _marginLeft) return 0;
+    return _marginLeft;
+  }
+
+  int _maximumCursorX(int targetX) {
+    if (terminal.originMode) return _marginRight;
+    if (_cursorX > _marginRight && targetX > _marginRight) {
+      return viewWidth - 1;
+    }
+    return _marginRight;
+  }
+
+  int get _rightLimit {
+    return switch (_cursorX <= _marginRight + 1) {
+      true => _marginRight + 1,
+      false => viewWidth,
+    };
   }
 
   void deleteChars(int count) {
@@ -642,6 +717,7 @@ class Buffer {
     _savedCursorStyle.hyperlinkId = 0;
     charset.reset();
     resetVerticalMargins();
+    resetHorizontalMargins();
   }
 
   void screenAlignmentTest() {
@@ -669,6 +745,7 @@ class Buffer {
     _cursorX = 0;
     _cursorY = 0;
     resetVerticalMargins();
+    resetHorizontalMargins();
   }
 
   void insertBlankChars(int count) {
@@ -782,6 +859,8 @@ class Buffer {
     }
 
     _cursorX = _cursorX.clamp(0, newWidth - 1);
+    _marginLeft = 0;
+    _marginRight = newWidth - 1;
   }
 
   /// Create a new [CellAnchor] at the specified [x] and [y] coordinates.

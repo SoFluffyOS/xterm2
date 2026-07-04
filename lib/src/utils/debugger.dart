@@ -331,6 +331,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setLeftRightMargins(int left, [int? right]) {
+    onCommand('setLeftRightMargins($left, $right)');
+  }
+
+  @override
+  void setLeftRightMarginMode(bool enabled) {
+    onCommand('setLeftRightMarginMode($enabled)');
+  }
+
+  @override
   void cursorNextLine(int amount) {
     onCommand('cursorNextLine($amount)');
   }

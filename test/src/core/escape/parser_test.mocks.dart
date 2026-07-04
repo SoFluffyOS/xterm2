@@ -333,6 +333,29 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setLeftRightMargins(
+    int? left, [
+    int? right,
+  ]) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #setLeftRightMargins,
+          [
+            left,
+            right,
+          ],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void setLeftRightMarginMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setLeftRightMarginMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void cursorNextLine(int? amount) => super.noSuchMethod(
         Invocation.method(
           #cursorNextLine,

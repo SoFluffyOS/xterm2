@@ -58,6 +58,26 @@ void main() {
       verify(handler.restoreDecMode(25)).called(1);
     });
 
+    test('parses DEC left and right margin mode', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?69h\x1b[?69l');
+
+      verify(handler.setLeftRightMarginMode(true)).called(1);
+      verify(handler.setLeftRightMarginMode(false)).called(1);
+    });
+
+    test('parses DEC left and right margins', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[2;5s\x1b[3s');
+
+      verify(handler.setLeftRightMargins(1, 4)).called(1);
+      verify(handler.setLeftRightMargins(2, null)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
