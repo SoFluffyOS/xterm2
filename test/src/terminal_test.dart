@@ -1684,6 +1684,18 @@ void main() {
       expect(terminal.buffer.lines[2].getText(0, 6), 'mnopqr');
     });
 
+    test('next line uses carriage-return horizontal margin', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[3;5H\x1bEX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'ghopql');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mnXr');
+      expect(terminal.buffer.lines[2].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[2].getCodePoint(4), 0);
+    });
+
     test('horizontal tab stops at right margin', () {
       final terminal = Terminal()..resize(10, 3);
 
