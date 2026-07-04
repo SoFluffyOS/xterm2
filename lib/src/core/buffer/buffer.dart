@@ -538,11 +538,12 @@ class Buffer {
   }
 
   void moveCursorY(int offset) {
-    final minimumY = switch (terminal.originMode) {
+    final constrainedToMargins = terminal.originMode || isInVerticalMargin;
+    final minimumY = switch (constrainedToMargins) {
       true => _marginTop,
       false => 0,
     };
-    final maximumY = switch (terminal.originMode) {
+    final maximumY = switch (constrainedToMargins) {
       true => _marginBottom,
       false => viewHeight - 1,
     };

@@ -192,6 +192,19 @@ void main() {
     expect(terminal.buffer.cursorY, 0);
   });
 
+  test('Terminal relative cursor movement respects scrolling margins', () {
+    final terminal = Terminal()..resize(10, 6);
+
+    terminal.write('\x1b[2;5r\x1b[3;1H\x1b[99A');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[99B');
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[1;1H\x1b[99A');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
   test('Terminal treats rapid blink SGR as blinking text', () {
     final terminal = Terminal()..resize(20, 5);
 
