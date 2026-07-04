@@ -76,9 +76,53 @@ class EscapeParser {
           _queue.rollback(tokenEnd - tokenBegin);
           return;
         }
+      } else if (char >= 0x80 && char <= 0x9F) {
+        final processed = _processC1(char);
+        if (!processed) {
+          _queue.rollback(tokenEnd - tokenBegin);
+          return;
+        }
       } else {
         _processChar(char);
       }
+    }
+  }
+
+  bool _processC1(int char) {
+    switch (char) {
+      case 0x84:
+        handler.index();
+        return true;
+      case 0x85:
+        handler.nextLine();
+        return true;
+      case 0x88:
+        handler.setTapStop();
+        return true;
+      case 0x8D:
+        handler.reverseIndex();
+        return true;
+      case 0x8E:
+        handler.singleShiftCharset(2);
+        return true;
+      case 0x8F:
+        handler.singleShiftCharset(3);
+        return true;
+      case 0x90:
+        return _escHandleDcs();
+      case 0x98:
+      case 0x9E:
+      case 0x9F:
+        return _escHandleStringControl();
+      case 0x9B:
+        return _escHandleCSI();
+      case 0x9C:
+        return true;
+      case 0x9D:
+        return _escHandleOSC();
+      default:
+        handler.unknownSBC(char);
+        return true;
     }
   }
 
@@ -1659,6 +1703,11 @@ class EscapeParser {
         return true;
       }
 
+      if (char == 0x9C) {
+        _osc.add(param.toString());
+        return true;
+      }
+
       /// OSC terminates with ST
       if (char == Ascii.ESC) {
         if (_queue.isEmpty) {
@@ -1702,6 +1751,11 @@ class EscapeParser {
         return;
       }
 
+      if (char == 0x9C) {
+        _discardingOsc = false;
+        return;
+      }
+
       if (char == Ascii.ESC) {
         _discardOscSawEscape = true;
       }
@@ -1725,6 +1779,11 @@ class EscapeParser {
       }
 
       if (char == Ascii.BEL) {
+        _discardingStringControl = false;
+        return;
+      }
+
+      if (char == 0x9C) {
         _discardingStringControl = false;
         return;
       }
@@ -1758,6 +1817,12 @@ class EscapeParser {
       }
 
       if (char == Ascii.BEL) {
+        _collectingDcs = false;
+        _handleDcs();
+        return;
+      }
+
+      if (char == 0x9C) {
         _collectingDcs = false;
         _handleDcs();
         return;

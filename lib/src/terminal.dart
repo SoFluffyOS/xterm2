@@ -911,7 +911,45 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (_cursorStyle.attrs & CellAttr.strikethrough != 0) attributes.add(9);
     if (_cursorStyle.isDoubleUnderline) attributes.add(21);
     if (_cursorStyle.isOverline) attributes.add(53);
+    _appendSgrColor(attributes, _cursorStyle.foreground, 30, 90, 38);
+    _appendSgrColor(attributes, _cursorStyle.background, 40, 100, 48);
+    _appendSgrColor(attributes, _cursorStyle.underlineColor, 0, 0, 58);
     return '${attributes.join(';')}m';
+  }
+
+  void _appendSgrColor(
+    List<int> attributes,
+    int color,
+    int namedBase,
+    int brightBase,
+    int extendedPrefix,
+  ) {
+    final type = color & CellColor.typeMask;
+    final value = color & CellColor.valueMask;
+    switch (type) {
+      case CellColor.named:
+        if (extendedPrefix == 58) {
+          attributes.addAll([58, 5, value]);
+          return;
+        }
+        if (value < 8) {
+          attributes.add(namedBase + value);
+          return;
+        }
+        attributes.add(brightBase + value - 8);
+        return;
+      case CellColor.palette:
+        attributes.addAll([extendedPrefix, 5, value]);
+        return;
+      case CellColor.rgb:
+        attributes.addAll([
+          extendedPrefix,
+          2,
+          (value >> 16) & 0xFF,
+          (value >> 8) & 0xFF,
+          value & 0xFF,
+        ]);
+    }
   }
 
   int _cursorShapeStatus() {

@@ -864,6 +864,30 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'abcd');
   });
 
+  test('Terminal supports 8-bit C1 OSC DCS and string controls', () {
+    final output = <String>[];
+    final titles = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onTitleChange: titles.add,
+    );
+
+    terminal.write(
+      '\u009d2;c1 title\u009c'
+      '\u009b31mX'
+      '\u009fignored\u009cY'
+      '\u0090\$qm\u009c',
+    );
+
+    expect(titles, ['c1 title']);
+    expect(terminal.buffer.lines[0].toString(), 'XY');
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.named | NamedColor.red,
+    );
+    expect(output, ['\x1bP1\$r0;31m\x1b\\']);
+  });
+
   test('Terminal paste sanitizes bracketed and non-bracketed payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
@@ -1125,6 +1149,21 @@ void main() {
       '\x1bP1\$r5 q\x1b\\',
       '\x1bP0\$r\x1b\\',
     ]);
+  });
+
+  test('Terminal includes active colors in DECRQSS SGR reports', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[38;5;123;48;2;1;2;3;58;5;4m'
+      '\x1bP\$qm\x1b\\',
+    );
+
+    expect(
+      output,
+      ['\x1bP1\$r0;38;5;123;48;2;1;2;3;58;5;4m\x1b\\'],
+    );
   });
 
   test('Terminal handles split DECRQSS payloads', () {

@@ -135,5 +135,20 @@ void main() {
 
       verify(handler.moveCursorX(-3)).called(1);
     });
+
+    test('parses 8-bit C1 controls', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\u0084\u0085\u0088\u008d\u008e\u008f\u009b2A');
+
+      verify(handler.index()).called(1);
+      verify(handler.nextLine()).called(1);
+      verify(handler.setTapStop()).called(1);
+      verify(handler.reverseIndex()).called(1);
+      verify(handler.singleShiftCharset(2)).called(1);
+      verify(handler.singleShiftCharset(3)).called(1);
+      verify(handler.moveCursorY(-2)).called(1);
+    });
   });
 }
