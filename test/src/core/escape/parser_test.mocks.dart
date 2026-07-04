@@ -230,6 +230,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void resetTabStops() => super.noSuchMethod(
+        Invocation.method(
+          #resetTabStops,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void moveCursorX(int? offset) => super.noSuchMethod(
         Invocation.method(
           #moveCursorX,

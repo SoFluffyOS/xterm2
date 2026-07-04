@@ -10,6 +10,24 @@ void main() {
     expect(terminal.buffer.cursorX, 3);
   });
 
+  test('Terminal applies cursor tabulation control', () {
+    final clearAllTerminal = Terminal()..resize(20, 5);
+    clearAllTerminal.write('\x1b[3g\x1b[5W\t');
+    expect(clearAllTerminal.buffer.cursorX, 19);
+
+    final resetTerminal = Terminal()..resize(20, 5);
+    resetTerminal.write('\x1b[3g\x1b[?5W\t');
+    expect(resetTerminal.buffer.cursorX, 8);
+
+    final setTerminal = Terminal()..resize(20, 5);
+    setTerminal.write('\x1b[5W\x1b[12G\x1b[W\r\t');
+    expect(setTerminal.buffer.cursorX, 11);
+
+    final clearCurrentTerminal = Terminal()..resize(20, 5);
+    clearCurrentTerminal.write('\x1b[5W\x1b[12G\x1b[W\x1b[2W\r\t');
+    expect(clearCurrentTerminal.buffer.cursorX, 19);
+  });
+
   test('Terminal moves across multiple horizontal tab stops', () {
     final terminal = Terminal()..resize(20, 3);
 

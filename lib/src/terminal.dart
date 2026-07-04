@@ -763,6 +763,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void resetTabStops() {
+    _tabStops.reset();
+  }
+
+  @override
   void moveForwardTabs(int count) {
     for (var i = 0; i < count; i++) {
       final nextStop = _tabStops.find(_buffer.cursorX + 1, _viewWidth);

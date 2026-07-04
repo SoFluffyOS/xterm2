@@ -413,6 +413,7 @@ class EscapeParser {
     'P'.codeUnitAt(0): _csiHandleDelete,
     'S'.codeUnitAt(0): _csiHandleScrollUp,
     'T'.codeUnitAt(0): _csiHandleScrollDown,
+    'W'.codeUnitAt(0): _csiHandleCursorTabulationControl,
     'X'.codeUnitAt(0): _csiHandleEraseCharacters,
     'Z'.codeUnitAt(0): _csiHandleCursorBackwardTabulation,
     '@'.codeUnitAt(0): _csiHandleInsertBlankCharacters,
@@ -572,7 +573,35 @@ class EscapeParser {
     switch (cmd) {
       case 0:
         return handler.clearTabStopUnderCursor();
-      default:
+      case 3:
+        return handler.clearAllTabStops();
+    }
+  }
+
+  /// `ESC [ Ps W` Cursor Tabulation Control (CTC)
+  void _csiHandleCursorTabulationControl() {
+    if (_csi.prefix == Ascii.questionMark) {
+      if (_csi.params.length == 1 && _csi.params.single == 5) {
+        return handler.resetTabStops();
+      }
+      return;
+    }
+
+    if (_csi.prefix != null) return;
+
+    final command = switch (_csi.params) {
+      [] => 0,
+      [final value] => value,
+      _ => null,
+    };
+    if (command == null) return;
+
+    switch (command) {
+      case 0:
+        return handler.setTapStop();
+      case 2:
+        return handler.clearTabStopUnderCursor();
+      case 5:
         return handler.clearAllTabStops();
     }
   }

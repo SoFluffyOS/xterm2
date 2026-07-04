@@ -63,6 +63,8 @@ abstract class EscapeHandler {
 
   void clearAllTabStops();
 
+  void resetTabStops();
+
   void moveForwardTabs(int count);
 
   void moveBackwardTabs(int count);
