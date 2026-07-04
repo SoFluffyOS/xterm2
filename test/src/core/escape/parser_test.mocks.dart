@@ -357,6 +357,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void eraseDisplayBelowSelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseDisplayBelowSelective,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void eraseDisplayAbove() => super.noSuchMethod(
         Invocation.method(
           #eraseDisplayAbove,
@@ -365,9 +373,25 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void eraseDisplayAboveSelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseDisplayAboveSelective,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void eraseDisplay() => super.noSuchMethod(
         Invocation.method(
           #eraseDisplay,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void eraseDisplaySelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseDisplaySelective,
           [],
         ),
         returnValueForMissingStub: null,
@@ -389,6 +413,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void eraseLineRightSelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseLineRightSelective,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void eraseLineLeft() => super.noSuchMethod(
         Invocation.method(
           #eraseLineLeft,
@@ -397,9 +429,25 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void eraseLineLeftSelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseLineLeftSelective,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void eraseLine() => super.noSuchMethod(
         Invocation.method(
           #eraseLine,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void eraseLineSelective() => super.noSuchMethod(
+        Invocation.method(
+          #eraseLineSelective,
           [],
         ),
         returnValueForMissingStub: null,
@@ -473,6 +521,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         Invocation.method(
           #setCursorShape,
           [style],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void setProtectedMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setProtectedMode,
+          [enabled],
         ),
         returnValueForMissingStub: null,
       );

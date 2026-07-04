@@ -839,6 +839,29 @@ void main() {
     ]);
   });
 
+  test('Terminal protects cells from selective line erase', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1"qAB\x1b[2"qCD\r\x1b[?K');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.protected,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.protected, 0);
+  });
+
+  test('Terminal protects cells from selective display erase', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1"qA\r\nB\x1b[2"q\r\nC\x1b[H\x1b[?J');
+
+    expect(terminal.buffer.lines[0].toString(), 'A');
+    expect(terminal.buffer.lines[1].toString(), 'B');
+    expect(terminal.buffer.lines[2].toString(), '');
+  });
+
   test('Terminal saves and restores DEC private mode state', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

@@ -57,5 +57,22 @@ void main() {
       verify(handler.restoreDecMode(7)).called(1);
       verify(handler.restoreDecMode(25)).called(1);
     });
+
+    test('parses protected mode and selective erase', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1"q\x1b[2"q\x1b[?J\x1b[?1J\x1b[?2J');
+      parser.write('\x1b[?K\x1b[?1K\x1b[?2K');
+
+      verify(handler.setProtectedMode(true)).called(1);
+      verify(handler.setProtectedMode(false)).called(1);
+      verify(handler.eraseDisplayBelowSelective()).called(1);
+      verify(handler.eraseDisplayAboveSelective()).called(1);
+      verify(handler.eraseDisplaySelective()).called(1);
+      verify(handler.eraseLineRightSelective()).called(1);
+      verify(handler.eraseLineLeftSelective()).called(1);
+      verify(handler.eraseLineSelective()).called(1);
+    });
   });
 }

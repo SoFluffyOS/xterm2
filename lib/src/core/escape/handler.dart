@@ -97,17 +97,29 @@ abstract class EscapeHandler {
 
   void eraseDisplayBelow();
 
+  void eraseDisplayBelowSelective();
+
   void eraseDisplayAbove();
 
+  void eraseDisplayAboveSelective();
+
   void eraseDisplay();
+
+  void eraseDisplaySelective();
 
   void eraseScrollbackOnly();
 
   void eraseLineRight();
 
+  void eraseLineRightSelective();
+
   void eraseLineLeft();
 
+  void eraseLineLeftSelective();
+
   void eraseLine();
+
+  void eraseLineSelective();
 
   void insertLines(int amount);
 
@@ -126,6 +138,8 @@ abstract class EscapeHandler {
   void unknownCSI(int finalByte);
 
   void setCursorShape(int style);
+
+  void setProtectedMode(bool enabled);
 
   /* Modes */
 

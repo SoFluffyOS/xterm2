@@ -423,6 +423,25 @@ class EscapeParser {
   });
 
   void _csiHandleCursorStyle() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.doubleQuotes) {
+      final mode = switch (_csi.params) {
+        [] => 0,
+        [final value] => value,
+        _ => null,
+      };
+      if (mode == null) return;
+
+      switch (mode) {
+        case 0:
+        case 2:
+          return handler.setProtectedMode(false);
+        case 1:
+          return handler.setProtectedMode(true);
+      }
+      return;
+    }
+
     if (_csi.prefix == Ascii.greaterThan &&
         _csi.intermediates.isEmpty &&
         _csi.params.length <= 1) {
@@ -1167,6 +1186,9 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cj/
   void _csiHandleEraseDisplay() {
+    final selective = _csi.prefix == Ascii.questionMark;
+    if (_csi.prefix != null && !selective) return;
+
     var cmd = 0;
 
     if (_csi.params.length == 1) {
@@ -1175,12 +1197,16 @@ class EscapeParser {
 
     switch (cmd) {
       case 0:
+        if (selective) return handler.eraseDisplayBelowSelective();
         return handler.eraseDisplayBelow();
       case 1:
+        if (selective) return handler.eraseDisplayAboveSelective();
         return handler.eraseDisplayAbove();
       case 2:
+        if (selective) return handler.eraseDisplaySelective();
         return handler.eraseDisplay();
       case 3:
+        if (selective) return;
         return handler.eraseScrollbackOnly();
     }
   }
@@ -1189,6 +1215,9 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ck/
   void _csiHandleEraseLine() {
+    final selective = _csi.prefix == Ascii.questionMark;
+    if (_csi.prefix != null && !selective) return;
+
     var cmd = 0;
 
     if (_csi.params.length == 1) {
@@ -1197,10 +1226,13 @@ class EscapeParser {
 
     switch (cmd) {
       case 0:
+        if (selective) return handler.eraseLineRightSelective();
         return handler.eraseLineRight();
       case 1:
+        if (selective) return handler.eraseLineLeftSelective();
         return handler.eraseLineLeft();
       case 2:
+        if (selective) return handler.eraseLineSelective();
         return handler.eraseLine();
     }
   }

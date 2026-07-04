@@ -64,6 +64,10 @@ class CursorStyle {
     attrs |= CellAttr.overline;
   }
 
+  void setProtected() {
+    attrs |= CellAttr.protected;
+  }
+
   void setDoubleUnderline() {
     attrs &= ~CellAttr.underlineMask;
     attrs |= CellAttr.doubleUnderline;
@@ -120,6 +124,10 @@ class CursorStyle {
     attrs &= ~CellAttr.overline;
   }
 
+  void unsetProtected() {
+    attrs &= ~CellAttr.protected;
+  }
+
   bool get isBold => (attrs & CellAttr.bold) != 0;
 
   bool get isFaint => (attrs & CellAttr.faint) != 0;
@@ -143,6 +151,8 @@ class CursorStyle {
   bool get isInvisible => (attrs & CellAttr.invisible) != 0;
 
   bool get isOverline => (attrs & CellAttr.overline) != 0;
+
+  bool get isProtected => (attrs & CellAttr.protected) != 0;
 
   void setForegroundColor16(int color) {
     foreground = color | CellColor.named;

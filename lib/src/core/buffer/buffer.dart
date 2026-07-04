@@ -239,55 +239,85 @@ class Buffer {
 
   /// Erases the viewport from the cursor position to the end of the buffer,
   /// including the cursor position.
-  void eraseDisplayFromCursor() {
-    eraseLineFromCursor();
+  void eraseDisplayFromCursor({bool respectProtected = false}) {
+    eraseLineFromCursor(respectProtected: respectProtected);
 
     for (var i = absoluteCursorY + 1; i < height; i++) {
       final line = lines[i];
       line.isWrapped = false;
-      line.eraseRange(0, viewWidth, terminal.cursor);
+      line.eraseRange(
+        0,
+        viewWidth,
+        terminal.cursor,
+        respectProtected: respectProtected,
+      );
     }
   }
 
   /// Erases the viewport from the top-left corner to the cursor, including the
   /// cursor.
-  void eraseDisplayToCursor() {
-    eraseLineToCursor();
+  void eraseDisplayToCursor({bool respectProtected = false}) {
+    eraseLineToCursor(respectProtected: respectProtected);
 
     for (var i = 0; i < _cursorY; i++) {
       final line = lines[i + scrollBack];
       line.isWrapped = false;
-      line.eraseRange(0, viewWidth, terminal.cursor);
+      line.eraseRange(
+        0,
+        viewWidth,
+        terminal.cursor,
+        respectProtected: respectProtected,
+      );
     }
   }
 
   /// Erases the whole viewport.
-  void eraseDisplay() {
+  void eraseDisplay({bool respectProtected = false}) {
     for (var i = 0; i < viewHeight; i++) {
       final line = lines[i + scrollBack];
       line.isWrapped = false;
-      line.eraseRange(0, viewWidth, terminal.cursor);
+      line.eraseRange(
+        0,
+        viewWidth,
+        terminal.cursor,
+        respectProtected: respectProtected,
+      );
     }
   }
 
   /// Erases the line from the cursor to the end of the line, including the
   /// cursor position.
-  void eraseLineFromCursor() {
+  void eraseLineFromCursor({bool respectProtected = false}) {
     currentLine.isWrapped = false;
-    currentLine.eraseRange(_cursorX, viewWidth, terminal.cursor);
+    currentLine.eraseRange(
+      _cursorX,
+      viewWidth,
+      terminal.cursor,
+      respectProtected: respectProtected,
+    );
   }
 
   /// Erases the line from the start of the line to the cursor, including the
   /// cursor.
-  void eraseLineToCursor() {
+  void eraseLineToCursor({bool respectProtected = false}) {
     currentLine.isWrapped = false;
-    currentLine.eraseRange(0, _cursorX + 1, terminal.cursor);
+    currentLine.eraseRange(
+      0,
+      _cursorX + 1,
+      terminal.cursor,
+      respectProtected: respectProtected,
+    );
   }
 
   /// Erases the line at the current cursor position.
-  void eraseLine() {
+  void eraseLine({bool respectProtected = false}) {
     currentLine.isWrapped = false;
-    currentLine.eraseRange(0, viewWidth, terminal.cursor);
+    currentLine.eraseRange(
+      0,
+      viewWidth,
+      terminal.cursor,
+      respectProtected: respectProtected,
+    );
   }
 
   /// Erases [count] cells starting at the cursor position.

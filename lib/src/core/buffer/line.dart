@@ -60,6 +60,10 @@ class BufferLine with IndexedItem {
         CellAttr.hyperlinkShift;
   }
 
+  bool isProtected(int index) {
+    return getAttributes(index) & CellAttr.protected != 0;
+  }
+
   int getContent(int index) {
     return _data[index * _cellSize + _cellContent];
   }
@@ -214,21 +218,36 @@ class BufferLine with IndexedItem {
 
   /// Erase cells whose index satisfies [start] <= index < [end]. Erased cells
   /// are filled with [style].
-  void eraseRange(int start, int end, CursorStyle style) {
+  void eraseRange(
+    int start,
+    int end,
+    CursorStyle style, {
+    bool respectProtected = false,
+  }) {
     // reset cell one to the left if start is second cell of a wide char
-    if (start > 0 && getWidth(start - 1) == 2) {
+    if (start > 0 &&
+        getWidth(start - 1) == 2 &&
+        _canErase(start - 1, respectProtected)) {
       eraseCell(start - 1, style);
     }
 
     // reset cell one to the right if end is second cell of a wide char
-    if (end < _length && getWidth(end - 1) == 2) {
+    if (end < _length &&
+        getWidth(end - 1) == 2 &&
+        _canErase(end - 1, respectProtected)) {
       eraseCell(end - 1, style);
     }
 
     end = min(end, _length);
     for (var i = start; i < end; i++) {
+      if (!_canErase(i, respectProtected)) continue;
       eraseCell(i, style);
     }
+  }
+
+  bool _canErase(int index, bool respectProtected) {
+    if (!respectProtected) return true;
+    return !isProtected(index);
   }
 
   /// Remove [count] cells starting at [start]. Cells that are empty after the

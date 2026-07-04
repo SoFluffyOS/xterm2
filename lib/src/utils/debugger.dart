@@ -211,6 +211,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setProtectedMode(bool enabled) {
+    onCommand('setProtectedMode($enabled)');
+  }
+
+  @override
   void setCursor(int x, int y) {
     onCommand('setCursor($x, $y)');
   }
@@ -326,13 +331,28 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void eraseDisplayBelowSelective() {
+    onCommand('eraseDisplayBelowSelective');
+  }
+
+  @override
   void eraseDisplayAbove() {
     onCommand('eraseDisplayAbove');
   }
 
   @override
+  void eraseDisplayAboveSelective() {
+    onCommand('eraseDisplayAboveSelective');
+  }
+
+  @override
   void eraseDisplay() {
     onCommand('eraseDisplay');
+  }
+
+  @override
+  void eraseDisplaySelective() {
+    onCommand('eraseDisplaySelective');
   }
 
   @override
@@ -346,13 +366,28 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void eraseLineRightSelective() {
+    onCommand('eraseLineRightSelective');
+  }
+
+  @override
   void eraseLineLeft() {
     onCommand('eraseLineLeft');
   }
 
   @override
+  void eraseLineLeftSelective() {
+    onCommand('eraseLineLeftSelective');
+  }
+
+  @override
   void eraseLine() {
     onCommand('eraseLine');
+  }
+
+  @override
+  void eraseLineSelective() {
+    onCommand('eraseLineSelective');
   }
 
   @override

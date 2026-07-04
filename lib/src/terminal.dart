@@ -928,13 +928,28 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void eraseDisplayBelowSelective() {
+    _buffer.eraseDisplayFromCursor(respectProtected: true);
+  }
+
+  @override
   void eraseDisplayAbove() {
     _buffer.eraseDisplayToCursor();
   }
 
   @override
+  void eraseDisplayAboveSelective() {
+    _buffer.eraseDisplayToCursor(respectProtected: true);
+  }
+
+  @override
   void eraseDisplay() {
     _buffer.eraseDisplay();
+  }
+
+  @override
+  void eraseDisplaySelective() {
+    _buffer.eraseDisplay(respectProtected: true);
   }
 
   @override
@@ -948,13 +963,28 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void eraseLineRightSelective() {
+    _buffer.eraseLineFromCursor(respectProtected: true);
+  }
+
+  @override
   void eraseLineLeft() {
     _buffer.eraseLineToCursor();
   }
 
   @override
+  void eraseLineLeftSelective() {
+    _buffer.eraseLineToCursor(respectProtected: true);
+  }
+
+  @override
   void eraseLine() {
     _buffer.eraseLine();
+  }
+
+  @override
+  void eraseLineSelective() {
+    _buffer.eraseLine(respectProtected: true);
   }
 
   @override
@@ -1024,6 +1054,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     };
     if (style < 0 || style > 6) return;
     _cursorBlinkMode = style == 0 || style.isOdd;
+  }
+
+  @override
+  void setProtectedMode(bool enabled) {
+    if (enabled) {
+      return _cursorStyle.setProtected();
+    }
+    _cursorStyle.unsetProtected();
   }
 
   /* Modes */
