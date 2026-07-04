@@ -694,6 +694,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void pushTitle() {
+    onCommand('pushTitle');
+  }
+
+  @override
+  void popTitle() {
+    onCommand('popTitle');
+  }
+
+  @override
   void setCurrentDirectory(String uri) {
     onCommand('setCurrentDirectory($uri)');
   }

@@ -31,6 +31,7 @@ import 'package:xterm/src/utils/circular_buffer.dart';
 class Terminal with Observable implements TerminalState, EscapeHandler {
   static const _maxHyperlinks = 4096;
   static const _maxKittyKeyboardModeStackDepth = 4096;
+  static const _maxTitleStackDepth = 4096;
   static const _kittyKeyboardModeMask = 0x1f;
 
   /// The number of lines that the scrollback buffer can hold. If the buffer
@@ -216,6 +217,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   int _kittyKeyboardMode = 0;
 
   final _kittyKeyboardModeStack = <int>[];
+
+  String? _title;
+
+  final _titleStack = <String?>[];
 
   bool _isDisposed = false;
 
@@ -615,6 +620,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _bracketedPasteMode = false;
     _kittyKeyboardMode = 0;
     _kittyKeyboardModeStack.clear();
+    _title = null;
+    _titleStack.clear();
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
     _nextHyperlinkId = 1;
@@ -1273,12 +1280,29 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setTitle(String name) {
+    _title = name;
     onTitleChange?.call(name);
   }
 
   @override
   void setIconName(String name) {
     onIconChange?.call(name);
+  }
+
+  @override
+  void pushTitle() {
+    if (_titleStack.length >= _maxTitleStackDepth) {
+      _titleStack.removeAt(0);
+    }
+    _titleStack.add(_title);
+  }
+
+  @override
+  void popTitle() {
+    if (_titleStack.isEmpty) return;
+    final title = _titleStack.removeLast();
+    _title = title;
+    onTitleChange?.call(title ?? '');
   }
 
   @override

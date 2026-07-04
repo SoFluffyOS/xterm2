@@ -959,9 +959,11 @@ class EscapeParser {
       // Disabled as these can a security risk.
       case 20: // Get Icon Title
       case 21: // Get Terminal Title
-      // Not implemented.
       case 22: // Push Terminal Title
+        handler.pushTitle();
+        return;
       case 23: // Pop Terminal Title
+        handler.popTitle();
         return;
       // Unknown CSI.
       default:

@@ -253,6 +253,10 @@ abstract class EscapeHandler {
 
   void setIconName(String name);
 
+  void pushTitle();
+
+  void popTitle();
+
   void setCurrentDirectory(String uri);
 
   void setHyperlink(String params, String uri);

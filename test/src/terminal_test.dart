@@ -561,6 +561,17 @@ void main() {
     expect(currentDirectory, 'file://localhost/tmp/my%20project');
   });
 
+  test('Terminal pushes and restores window titles', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[22t');
+    terminal.write('\x1b]2;second\x1b\\\x1b[23t');
+    terminal.write('\x1b[23t');
+
+    expect(titles, ['first', 'second', 'first']);
+  });
+
   test('Terminal applies and resets OSC color overrides', () {
     final terminal = Terminal();
 
