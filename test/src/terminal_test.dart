@@ -1567,6 +1567,65 @@ void main() {
       expect(terminal.buffer.lines[1].getCodePoint(1), 0x3042);
       expect(terminal.buffer.lines[1].getWidth(1), 2);
     });
+
+    test('delete characters shifts only inside horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;2H\x1b[P');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0x63);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x64);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x65);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
+    test('insert blank characters shifts only inside horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;2H\x1b[@');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x62);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x63);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x65);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
+    test('insert lines shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;2H\x1b[L');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mhijqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'snopwx');
+    });
+
+    test('delete lines shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;2H\x1b[M');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gnopkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mtuvqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
+    });
+
+    test('scroll up shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;4r\x1b[S');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gnopkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mtuvqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
+    });
   });
 
   test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {

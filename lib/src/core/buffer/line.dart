@@ -248,24 +248,26 @@ class BufferLine with IndexedItem {
 
   /// Remove [count] cells starting at [start]. Cells that are empty after the
   /// removal are filled with [style].
-  void removeCells(int start, int count, [CursorStyle? style]) {
+  void removeCells(int start, int count, [CursorStyle? style, int? end]) {
+    end ??= _length;
     assert(start >= 0 && start < _length);
-    assert(count >= 0 && start + count <= _length);
+    assert(end >= start && end <= _length);
+    assert(count >= 0 && start + count <= end);
 
     style ??= CursorStyle.empty;
     final combiningCharacters = Map<int, String>.of(_combiningCharacters);
     final underlineColors = Map<int, int>.of(_underlineColors);
 
-    if (start + count < _length) {
+    if (start + count < end) {
       final moveStart = start * _cellSize;
-      final moveEnd = (_length - count) * _cellSize;
+      final moveEnd = (end - count) * _cellSize;
       final moveOffset = count * _cellSize;
       for (var i = moveStart; i < moveEnd; i++) {
         _data[i] = _data[i + moveOffset];
       }
     }
 
-    for (var i = _length - count; i < _length; i++) {
+    for (var i = end - count; i < end; i++) {
       eraseCell(i, style);
     }
 
@@ -285,8 +287,15 @@ class BufferLine with IndexedItem {
 
       if (entry.key < start + count) continue;
       final newIndex = entry.key - count;
-      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+      if (entry.key < end &&
+          newIndex < _length &&
+          getCodePoint(newIndex) != 0) {
         _combiningCharacters[newIndex] = entry.value;
+        continue;
+      }
+
+      if (entry.key >= end && getCodePoint(entry.key) != 0) {
+        _combiningCharacters[entry.key] = entry.value;
       }
     }
     for (final entry in underlineColors.entries) {
@@ -299,8 +308,15 @@ class BufferLine with IndexedItem {
 
       if (entry.key < start + count) continue;
       final newIndex = entry.key - count;
-      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+      if (entry.key < end &&
+          newIndex < _length &&
+          getCodePoint(newIndex) != 0) {
         _underlineColors[newIndex] = entry.value;
+        continue;
+      }
+
+      if (entry.key >= end && getCodePoint(entry.key) != 0) {
+        _underlineColors[entry.key] = entry.value;
       }
     }
 
@@ -310,7 +326,7 @@ class BufferLine with IndexedItem {
       if (anchor.x >= start) {
         if (anchor.x < start + count) {
           anchor.dispose();
-        } else {
+        } else if (anchor.x < end) {
           anchor.reposition(anchor.x - count);
         }
       }
@@ -318,7 +334,12 @@ class BufferLine with IndexedItem {
   }
 
   /// Inserts [count] cells at [start]. New cells are initialized with [style].
-  void insertCells(int start, int count, [CursorStyle? style]) {
+  void insertCells(int start, int count, [CursorStyle? style, int? end]) {
+    end ??= _length;
+    assert(start >= 0 && start < _length);
+    assert(end >= start && end <= _length);
+    assert(count >= 0 && start + count <= end);
+
     style ??= CursorStyle.empty;
     final combiningCharacters = Map<int, String>.of(_combiningCharacters);
     final underlineColors = Map<int, int>.of(_underlineColors);
@@ -327,22 +348,22 @@ class BufferLine with IndexedItem {
       eraseCell(start - 1, style);
     }
 
-    if (start + count < _length) {
+    if (start + count < end) {
       final moveStart = start * _cellSize;
-      final moveEnd = (_length - count) * _cellSize;
+      final moveEnd = (end - count) * _cellSize;
       final moveOffset = count * _cellSize;
       for (var i = moveEnd - 1; i >= moveStart; i--) {
         _data[i + moveOffset] = _data[i];
       }
     }
 
-    final end = min(start + count, _length);
-    for (var i = start; i < end; i++) {
+    final eraseEnd = min(start + count, end);
+    for (var i = start; i < eraseEnd; i++) {
       eraseCell(i, style);
     }
 
-    if (getWidth(_length - 1) == 2) {
-      eraseCell(_length - 1, style);
+    if (end > 0 && getWidth(end - 1) == 2) {
+      eraseCell(end - 1, style);
     }
 
     _combiningCharacters.clear();
@@ -356,8 +377,13 @@ class BufferLine with IndexedItem {
       }
 
       final newIndex = entry.key + count;
-      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+      if (entry.key < end && newIndex < end && getCodePoint(newIndex) != 0) {
         _combiningCharacters[newIndex] = entry.value;
+        continue;
+      }
+
+      if (entry.key >= end && getCodePoint(entry.key) != 0) {
+        _combiningCharacters[entry.key] = entry.value;
       }
     }
     for (final entry in underlineColors.entries) {
@@ -369,19 +395,24 @@ class BufferLine with IndexedItem {
       }
 
       final newIndex = entry.key + count;
-      if (newIndex < _length && getCodePoint(newIndex) != 0) {
+      if (entry.key < end && newIndex < end && getCodePoint(newIndex) != 0) {
         _underlineColors[newIndex] = entry.value;
+        continue;
+      }
+
+      if (entry.key >= end && getCodePoint(entry.key) != 0) {
+        _underlineColors[entry.key] = entry.value;
       }
     }
 
     // Update anchors, move anchors that are after the inserted range.
     for (var i = 0; i < _anchors.length; i++) {
       final anchor = _anchors[i];
-      if (anchor.x >= start + count) {
+      if (anchor.x >= start + count && anchor.x < end) {
         anchor.reposition(anchor.x + count);
 
         // Remove anchors that are now outside the buffer.
-        if (anchor.x >= _length) {
+        if (anchor.x >= end) {
           anchor.dispose();
         }
       }
@@ -446,11 +477,19 @@ class BufferLine with IndexedItem {
   /// Copies [len] cells from [src] starting at [srcCol] to [dstCol] at this
   /// line.
   void copyFrom(BufferLine src, int srcCol, int dstCol, int len) {
-    resize(dstCol + len);
+    final requiredLength = dstCol + len;
+    if (requiredLength > _length) {
+      resize(requiredLength);
+    }
     final copiedCombiningCharacters = <int, String>{};
+    final copiedUnderlineColors = <int, int>{};
     for (final entry in src._combiningCharacters.entries) {
       if (entry.key < srcCol || entry.key >= srcCol + len) continue;
       copiedCombiningCharacters[dstCol + entry.key - srcCol] = entry.value;
+    }
+    for (final entry in src._underlineColors.entries) {
+      if (entry.key < srcCol || entry.key >= srcCol + len) continue;
+      copiedUnderlineColors[dstCol + entry.key - srcCol] = entry.value;
     }
 
     // data.setRange(
@@ -470,6 +509,10 @@ class BufferLine with IndexedItem {
       (index, _) => index >= dstCol && index < dstCol + len,
     );
     _combiningCharacters.addAll(copiedCombiningCharacters);
+    _underlineColors.removeWhere(
+      (index, _) => index >= dstCol && index < dstCol + len,
+    );
+    _underlineColors.addAll(copiedUnderlineColors);
   }
 
   static int _calcCapacity(int length) {

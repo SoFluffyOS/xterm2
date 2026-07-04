@@ -451,6 +451,7 @@ class Buffer {
   /// Erases [count] cells starting at the cursor position.
   void eraseChars(int count, {bool respectProtected = false}) {
     final start = _cursorX;
+    count = min(count, _rightLimit - start);
     currentLine.eraseRange(
       start,
       start + count,
@@ -460,6 +461,52 @@ class Buffer {
   }
 
   void scrollDown(int lines) {
+    if (_usesFullHorizontalMargins) {
+      _scrollDownFullWidth(lines);
+      return;
+    }
+
+    final width = _marginRight - _marginLeft + 1;
+    for (var i = absoluteMarginBottom; i >= absoluteMarginTop; i--) {
+      if (i >= absoluteMarginTop + lines) {
+        this.lines[i].copyFrom(
+              this.lines[i - lines],
+              _marginLeft,
+              _marginLeft,
+              width,
+            );
+      } else {
+        this
+            .lines[i]
+            .eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
+      }
+    }
+  }
+
+  void scrollUp(int lines) {
+    if (_usesFullHorizontalMargins) {
+      _scrollUpFullWidth(lines);
+      return;
+    }
+
+    final width = _marginRight - _marginLeft + 1;
+    for (var i = absoluteMarginTop; i <= absoluteMarginBottom; i++) {
+      if (i <= absoluteMarginBottom - lines) {
+        this.lines[i].copyFrom(
+              this.lines[i + lines],
+              _marginLeft,
+              _marginLeft,
+              width,
+            );
+      } else {
+        this
+            .lines[i]
+            .eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
+      }
+    }
+  }
+
+  void _scrollDownFullWidth(int lines) {
     for (var i = absoluteMarginBottom; i >= absoluteMarginTop; i--) {
       if (i >= absoluteMarginTop + lines) {
         this.lines[i] = this.lines[i - lines];
@@ -469,7 +516,7 @@ class Buffer {
     }
   }
 
-  void scrollUp(int lines) {
+  void _scrollUpFullWidth(int lines) {
     for (var i = absoluteMarginTop; i <= absoluteMarginBottom; i++) {
       if (i <= absoluteMarginBottom - lines) {
         this.lines[i] = this.lines[i + lines];
@@ -686,8 +733,12 @@ class Buffer {
 
   void deleteChars(int count) {
     final start = _cursorX.clamp(0, viewWidth);
-    count = min(count, viewWidth - start);
-    currentLine.removeCells(start, count, terminal.cursor);
+    count = min(count, _rightLimit - start);
+    currentLine.removeCells(start, count, terminal.cursor, _rightLimit);
+  }
+
+  bool get _usesFullHorizontalMargins {
+    return _marginLeft == 0 && _marginRight == viewWidth - 1;
   }
 
   /// Remove all lines above the top of the viewport.
@@ -749,15 +800,16 @@ class Buffer {
   }
 
   void insertBlankChars(int count) {
-    currentLine.insertCells(_cursorX, count, terminal.cursor);
+    count = min(count, _rightLimit - _cursorX);
+    currentLine.insertCells(_cursorX, count, terminal.cursor, _rightLimit);
   }
 
   void insertLines(int count) {
-    if (!isInVerticalMargin) {
+    if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
 
-    setCursorX(0);
+    setCursorX(_marginLeft);
 
     // Number of lines from the cursor to the bottom of the scrollable region
     // including the cursor itself.
@@ -768,6 +820,28 @@ class Buffer {
 
     // Number of lines to move up.
     final linesToMove = linesBelow - linesToInsert;
+
+    if (!_usesFullHorizontalMargins) {
+      final width = _marginRight - _marginLeft + 1;
+      for (var i = 0; i < linesToMove; i++) {
+        final index = absoluteMarginBottom - i;
+        lines[index].copyFrom(
+          lines[index - linesToInsert],
+          _marginLeft,
+          _marginLeft,
+          width,
+        );
+      }
+
+      for (var i = 0; i < linesToInsert; i++) {
+        lines[absoluteCursorY + i].eraseRange(
+          _marginLeft,
+          _marginRight + 1,
+          terminal.cursor,
+        );
+      }
+      return;
+    }
 
     for (var i = 0; i < linesToMove; i++) {
       final index = absoluteMarginBottom - i;
@@ -783,15 +857,37 @@ class Buffer {
   /// the removed lines are shifted up. This only affects the scrollable region.
   /// Lines outside the scrollable region are not affected.
   void deleteLines(int count) {
-    if (!isInVerticalMargin) {
+    if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
 
-    setCursorX(0);
+    setCursorX(_marginLeft);
 
     count = min(count, absoluteMarginBottom - absoluteCursorY + 1);
 
     final linesToMove = absoluteMarginBottom - absoluteCursorY + 1 - count;
+
+    if (!_usesFullHorizontalMargins) {
+      final width = _marginRight - _marginLeft + 1;
+      for (var i = 0; i < linesToMove; i++) {
+        final index = absoluteCursorY + i;
+        lines[index].copyFrom(
+          lines[index + count],
+          _marginLeft,
+          _marginLeft,
+          width,
+        );
+      }
+
+      for (var i = 0; i < count; i++) {
+        lines[absoluteMarginBottom - i].eraseRange(
+          _marginLeft,
+          _marginRight + 1,
+          terminal.cursor,
+        );
+      }
+      return;
+    }
 
     for (var i = 0; i < linesToMove; i++) {
       final index = absoluteCursorY + i;
