@@ -30,6 +30,68 @@ void main() {
 
       expect(output, ['\x1bOA']);
     });
+
+    test('keeps legacy control encoding when Kitty mode is disabled', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.keyInput(TerminalKey.keyA, ctrl: true);
+
+      expect(output, ['\x01']);
+    });
+
+    test('disambiguates modified textual keys in Kitty mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.keyA, ctrl: true);
+      terminal.keyInput(TerminalKey.escape);
+
+      expect(output, ['\x1b[97;5u', '\x1b[27u']);
+    });
+
+    test('reports all textual keys as Kitty escape sequences', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=8u');
+      terminal.keyInput(TerminalKey.keyA);
+      terminal.keyInput(TerminalKey.digit0, shift: true);
+
+      expect(output, ['\x1b[97u', '\x1b[48;2u']);
+    });
+
+    test('encodes escape when Kitty event reporting is enabled', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=2u');
+      terminal.keyInput(TerminalKey.escape);
+
+      expect(output, ['\x1b[27u']);
+    });
+
+    test('reports Kitty alternate key codes', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=12u');
+      terminal.keyInput(TerminalKey.keyA, shift: true);
+
+      expect(output, ['\x1b[97:65;2u']);
+    });
+
+    test('uses Kitty functional and numpad key codes', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.f13);
+      terminal.keyInput(TerminalKey.numpad0, alt: true);
+
+      expect(output, ['\x1b[57376u', '\x1b[57399;3u']);
+    });
   });
 
   group('KeytabInputHandler', () {
