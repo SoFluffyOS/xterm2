@@ -891,7 +891,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setColumnMode(bool enabled) {
-    // no-op
+    _buffer.resetViewport();
   }
 
   @override

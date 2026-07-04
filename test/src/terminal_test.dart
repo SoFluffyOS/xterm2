@@ -71,6 +71,41 @@ void main() {
     );
   });
 
+  test('Terminal applies DECCOLM screen reset side effects', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('scrollback\n\x1b[31;44mcontent\x1b[2;2r\x1b[2;3H');
+    final scrollback = terminal.buffer.lines
+        .toList()
+        .take(terminal.buffer.scrollBack)
+        .map((line) => line.toString())
+        .toList();
+
+    terminal.write('\x1b[?3h');
+
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .take(terminal.buffer.scrollBack)
+          .map((line) => line.toString()),
+      scrollback,
+    );
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .every((line) => line.toString().isEmpty),
+      isTrue,
+    );
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
+    expect(
+      terminal.buffer.lines[terminal.buffer.lines.length - 1].getAttributes(0),
+      0,
+    );
+  });
+
   test('Terminal dispose clears listeners and stops deferred updates',
       () async {
     var updates = 0;

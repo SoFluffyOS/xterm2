@@ -498,6 +498,21 @@ class Buffer {
     }
   }
 
+  void resetViewport() {
+    final viewportStart = scrollBack;
+    final viewportEnd = viewportStart + viewHeight;
+    for (var row = viewportStart; row < viewportEnd; row++) {
+      final line = lines[row];
+      line.isWrapped = false;
+      for (var column = 0; column < viewWidth; column++) {
+        line.resetCell(column);
+      }
+    }
+    _cursorX = 0;
+    _cursorY = 0;
+    resetVerticalMargins();
+  }
+
   void insertBlankChars(int count) {
     currentLine.insertCells(_cursorX, count, terminal.cursor);
   }
