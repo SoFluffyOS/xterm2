@@ -811,6 +811,15 @@ void main() {
     ]);
   });
 
+  test('Terminal reports one-based cursor position', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[3;5H\x1b[6n');
+
+    expect(output, ['\x1b[3;5R']);
+  });
+
   test('Terminal negotiates Kitty keyboard modes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
