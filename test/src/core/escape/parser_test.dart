@@ -108,5 +108,32 @@ void main() {
       verify(handler.useCharset(2)).called(1);
       verify(handler.useCharset(3)).called(1);
     });
+
+    test('rejects malformed plain CSI commands', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write(
+        '\x1b[?2A'
+        '\x1b[1;2A'
+        '\x1b[2 A'
+        '\x1b[>31m'
+        '\x1b[?4m'
+        '\x1b[?1L',
+      );
+
+      verifyNever(handler.moveCursorY(any));
+      verifyNever(handler.setCursorBold());
+      verifyNever(handler.insertLines(any));
+    });
+
+    test('parses horizontal position backward alias', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[3j');
+
+      verify(handler.moveCursorX(-3)).called(1);
+    });
   });
 }

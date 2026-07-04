@@ -443,6 +443,7 @@ class EscapeParser {
     'f'.codeUnitAt(0): _csiHandleCursorPosition,
     'g'.codeUnitAt(0): _csiHandelClearTabStop,
     'h'.codeUnitAt(0): _csiHandleMode,
+    'j'.codeUnitAt(0): _csiHandleCursorBackward,
     'l'.codeUnitAt(0): _csiHandleMode,
     'm'.codeUnitAt(0): _csiHandleSgr,
     'n'.codeUnitAt(0): _csiHandleDeviceStatusReport,
@@ -513,6 +514,7 @@ class EscapeParser {
   }
 
   void _csiHandleKittyKeyboardMode() {
+    if (_csi.intermediates.isNotEmpty) return;
     switch (_csi.prefix) {
       case Ascii.questionMark:
         return handler.reportKittyKeyboardMode();
@@ -566,6 +568,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sa/
   void _csiHandleCursorHorizontalRelative() {
+    if (!_isPlainCsi()) return;
     handler.moveCursorX(_firstParamOrDefault(1));
   }
 
@@ -573,6 +576,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sb/
   void _csiHandleRepeatPreviousCharacter() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -587,13 +591,14 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sc/
   void _csiHandleSendDeviceAttributes() {
+    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
     switch (_csi.prefix) {
       case Ascii.greaterThan:
         return handler.sendSecondaryDeviceAttributes();
       case Ascii.equal:
         return handler.sendTertiaryDeviceAttributes();
-      default:
-        handler.sendPrimaryDeviceAttributes();
+      case null:
+        return handler.sendPrimaryDeviceAttributes();
     }
   }
 
@@ -601,6 +606,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sd/
   void _csiHandleLinePositionAbsolute() {
+    if (!_isPlainCsi()) return;
     var y = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -615,6 +621,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_se/
   void _csiHandleCursorVerticalRelative() {
+    if (!_isPlainCsi()) return;
     handler.moveCursorY(_firstParamOrDefault(1));
   }
 
@@ -622,6 +629,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sf/
   void _csiHandleCursorPosition() {
+    if (!_isPlainCsi(maxParams: 2)) return;
     var row = 1;
     var col = 1;
 
@@ -641,6 +649,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sg/
   void _csiHandelClearTabStop() {
+    if (!_isPlainCsi()) return;
     var cmd = 0;
 
     if (_csi.params.length == 1) {
@@ -657,6 +666,7 @@ class EscapeParser {
 
   /// `ESC [ Ps W` Cursor Tabulation Control (CTC)
   void _csiHandleCursorTabulationControl() {
+    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
     if (_csi.prefix == Ascii.questionMark) {
       if (_csi.params.length == 1 && _csi.params.single == 5) {
         return handler.resetTabStops();
@@ -688,6 +698,10 @@ class EscapeParser {
   /// - `ESC [ [ Pm ] l` Reset Mode (RM) https://terminalguide.namepad.de/seq/csi_rm/
   /// - `ESC [ ? [ Pm ] l` Reset Mode (?) (RM) https://terminalguide.namepad.de/seq/csi_sl__p/
   void _csiHandleMode() {
+    if (_csi.intermediates.isNotEmpty ||
+        (_csi.prefix != null && _csi.prefix != Ascii.questionMark)) {
+      return;
+    }
     final isEnabled = _csi.finalByte == Ascii.h;
 
     final isDecModes = _csi.prefix == Ascii.questionMark;
@@ -707,6 +721,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sm/
   void _csiHandleSgr() {
+    if (_csi.prefix != null || _csi.intermediates.isNotEmpty) return;
     final params = _csi.params;
 
     if (params.isEmpty) {
@@ -1005,6 +1020,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sn/
   void _csiHandleDeviceStatusReport() {
+    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
     if (_csi.params.isEmpty) return;
 
     if (_csi.prefix == Ascii.questionMark) {
@@ -1029,6 +1045,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
+    if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == Ascii.questionMark) {
       for (final mode in _csi.params) {
         handler.restoreDecMode(mode);
@@ -1066,6 +1083,7 @@ class EscapeParser {
   ///
   /// `ESC [ s` Save Cursor (SCOSC)
   void _csiHandleSaveModeOrCursor() {
+    if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == null && _csi.params.isEmpty) {
       return handler.saveCursor();
     }
@@ -1081,6 +1099,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_st/
   void _csiWindowManipulation() {
+    if (_csi.prefix != null || _csi.intermediates.isNotEmpty) return;
     // The sequence needs at least one parameter.
     if (_csi.params.isEmpty) {
       return;
@@ -1143,6 +1162,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ca/
   void _csiHandleCursorUp() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1157,6 +1177,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cb/
   void _csiHandleCursorDown() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1171,6 +1192,7 @@ class EscapeParser {
   ///
   /// Cursor Right (CUF)
   void _csiHandleCursorForward() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1185,6 +1207,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cd/
   void _csiHandleCursorBackward() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1199,6 +1222,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ce/
   void _csiHandleCursorNextLine() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1213,6 +1237,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cf/
   void _csiHandleCursorPrecedingLine() {
+    if (!_isPlainCsi()) return;
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1224,6 +1249,7 @@ class EscapeParser {
   }
 
   void _csiHandleCursorHorizontalAbsolute() {
+    if (!_isPlainCsi()) return;
     var x = 1;
 
     if (_csi.params.isNotEmpty) {
@@ -1238,6 +1264,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cj/
   void _csiHandleEraseDisplay() {
+    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
     final selective = _csi.prefix == Ascii.questionMark;
     if (_csi.prefix != null && !selective) return;
 
@@ -1267,6 +1294,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ck/
   void _csiHandleEraseLine() {
+    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
     final selective = _csi.prefix == Ascii.questionMark;
     if (_csi.prefix != null && !selective) return;
 
@@ -1293,6 +1321,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cl/
   void _csiHandleInsertLines() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.insertLines(amount);
   }
@@ -1301,6 +1330,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cm/
   void _csiHandleDeleteLines() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.deleteLines(amount);
   }
@@ -1309,6 +1339,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cp/
   void _csiHandleDelete() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.deleteChars(amount);
   }
@@ -1317,6 +1348,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cs/
   void _csiHandleScrollUp() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.scrollUp(amount);
   }
@@ -1325,6 +1357,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ct_1param/
   void _csiHandleScrollDown() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.scrollDown(amount);
   }
@@ -1333,6 +1366,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cx/
   void _csiHandleEraseCharacters() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.eraseChars(amount);
   }
@@ -1345,15 +1379,18 @@ class EscapeParser {
   /// contents to the right. The contents of the amount right-most columns in
   /// the scroll region are lost. The cursor position is not changed.
   void _csiHandleInsertBlankCharacters() {
+    if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.insertBlankChars(amount);
   }
 
   void _csiHandleCursorForwardTabulation() {
+    if (!_isPlainCsi()) return;
     handler.moveForwardTabs(_firstParamOrDefault(1));
   }
 
   void _csiHandleCursorBackwardTabulation() {
+    if (!_isPlainCsi()) return;
     handler.moveBackwardTabs(_firstParamOrDefault(1));
   }
 
@@ -1368,6 +1405,12 @@ class EscapeParser {
     }
 
     return value;
+  }
+
+  bool _isPlainCsi({int maxParams = 1}) {
+    return _csi.prefix == null &&
+        _csi.intermediates.isEmpty &&
+        _csi.params.length <= maxParams;
   }
 
   void _setMode(int mode, bool enabled) {
