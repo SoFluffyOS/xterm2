@@ -85,6 +85,8 @@ abstract class EscapeHandler {
 
   void sendStatusString(String query);
 
+  void sendTerminfoCapability(String query);
+
   void setMargins(int i, [int? bottom]);
 
   void cursorNextLine(int amount);

@@ -942,6 +942,31 @@ void main() {
     expect(output, ['\x1bP1\$r0m\x1b\\']);
   });
 
+  test('Terminal reports XTGETTCAP capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1bP+q544E;436F;524742;6C696E6573;626164\x1b\\');
+
+    expect(output, [
+      '\x1bP1+r544E=787465726D2D323536636F6C6F72\x1b\\',
+      '\x1bP1+r436F=323536\x1b\\',
+      '\x1bP1+r524742=38\x1b\\',
+      '\x1bP1+r6C696E6573=3234\x1b\\',
+    ]);
+  });
+
+  test('Terminal handles split XTGETTCAP payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP+q');
+    terminal.write('436F\x1b');
+    terminal.write('\\');
+
+    expect(output, ['\x1bP1+r436F=323536\x1b\\']);
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

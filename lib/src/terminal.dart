@@ -828,6 +828,38 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call(_emitter.statusString(_statusString(query)));
   }
 
+  @override
+  void sendTerminfoCapability(String query) {
+    final key = _hexDecode(query);
+    if (key == null) return;
+    final value = _terminfoCapability(key);
+    if (value == null) return;
+    onOutput?.call(_emitter.terminfoCapability(key, value));
+  }
+
+  String? _hexDecode(String value) {
+    if (value.length.isOdd) return null;
+    final buffer = StringBuffer();
+    for (var i = 0; i < value.length; i += 2) {
+      final byte = int.tryParse(value.substring(i, i + 2), radix: 16);
+      if (byte == null) return null;
+      buffer.writeCharCode(byte);
+    }
+    return buffer.toString();
+  }
+
+  String? _terminfoCapability(String key) {
+    return switch (key) {
+      'TN' => 'xterm-256color',
+      'Co' => '256',
+      'RGB' => '8',
+      'colors' => '256',
+      'cols' => viewWidth.toString(),
+      'lines' => viewHeight.toString(),
+      _ => null,
+    };
+  }
+
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),

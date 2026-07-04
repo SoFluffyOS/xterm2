@@ -1596,8 +1596,15 @@ class EscapeParser {
   void _handleDcs() {
     if (_dcsOverflowed) return;
     final payload = _dcsBuffer.toString();
-    if (!payload.startsWith('\$q')) return;
-    handler.sendStatusString(payload.substring(2));
+    if (payload.startsWith('\$q')) {
+      handler.sendStatusString(payload.substring(2));
+      return;
+    }
+    if (!payload.startsWith('+q')) return;
+    for (final query in payload.substring(2).split(';')) {
+      if (query.isEmpty) continue;
+      handler.sendTerminfoCapability(query);
+    }
   }
 }
 

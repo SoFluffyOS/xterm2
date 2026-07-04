@@ -47,6 +47,12 @@ class EscapeEmitter {
     return '\x1bP1\$r$value\x1b\\';
   }
 
+  String terminfoCapability(String key, String? value) {
+    final encodedKey = _hexEncode(key);
+    if (value == null || value.isEmpty) return '\x1bP1+r$encodedKey\x1b\\';
+    return '\x1bP1+r$encodedKey=${_hexEncode(value)}\x1b\\';
+  }
+
   String bracketedPaste(String text) {
     final filtered = text.replaceAll(RegExp('[\x1b\x03]'), '');
     return '\x1b[200~$filtered\x1b[201~';
@@ -90,5 +96,13 @@ class EscapeEmitter {
     );
     if (withoutControls.length <= _maxXtVersionLength) return withoutControls;
     return withoutControls.substring(0, _maxXtVersionLength);
+  }
+
+  String _hexEncode(String value) {
+    final buffer = StringBuffer();
+    for (final codeUnit in value.codeUnits) {
+      buffer.write(codeUnit.toRadixString(16).padLeft(2, '0').toUpperCase());
+    }
+    return buffer.toString();
   }
 }
