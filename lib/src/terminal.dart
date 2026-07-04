@@ -900,8 +900,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       'm' => _sgrStatusString(),
       ' q' => '${_cursorShapeStatus()} q',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
+      's' => _leftRightMarginStatusString(),
       _ => null,
     };
+  }
+
+  String? _leftRightMarginStatusString() {
+    if (!_leftRightMarginMode) return null;
+    return '${_buffer.marginLeft + 1};${_buffer.marginRight + 1}s';
   }
 
   String _sgrStatusString() {

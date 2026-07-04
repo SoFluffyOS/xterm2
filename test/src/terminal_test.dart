@@ -1166,6 +1166,19 @@ void main() {
     );
   });
 
+  test('Terminal reports DECRQSS left and right margins when enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1bP\$qs\x1b\\');
+    terminal.write('\x1b[?69h\x1b[3;10s\x1bP\$qs\x1b\\');
+
+    expect(output, [
+      '\x1bP0\$r\x1b\\',
+      '\x1bP1\$r3;10s\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
