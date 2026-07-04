@@ -886,6 +886,29 @@ void main() {
     expect(output.single, hasLength('\x1bP>|\x1b\\'.length + 256));
   });
 
+  test('Terminal answers ENQ through optional callback', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onEnquiry: () => 'OK',
+    );
+
+    terminal.write('\x05');
+
+    expect(output, ['OK']);
+  });
+
+  test('Terminal ignores ENQ without callback or empty response', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x05');
+    terminal.onEnquiry = () => '';
+    terminal.write('\x05');
+
+    expect(output, isEmpty);
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

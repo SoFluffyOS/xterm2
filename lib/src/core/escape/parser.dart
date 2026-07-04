@@ -106,6 +106,7 @@ class EscapeParser {
   }
 
   late final _sbcHandlers = FastLookupTable<_SbcHandler>({
+    0x05: handler.enquiry,
     0x07: handler.bell,
     0x08: handler.backspaceReturn,
     0x09: handler.tab,

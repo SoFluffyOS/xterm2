@@ -5,6 +5,8 @@ abstract class EscapeHandler {
 
   /* SBC */
 
+  void enquiry();
+
   void bell();
 
   void backspaceReturn();

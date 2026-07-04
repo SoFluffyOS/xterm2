@@ -67,6 +67,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Return null or an empty string to use the default xterm.dart version.
   String? Function()? onXtVersionQuery;
 
+  /// Called when the application sends ENQ (0x05). Return null or an empty
+  /// string to keep the request silent.
+  String? Function()? onEnquiry;
+
   /// Called when the application requests copying text through OSC 52.
   ///
   /// [selector] is usually `c` for clipboard or `p`/`s` for primary selection.
@@ -115,6 +119,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onColorQuery,
     this.onColorSchemeQuery,
     this.onXtVersionQuery,
+    this.onEnquiry,
     this.onClipboardStore,
     this.onClipboardQuery,
     this.onOutput,
@@ -539,6 +544,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   /* SBC */
+
+  @override
+  void enquiry() {
+    final response = onEnquiry?.call();
+    if (response == null || response.isEmpty) return;
+    onOutput?.call(response);
+  }
 
   @override
   void bell() {

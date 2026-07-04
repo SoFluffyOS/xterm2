@@ -31,6 +31,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void enquiry() => super.noSuchMethod(
+        Invocation.method(
+          #enquiry,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void bell() => super.noSuchMethod(
         Invocation.method(
           #bell,
