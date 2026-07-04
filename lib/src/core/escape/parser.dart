@@ -445,6 +445,14 @@ class EscapeParser {
   }
 
   void _csiHandleSoftReset() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.dollarSign) {
+      final mode = switch (_csi.params) {
+        [final value, ...] => value,
+        _ => 0,
+      };
+      return handler.reportMode(mode, _csi.prefix == Ascii.questionMark);
+    }
     if (_csi.intermediates.length != 1 ||
         _csi.intermediates.single != Ascii.exclamationMark) {
       return handler.unknownCSI(_csi.finalByte);

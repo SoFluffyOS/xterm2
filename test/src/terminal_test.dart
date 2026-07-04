@@ -713,6 +713,29 @@ void main() {
     expect(output, hasLength(2));
   });
 
+  test('Terminal reports ANSI and DEC private mode state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[4h'
+      '\x1b[4\x24p'
+      '\x1b[20\x24p'
+      '\x1b[?7\x24p'
+      '\x1b[?25l'
+      '\x1b[?25\x24p'
+      '\x1b[?9999\x24p',
+    );
+
+    expect(output, [
+      '\x1b[4;1\x24y',
+      '\x1b[20;2\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?25;2\x24y',
+      '\x1b[?9999;0\x24y',
+    ]);
+  });
+
   test('Terminal negotiates Kitty keyboard modes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

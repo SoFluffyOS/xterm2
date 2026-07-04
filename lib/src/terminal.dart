@@ -968,6 +968,61 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void reportMode(int mode, bool decPrivate) {
+    final state = switch (decPrivate) {
+      true => _decModeState(mode),
+      false => _ansiModeState(mode),
+    };
+    final privateMarker = switch (decPrivate) {
+      true => '?',
+      false => '',
+    };
+    onOutput?.call('\x1b[$privateMarker$mode;$state\x24y');
+  }
+
+  int _ansiModeState(int mode) {
+    return switch (mode) {
+      4 => _reportedState(_insertMode),
+      20 => _reportedState(_lineFeedMode),
+      _ => 0,
+    };
+  }
+
+  int _decModeState(int mode) {
+    return switch (mode) {
+      1 => _reportedState(_cursorKeysMode),
+      3 => 0,
+      5 => _reportedState(_reverseDisplayMode),
+      6 => _reportedState(_originMode),
+      7 => _reportedState(_autoWrapMode),
+      9 => _reportedState(_mouseMode == MouseMode.clickOnly),
+      12 || 13 => _reportedState(_cursorBlinkMode),
+      25 => _reportedState(_cursorVisibleMode),
+      47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
+      66 => _reportedState(_appKeypadMode),
+      1000 || 1001 => _reportedState(_mouseMode == MouseMode.upDownScroll),
+      1002 => _reportedState(_mouseMode == MouseMode.upDownScrollDrag),
+      1003 => _reportedState(_mouseMode == MouseMode.upDownScrollMove),
+      1004 => _reportedState(_reportFocusMode),
+      1005 => _reportedState(_mouseReportMode == MouseReportMode.utf),
+      1006 => _reportedState(_mouseReportMode == MouseReportMode.sgr),
+      1007 => _reportedState(_altBufferMouseScrollMode),
+      1015 => _reportedState(_mouseReportMode == MouseReportMode.urxvt),
+      1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
+      2004 => _reportedState(_bracketedPasteMode),
+      2026 => 2,
+      _ => 0,
+    };
+  }
+
+  int _reportedState(bool enabled) {
+    return switch (enabled) {
+      true => 1,
+      false => 2,
+    };
+  }
+
+  @override
   void reportKittyKeyboardMode() {
     onOutput?.call('\x1b[?${_kittyKeyboardMode & _kittyKeyboardModeMask}u');
   }

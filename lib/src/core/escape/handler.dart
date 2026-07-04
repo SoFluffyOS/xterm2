@@ -155,6 +155,8 @@ abstract class EscapeHandler {
 
   void setSynchronizedUpdateMode(bool enabled);
 
+  void reportMode(int mode, bool decPrivate);
+
   void reportKittyKeyboardMode();
 
   void setKittyKeyboardMode(int mode, int behavior);

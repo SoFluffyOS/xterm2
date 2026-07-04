@@ -465,6 +465,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void reportMode(int mode, bool decPrivate) {
+    onCommand('reportMode($mode, $decPrivate)');
+  }
+
+  @override
   void reportKittyKeyboardMode() {
     onCommand('reportKittyKeyboardMode');
   }
