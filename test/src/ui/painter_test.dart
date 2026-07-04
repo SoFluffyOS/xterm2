@@ -155,6 +155,25 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter dims faint text without making it transparent', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()
+      ..foreground = CellColor.rgb | 0xC86432
+      ..flags = CellFlags.faint;
+
+    final color = painter.resolveCellForegroundColor(cell);
+
+    expect(color.a, 1);
+    expect(color.r, closeTo((0xC8 / 0xFF) * 0.66, 0.001));
+    expect(color.g, closeTo((0x64 / 0xFF) * 0.66, 0.001));
+    expect(color.b, closeTo((0x32 / 0xFF) * 0.66, 0.001));
+    painter.dispose();
+  });
+
   test('TerminalPainter invalidates colors when terminal changes', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

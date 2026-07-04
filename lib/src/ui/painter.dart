@@ -7,6 +7,8 @@ import 'package:xterm/src/ui/paragraph_cache.dart';
 import 'package:xterm/src/ui/procedural_glyphs.dart';
 import 'package:xterm/xterm.dart';
 
+const _dimColorFactor = 0.66;
+
 /// Encapsulates the logic for painting various terminal elements.
 class TerminalPainter {
   TerminalPainter({
@@ -374,15 +376,10 @@ class TerminalPainter {
     if (cellFlags & CellFlags.blink != 0 && !blinkVisible) return;
 
     final isHyperlink = cellData.hyperlinkId != 0;
-    final inverse = (cellFlags & CellFlags.inverse != 0) != _reverseDisplay;
-    var color = foregroundOverride ??
-        switch (inverse) {
-          false => resolveForegroundColor(cellData.foreground),
-          true => resolveBackgroundColor(cellData.background),
-        };
-    if (cellFlags & CellFlags.faint != 0) {
-      color = color.withValues(alpha: 0.5);
-    }
+    final color = resolveCellForegroundColor(
+      cellData,
+      foregroundOverride: foregroundOverride,
+    );
     final decorationColor = switch (cellData.underlineColor) {
       0 => color,
       _ => resolveForegroundColor(cellData.underlineColor),
@@ -664,6 +661,27 @@ class TerminalPainter {
     if (colorType == CellColor.normal) return null;
 
     return resolveBackgroundColor(cellData.background);
+  }
+
+  Color resolveCellForegroundColor(
+    CellData cellData, {
+    Color? foregroundOverride,
+  }) {
+    final inverse =
+        (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
+    final color = foregroundOverride ??
+        switch (inverse) {
+          false => resolveForegroundColor(cellData.foreground),
+          true => resolveBackgroundColor(cellData.background),
+        };
+    if (cellData.flags & CellFlags.faint == 0) {
+      return color;
+    }
+    return color.withValues(
+      red: color.r * _dimColorFactor,
+      green: color.g * _dimColorFactor,
+      blue: color.b * _dimColorFactor,
+    );
   }
 
   ({Color background, Color foreground}) resolveCursorColors(
