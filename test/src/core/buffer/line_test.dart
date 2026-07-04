@@ -213,4 +213,23 @@ void main() {
     expect(anchors.every((anchor) => anchor.line == null), isTrue);
     expect(line.anchors, isEmpty);
   });
+
+  test('createCellData returns a non-destructive cell snapshot', () {
+    final line = BufferLine(2);
+    final style = CursorStyle()
+      ..foreground = 0x123
+      ..background = 0x456
+      ..underlineColor = 0x789
+      ..setBold();
+    line.setCell(0, 0x41, 1, style);
+
+    final cell = line.createCellData(0);
+
+    expect(cell.foreground, 0x123);
+    expect(cell.background, 0x456);
+    expect(cell.underlineColor, 0x789);
+    expect(cell.flags & CellAttr.bold, isNot(0));
+    expect(cell.content & CellContent.codepointMask, 0x41);
+    expect(line.getCodePoint(0), 0x41);
+  });
 }
