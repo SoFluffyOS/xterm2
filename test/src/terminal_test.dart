@@ -1483,6 +1483,17 @@ void main() {
       expect(terminal.buffer.lines[0].toString(), 'abde');
     });
 
+    test('erase characters ignores horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;4H\x1b[2X');
+
+      expect(terminal.buffer.lines[0].getText(0, 6), 'abcf');
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
     test('insert blank characters treats zero as one', () {
       final terminal = Terminal()..resize(5, 3);
 

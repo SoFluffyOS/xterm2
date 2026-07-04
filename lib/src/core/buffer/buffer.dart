@@ -453,7 +453,7 @@ class Buffer {
   /// Erases [count] cells starting at the cursor position.
   void eraseChars(int count, {bool respectProtected = false}) {
     final start = _cursorX;
-    count = min(count, _rightLimit - start);
+    count = min(count, viewWidth - start);
     currentLine.eraseRange(
       start,
       start + count,
