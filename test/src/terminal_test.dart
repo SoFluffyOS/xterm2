@@ -1205,6 +1205,23 @@ void main() {
     expect(terminal.appKeypadMode, isFalse);
   });
 
+  test('Terminal supports G2 and G3 character set invocation', () {
+    final terminal = Terminal()..resize(12, 2);
+
+    terminal.write(
+      '\x1b*0\x1bNqq'
+      '\x1b+0\x1boqq'
+      '\x0fq',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x2500);
+    expect(line.getCodePoint(1), 0x71);
+    expect(line.getCodePoint(2), 0x2500);
+    expect(line.getCodePoint(3), 0x2500);
+    expect(line.getCodePoint(4), 0x71);
+  });
+
   test('Terminal applies DECSCUSR cursor shape and blinking state', () {
     final terminal = Terminal();
 

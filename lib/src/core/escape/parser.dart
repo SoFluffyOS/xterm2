@@ -135,6 +135,8 @@ class EscapeParser {
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
     'M'.charCode: _escHandleReverseIndex,
+    'N'.charCode: _escHandleSingleShift2,
+    'O'.charCode: _escHandleSingleShift3,
     'P'.charCode: _escHandleDcs,
     'V'.charCode: _escHandleStartProtectedArea,
     'W'.charCode: _escHandleEndProtectedArea,
@@ -146,8 +148,10 @@ class EscapeParser {
     '#'.charCode: _escHandleHash,
     '('.charCode: _escHandleDesignateCharset0, //  SCS - G0
     ')'.charCode: _escHandleDesignateCharset1, //  SCS - G1
-    // '*'.charCode: _voidHandler(1), // TODO: G2 (vt220)
-    // '+'.charCode: _voidHandler(1), // TODO: G3 (vt220)
+    '*'.charCode: _escHandleDesignateCharset2, // SCS - G2
+    '+'.charCode: _escHandleDesignateCharset3, // SCS - G3
+    'n'.charCode: _escHandleLockingShift2,
+    'o'.charCode: _escHandleLockingShift3,
     '>'.charCode: _escHandleResetAppKeypadMode, // TODO: Normal Keypad
     '='.charCode: _escHandleSetAppKeypadMode, // TODO: Application Keypad
   });
@@ -241,6 +245,40 @@ class EscapeParser {
     if (_queue.isEmpty) return false;
     int name = _queue.consume();
     handler.designateCharset(1, name);
+    return true;
+  }
+
+  bool _escHandleDesignateCharset2() {
+    if (_queue.isEmpty) return false;
+    final name = _queue.consume();
+    handler.designateCharset(2, name);
+    return true;
+  }
+
+  bool _escHandleDesignateCharset3() {
+    if (_queue.isEmpty) return false;
+    final name = _queue.consume();
+    handler.designateCharset(3, name);
+    return true;
+  }
+
+  bool _escHandleSingleShift2() {
+    handler.singleShiftCharset(2);
+    return true;
+  }
+
+  bool _escHandleSingleShift3() {
+    handler.singleShiftCharset(3);
+    return true;
+  }
+
+  bool _escHandleLockingShift2() {
+    handler.useCharset(2);
+    return true;
+  }
+
+  bool _escHandleLockingShift3() {
+    handler.useCharset(3);
     return true;
   }
 

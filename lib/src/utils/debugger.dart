@@ -189,6 +189,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void useCharset(int charset) {
+    onCommand('useCharset($charset)');
+  }
+
+  @override
+  void singleShiftCharset(int charset) {
+    onCommand('singleShiftCharset($charset)');
+  }
+
+  @override
   void unkownEscape(int char) {
     onCommand('unkownEscape(${String.fromCharCode(char)})', error: true);
   }

@@ -94,5 +94,19 @@ void main() {
       verify(handler.setGraphemeClusterMode(true)).called(1);
       verify(handler.setGraphemeClusterMode(false)).called(1);
     });
+
+    test('parses G2 and G3 character set controls', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b*0\x1b+0\x1bN\x1bO\x1bn\x1bo');
+
+      verify(handler.designateCharset(2, 0x30)).called(1);
+      verify(handler.designateCharset(3, 0x30)).called(1);
+      verify(handler.singleShiftCharset(2)).called(1);
+      verify(handler.singleShiftCharset(3)).called(1);
+      verify(handler.useCharset(2)).called(1);
+      verify(handler.useCharset(3)).called(1);
+    });
   });
 }

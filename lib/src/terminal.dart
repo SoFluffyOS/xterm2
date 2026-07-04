@@ -725,6 +725,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void useCharset(int charset) {
+    _buffer.charset.use(charset);
+  }
+
+  @override
+  void singleShiftCharset(int charset) {
+    _buffer.charset.singleShift(charset);
+  }
+
+  @override
   void unkownEscape(int char) {
     // no-op
   }

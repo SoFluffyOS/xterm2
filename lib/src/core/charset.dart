@@ -9,6 +9,8 @@ class Charset {
   var _charsetMap = <int, CharsetTranslator>{};
   var _currentIndex = 0;
 
+  int? _singleShiftIndex;
+
   var _savedCharsetMap = <int, CharsetTranslator>{};
   var _savedIndex = 0;
 
@@ -19,6 +21,11 @@ class Charset {
   }
 
   int translate(int codePoint) {
+    final singleShiftIndex = _singleShiftIndex;
+    if (singleShiftIndex != null) {
+      _singleShiftIndex = null;
+      return (_charsetMap[singleShiftIndex] ?? asciiTranslator)(codePoint);
+    }
     return _cached(codePoint);
   }
 
@@ -35,13 +42,17 @@ class Charset {
     _updateCache();
   }
 
+  void singleShift(int index) {
+    _singleShiftIndex = index;
+  }
+
   void save() {
     _savedCharsetMap = Map.from(_charsetMap);
     _savedIndex = _currentIndex;
   }
 
   void restore() {
-    _charsetMap = _savedCharsetMap;
+    _charsetMap = Map.from(_savedCharsetMap);
     _currentIndex = _savedIndex;
     _updateCache();
   }
@@ -51,6 +62,7 @@ class Charset {
     _currentIndex = 0;
     _savedCharsetMap.clear();
     _savedIndex = 0;
+    _singleShiftIndex = null;
     _updateCache();
   }
 }
