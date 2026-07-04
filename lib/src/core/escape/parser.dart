@@ -947,9 +947,13 @@ class EscapeParser {
       case 10: // Alias: Maximize Terminal Window
       case 11: // Report Terminal Window State
       case 13: // Report Terminal Window Position
-      case 14: // Report Terminal Window Size in Pixels
       case 15: // Report Screen Size in Pixels
+        return;
+      case 14: // Report Terminal Window Size in Pixels
+        handler.sendPixelSize();
+        return;
       case 16: // Report Cell Size in Pixels
+        handler.sendCellSize();
         return;
       case 18: // Report Terminal Size (in characters)
         handler.sendSize();

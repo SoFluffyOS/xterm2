@@ -370,6 +370,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
     onCommand('sendSize');
   }
 
+  @override
+  void sendPixelSize() {
+    onCommand('sendPixelSize');
+  }
+
+  @override
+  void sendCellSize() {
+    onCommand('sendCellSize');
+  }
+
   /* Modes */
 
   @override

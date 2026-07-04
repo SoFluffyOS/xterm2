@@ -175,6 +175,10 @@ abstract class EscapeHandler {
 
   void sendSize();
 
+  void sendPixelSize();
+
+  void sendCellSize();
+
   /* Select Graphic Rendition (SGR) */
 
   void resetCursorStyle();

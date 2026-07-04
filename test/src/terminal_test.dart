@@ -798,6 +798,19 @@ void main() {
     ]);
   });
 
+  test('Terminal reports text area and cell pixel sizes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[14t\x1b[16t\x1b[18t');
+
+    expect(output, [
+      '\x1b[4;432;720t',
+      '\x1b[6;18;9t',
+      '\x1b[8;24;80t',
+    ]);
+  });
+
   test('Terminal negotiates Kitty keyboard modes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

@@ -176,6 +176,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _viewHeight = 24;
 
+  int _cellPixelWidth = 0;
+
+  int _cellPixelHeight = 0;
+
   final _cursorStyle = CursorStyle();
 
   bool _insertMode = false;
@@ -488,6 +492,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     newHeight = max(newHeight, 1);
 
     onResize?.call(newWidth, newHeight, pixelWidth ?? 0, pixelHeight ?? 0);
+    if (pixelWidth != null) {
+      _cellPixelWidth = pixelWidth;
+    }
+    if (pixelHeight != null) {
+      _cellPixelHeight = pixelHeight;
+    }
 
     //we need to resize both buffers so that they are ready when we switch between them
     _altBuffer.resize(_viewWidth, _viewHeight, newWidth, newHeight);
@@ -867,6 +877,18 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void sendSize() {
     onOutput?.call(_emitter.size(viewHeight, viewWidth));
+  }
+
+  @override
+  void sendPixelSize() {
+    final pixelWidth = viewWidth * _cellPixelWidth;
+    final pixelHeight = viewHeight * _cellPixelHeight;
+    onOutput?.call('\x1b[4;$pixelHeight;${pixelWidth}t');
+  }
+
+  @override
+  void sendCellSize() {
+    onOutput?.call('\x1b[6;$_cellPixelHeight;${_cellPixelWidth}t');
   }
 
   @override
