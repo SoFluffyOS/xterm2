@@ -382,10 +382,12 @@ class EscapeParser {
   }
 
   late final _csiHandlers = FastLookupTable<_CsiHandler>({
-    // 'a'.codeUnitAt(0): _csiHandleCursorHorizontalRelative,
+    '`'.codeUnitAt(0): _csiHandleCursorHorizontalAbsolute,
+    'a'.codeUnitAt(0): _csiHandleCursorHorizontalRelative,
     'b'.codeUnitAt(0): _csiHandleRepeatPreviousCharacter,
     'c'.codeUnitAt(0): _csiHandleSendDeviceAttributes,
     'd'.codeUnitAt(0): _csiHandleLinePositionAbsolute,
+    'e'.codeUnitAt(0): _csiHandleCursorVerticalRelative,
     'f'.codeUnitAt(0): _csiHandleCursorPosition,
     'g'.codeUnitAt(0): _csiHandelClearTabStop,
     'h'.codeUnitAt(0): _csiHandleMode,
@@ -491,13 +493,9 @@ class EscapeParser {
   /// `ESC [ Ps a` Cursor Horizontal Position Relative (HPR)
   ///
   /// https://terminalguide.namepad.de/seq/csi_sa/
-  // void _csiHandleCursorHorizontalRelative() {
-  //   if (_csi.params.isEmpty) {
-  //     handler.cursorHorizontal(1);
-  //   } else {
-  //     handler.cursorHorizontal(_csi.params[0]);
-  //   }
-  // }
+  void _csiHandleCursorHorizontalRelative() {
+    handler.moveCursorX(_firstParamOrDefault(1));
+  }
 
   /// `ESC [ Ps b` Repeat Previous Character (REP)
   ///
@@ -539,6 +537,13 @@ class EscapeParser {
     }
 
     handler.setCursorY(y - 1);
+  }
+
+  /// `ESC [ Ps e` Cursor Vertical Position Relative (VPR)
+  ///
+  /// https://terminalguide.namepad.de/seq/csi_se/
+  void _csiHandleCursorVerticalRelative() {
+    handler.moveCursorY(_firstParamOrDefault(1));
   }
 
   /// `ESC [ Ps ; Ps f` Alias: Set Cursor Position

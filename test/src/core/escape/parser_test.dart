@@ -34,5 +34,16 @@ void main() {
       verify(handler.clearAllTabStops()).called(1);
       verify(handler.resetTabStops()).called(1);
     });
+
+    test('parses cursor position aliases', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[4`\x1b[2a\x1b[3e');
+
+      verify(handler.setCursorX(3)).called(1);
+      verify(handler.moveCursorX(2)).called(1);
+      verify(handler.moveCursorY(3)).called(1);
+    });
   });
 }

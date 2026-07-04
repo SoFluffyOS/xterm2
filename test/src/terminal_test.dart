@@ -1196,6 +1196,16 @@ void main() {
       expect(terminal.buffer.lines[1].getCodePoint(0), 'X'.codeUnitAt(0));
     });
 
+    test('cursor position aliases treat zero as one', () {
+      final terminal = Terminal()..resize(10, 5);
+
+      terminal.write('\x1b[3;3H\x1b[0`\x1b[0a\x1b[0eX');
+
+      expect(terminal.buffer.cursorX, 2);
+      expect(terminal.buffer.cursorY, 3);
+      expect(terminal.buffer.lines[3].getCodePoint(1), 'X'.codeUnitAt(0));
+    });
+
     test('delete characters treats zero as one', () {
       final terminal = Terminal()..resize(5, 3);
 
