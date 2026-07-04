@@ -151,6 +151,29 @@ void main() {
     expect(terminal.buffer.cursorY, 0);
   });
 
+  test('Terminal constrains origin-mode cursor movement to margins', () {
+    final terminal = Terminal()..resize(10, 6);
+
+    terminal.write('\x1b[2;5r');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[?6h');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[99B');
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[99A');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[2d');
+    expect(terminal.buffer.cursorY, 2);
+
+    terminal.write('\x1b[?6l');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
   test('Terminal treats rapid blink SGR as blinking text', () {
     final terminal = Terminal()..resize(20, 5);
 

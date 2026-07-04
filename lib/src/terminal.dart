@@ -715,7 +715,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setCursorY(int y) {
-    _buffer.setCursorY(y);
+    _buffer.setCursor(_buffer.cursorX, y);
   }
 
   @override
@@ -789,7 +789,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setMargins(int top, [int? bottom]) {
-    _buffer.setVerticalMargins(top, bottom ?? viewHeight - 1);
+    final effectiveBottom = bottom ?? viewHeight - 1;
+    if (top >= effectiveBottom) return;
+    _buffer.setVerticalMargins(top, effectiveBottom);
+    _buffer.setCursor(0, 0);
   }
 
   @override
@@ -940,6 +943,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setOriginMode(bool enabled) {
     _originMode = enabled;
+    _buffer.setCursor(0, 0);
   }
 
   @override
