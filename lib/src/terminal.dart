@@ -578,13 +578,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void tab() {
-    final nextStop = _tabStops.find(_buffer.cursorX + 1, _viewWidth);
+    final rightLimit = _horizontalTabRightLimit();
+    if (_buffer.cursorX >= rightLimit) return;
+
+    final nextStop = _tabStops.find(_buffer.cursorX + 1, rightLimit + 1);
 
     if (nextStop != null) {
       _buffer.setCursorX(nextStop);
     } else {
-      _buffer.setCursorX(_viewWidth);
-      _buffer.cursorGoForward(); // Enter pending-wrap state
+      _buffer.setCursorX(rightLimit);
     }
   }
 
@@ -800,9 +802,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void moveForwardTabs(int count) {
     for (var i = 0; i < count; i++) {
-      final nextStop = _tabStops.find(_buffer.cursorX + 1, _viewWidth);
+      final rightLimit = _horizontalTabRightLimit();
+      if (_buffer.cursorX >= rightLimit) {
+        return;
+      }
+
+      final nextStop = _tabStops.find(_buffer.cursorX + 1, rightLimit + 1);
       if (nextStop == null) {
-        _buffer.setCursorX(_viewWidth - 1);
+        _buffer.setCursorX(rightLimit);
         return;
       }
       _buffer.setCursorX(nextStop);
@@ -812,13 +819,35 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void moveBackwardTabs(int count) {
     for (var i = 0; i < count; i++) {
-      final previousStop = _tabStops.findPrevious(_buffer.cursorX - 1, 0);
+      final leftLimit = _horizontalTabLeftLimit();
+      if (_buffer.cursorX <= leftLimit) {
+        return;
+      }
+
+      final previousStop = _tabStops.findPrevious(
+        _buffer.cursorX - 1,
+        leftLimit,
+      );
       if (previousStop == null) {
-        _buffer.setCursorX(0);
+        _buffer.setCursorX(leftLimit);
         return;
       }
       _buffer.setCursorX(previousStop);
     }
+  }
+
+  int _horizontalTabRightLimit() {
+    return switch (_buffer.cursorX <= _buffer.marginRight) {
+      true => _buffer.marginRight,
+      false => _viewWidth - 1,
+    };
+  }
+
+  int _horizontalTabLeftLimit() {
+    return switch (_originMode) {
+      true => _buffer.marginLeft,
+      false => 0,
+    };
   }
 
   @override

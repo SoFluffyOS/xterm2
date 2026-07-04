@@ -1659,6 +1659,33 @@ void main() {
       expect(terminal.buffer.lines[1].getText(0, 6), 'Xhijkl');
       expect(terminal.buffer.lines[2].getText(0, 6), 'mnopqr');
     });
+
+    test('horizontal tab stops at right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[1;2H\tX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0x58);
+      expect(terminal.buffer.cursorX, 7);
+    });
+
+    test('cursor forward tab stops at right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[1;5H\x1b[IX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0x58);
+      expect(terminal.buffer.cursorX, 7);
+    });
+
+    test('cursor backward tab stops at left margin in origin mode', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[?6h\x1b[1;3H\x1b[ZX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x58);
+      expect(terminal.buffer.cursorX, 4);
+    });
   });
 
   test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
