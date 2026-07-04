@@ -1,14 +1,16 @@
 class EscapeEmitter {
   const EscapeEmitter();
 
+  static const _packageVersion = '4.0.1';
+
   String primaryDeviceAttributes() {
-    return '\x1b[?1;2c';
+    return '\x1b[?6c';
   }
 
   String secondaryDeviceAttributes() {
     const model = 0;
-    const version = 0;
-    return '\x1b[>$model;$version;0c';
+    final version = _versionNumber(_packageVersion);
+    return '\x1b[>$model;$version;1c';
   }
 
   String tertiaryDeviceAttributes() {
@@ -35,4 +37,23 @@ class EscapeEmitter {
   String focusIn() => '\x1b[I';
 
   String focusOut() => '\x1b[O';
+
+  int _versionNumber(String version) {
+    final separator = version.lastIndexOf('-');
+    final semver = switch (separator) {
+      -1 => version,
+      _ => version.substring(0, separator),
+    };
+
+    final parts = semver.split('.').reversed;
+    var number = 0;
+    var multiplier = 1;
+
+    for (final part in parts) {
+      number += (int.tryParse(part) ?? 0) * multiplier;
+      multiplier *= 100;
+    }
+
+    return number;
+  }
 }

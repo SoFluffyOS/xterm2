@@ -821,6 +821,18 @@ void main() {
     ]);
   });
 
+  test('Terminal reports Alacritty-compatible device attributes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[c\x1b[>c');
+
+    expect(output, [
+      '\x1b[?6c',
+      '\x1b[>0;40001;1c',
+    ]);
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
