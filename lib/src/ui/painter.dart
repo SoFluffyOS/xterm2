@@ -492,7 +492,28 @@ class TerminalPainter {
       );
     }
 
+    final charWidth = cellData.content >> CellContent.widthShift;
+    final cellSpan = switch (charWidth) {
+      2 => 2,
+      _ => 1,
+    };
+    final allocatedWidth = _cellSize.width * cellSpan;
+    if (paragraph.maxIntrinsicWidth <= allocatedWidth &&
+        paragraph.height <= _cellSize.height) {
+      canvas.drawParagraph(paragraph, offset);
+      return;
+    }
+    canvas.save();
+    canvas.clipRect(
+      Rect.fromLTWH(
+        offset.dx,
+        offset.dy,
+        allocatedWidth,
+        _cellSize.height,
+      ),
+    );
     canvas.drawParagraph(paragraph, offset);
+    canvas.restore();
   }
 
   @pragma('vm:prefer-inline')

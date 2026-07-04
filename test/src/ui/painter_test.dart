@@ -283,6 +283,57 @@ void main() {
     combinedImage.dispose();
   });
 
+  test('paintCellForeground clips glyphs to their terminal cell span',
+      () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 40, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()
+      ..content = 0x1F600 | (1 << CellContent.widthShift);
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    painter.paintCellForeground(canvas, Offset.zero, cell);
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(120, 60);
+    picture.dispose();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected glyph image bytes');
+    }
+
+    final clipEnd = painter.cellSize.width.ceil();
+    expect(
+      _hasAnyAlphaInRect(
+        byteData,
+        image.width,
+        0,
+        0,
+        clipEnd,
+        image.height,
+      ),
+      isTrue,
+    );
+    expect(
+      _hasAnyAlphaInRect(
+        byteData,
+        image.width,
+        clipEnd,
+        0,
+        image.width,
+        image.height,
+      ),
+      isFalse,
+    );
+    expect(painter.paragraphCacheLength, 1);
+    image.dispose();
+    painter.dispose();
+  });
+
   test('TerminalStyle combines text decorations', () {
     final style = const TerminalStyle().toTextStyle(
       decorationColor: const ui.Color(0xFFFF0000),
@@ -595,6 +646,22 @@ bool _hasAnyAlpha(ByteData byteData, int width, int height) {
       if (_alphaAt(byteData, width, x, y) != 0) {
         return true;
       }
+    }
+  }
+  return false;
+}
+
+bool _hasAnyAlphaInRect(
+  ByteData byteData,
+  int imageWidth,
+  int left,
+  int top,
+  int right,
+  int bottom,
+) {
+  for (var y = top; y < bottom; y++) {
+    for (var x = left; x < right; x++) {
+      if (_alphaAt(byteData, imageWidth, x, y) != 0) return true;
     }
   }
   return false;
