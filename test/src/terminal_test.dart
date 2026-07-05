@@ -1492,6 +1492,19 @@ void main() {
     );
   });
 
+  test('Terminal supports colon-delimited SGR truecolor color space', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[38:2::1:2:3mF');
+    terminal.write('\x1b[48:2:0:4:5:6mB');
+    terminal.write('\x1b[58:2::7:8:9mU');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getForeground(0), CellColor.rgb | 0x010203);
+    expect(line.getBackground(1), CellColor.rgb | 0x040506);
+    expect(line.getUnderlineColor(2), CellColor.rgb | 0x070809);
+  });
+
   test('Terminal supports colon-delimited SGR truecolor background', () {
     final terminal = Terminal();
 

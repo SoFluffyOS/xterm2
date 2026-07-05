@@ -31,6 +31,14 @@ class EscapeParser {
     return value >= 0 && value <= 0xff;
   }
 
+  int _sgrTrueColorStart(int modeIndex) {
+    if (_csi.separatorAfter(modeIndex) == Ascii.colon &&
+        modeIndex + 4 < _csi.params.length) {
+      return modeIndex + 2;
+    }
+    return modeIndex + 1;
+  }
+
   final _queue = ByteConsumer();
 
   /// Start of sequence or character being processed. Useful for debugging.
@@ -901,16 +909,17 @@ class EscapeParser {
           final mode = params[i + 1];
           switch (mode) {
             case 2:
-              if (i + 4 >= params.length) {
+              final start = _sgrTrueColorStart(i + 1);
+              if (start + 2 >= params.length) {
                 continue;
               }
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
+              final r = params[start];
+              final g = params[start + 1];
+              final b = params[start + 2];
               if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
                 handler.setForegroundColorRgb(r, g, b);
               }
-              i += 4;
+              i = start + 2;
               break;
             case 5:
               if (i + 2 >= params.length) {
@@ -959,16 +968,17 @@ class EscapeParser {
           final mode = params[i + 1];
           switch (mode) {
             case 2:
-              if (i + 4 >= params.length) {
+              final start = _sgrTrueColorStart(i + 1);
+              if (start + 2 >= params.length) {
                 continue;
               }
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
+              final r = params[start];
+              final g = params[start + 1];
+              final b = params[start + 2];
               if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
                 handler.setBackgroundColorRgb(r, g, b);
               }
-              i += 4;
+              i = start + 2;
               break;
             case 5:
               if (i + 2 >= params.length) {
@@ -992,16 +1002,17 @@ class EscapeParser {
           final mode = params[i + 1];
           switch (mode) {
             case 2:
-              if (i + 4 >= params.length) {
+              final start = _sgrTrueColorStart(i + 1);
+              if (start + 2 >= params.length) {
                 continue;
               }
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
+              final r = params[start];
+              final g = params[start + 1];
+              final b = params[start + 2];
               if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
                 handler.setUnderlineColorRgb(r, g, b);
               }
-              i += 4;
+              i = start + 2;
               break;
             case 5:
               if (i + 2 >= params.length) {
