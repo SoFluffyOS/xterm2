@@ -1218,15 +1218,27 @@ class EscapeParser {
       case 20: // Get Icon Title
       case 21: // Get Terminal Title
       case 22: // Push Terminal Title
+        if (_csi.params.length > 3) return;
+        if (_csi.params.length > 1 && !_isWindowTitleType(_csi.params[1])) {
+          return;
+        }
         handler.pushTitle();
         return;
       case 23: // Pop Terminal Title
+        if (_csi.params.length > 3) return;
+        if (_csi.params.length > 1 && !_isWindowTitleType(_csi.params[1])) {
+          return;
+        }
         handler.popTitle();
         return;
       // Unknown CSI.
       default:
         return;
     }
+  }
+
+  bool _isWindowTitleType(int type) {
+    return type == 0 || type == 2;
   }
 
   /// `ESC [ Ps A` Cursor Up (CUU)

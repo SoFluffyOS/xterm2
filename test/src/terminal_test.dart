@@ -734,6 +734,17 @@ void main() {
     expect(titles, ['first', 'second', 'first']);
   });
 
+  test('Terminal ignores icon title stack operations', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[22;1t');
+    terminal.write('\x1b]2;second\x1b\\\x1b[23;1t');
+    terminal.write('\x1b[22;2t\x1b]2;third\x1b\\\x1b[23;2t');
+
+    expect(titles, ['first', 'second', 'third', 'second']);
+  });
+
   test('Terminal applies and resets OSC color overrides', () {
     final terminal = Terminal();
 
