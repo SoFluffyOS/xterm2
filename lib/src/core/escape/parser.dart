@@ -2021,11 +2021,6 @@ class EscapeParser {
         return;
       }
 
-      if (char == Ascii.BEL) {
-        _discardingStringControl = false;
-        return;
-      }
-
       if (char == 0x9C) {
         _discardingStringControl = false;
         return;
@@ -2071,12 +2066,6 @@ class EscapeParser {
         _dcsBuffer.clear();
         _pendingEscape = true;
         _queue.rollback(1);
-        return;
-      }
-
-      if (char == Ascii.BEL) {
-        _collectingDcs = false;
-        _handleDcs();
         return;
       }
 

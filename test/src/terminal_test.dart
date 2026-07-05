@@ -888,6 +888,14 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'beforeafter');
   });
 
+  test('Terminal does not terminate DCS with BEL', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x07still ignored\x1b\\after');
+
+    expect(terminal.buffer.lines[0].toString(), 'after');
+  });
+
   test('Terminal resumes split escape sequences interrupted by DCS', () {
     final terminal = Terminal();
 
@@ -922,7 +930,7 @@ void main() {
     final terminal = Terminal();
 
     terminal.write('a\x1b_payload\x1b\\b');
-    terminal.write('\x1b^payload\x07c');
+    terminal.write('\x1b^payload\x07still ignored\x1b\\c');
     terminal.write('\x1bXpayload\x1b\\d');
 
     expect(terminal.buffer.lines[0].toString(), 'abcd');
