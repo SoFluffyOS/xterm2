@@ -166,21 +166,15 @@ class EscapeParser {
   /// Processes a sequence of characters that starts with an escape character.
   /// Returns [true] if the sequence was processed, [false] if it was not.
   bool _processEscape() {
-    if (_queue.isEmpty) return false;
+    _pendingEscape = true;
+    if (_queue.isEmpty) return true;
 
-    final escapeChar = _queue.consume();
-    if (escapeChar == Ascii.ESC) {
-      _pendingEscape = true;
-      return true;
+    final escapeBegin = _queue.totalConsumed;
+    final processed = _processPendingEscape();
+    if (!processed) {
+      _queue.rollback(_queue.totalConsumed - escapeBegin);
     }
-    final escapeHandler = _escHandlers[escapeChar];
-
-    if (escapeHandler == null) {
-      handler.unkownEscape(escapeChar);
-      return true;
-    }
-
-    return escapeHandler();
+    return true;
   }
 
   bool _pendingEscape = false;
@@ -205,6 +199,7 @@ class EscapeParser {
       }
       return true;
     }
+    if (char == Ascii.DEL) return true;
 
     final escapeHandler = _escHandlers[char];
     if (escapeHandler == null) {

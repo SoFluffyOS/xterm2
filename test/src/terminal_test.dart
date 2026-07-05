@@ -1530,6 +1530,21 @@ void main() {
     expect(terminal.buffer.lines[1].getCodePoint(3), 'X'.codeUnitAt(0));
   });
 
+  test('Terminal preserves ESC state across controls and chunks', () {
+    var bells = 0;
+    final terminal = Terminal(onBell: () => bells++);
+
+    terminal.write('\x1b\x07');
+    terminal.write('[31mR');
+    terminal.write('\x1b\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(bells, 1);
+    expect(line.toString(), 'RG');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+    expect(line.getForeground(1), CellColor.named | NamedColor.green);
+  });
+
   test('Terminal cancels CSI with CAN and restarts it with ESC', () {
     final terminal = Terminal();
 
