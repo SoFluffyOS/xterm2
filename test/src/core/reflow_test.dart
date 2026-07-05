@@ -78,6 +78,17 @@ void main() {
     expect(terminal.buffer.lines[1].toString(), '是地上霜');
   });
 
+  test('reflow() drops wide characters that cannot fit one column', () {
+    final terminal = Terminal()..resize(2, 2);
+    terminal.write('界');
+
+    terminal.resize(1, 2);
+
+    expect(terminal.buffer.lines[0].toString(), isEmpty);
+    expect(terminal.buffer.lines[0].getCodePoint(0), 0);
+    expect(terminal.buffer.lines[0].getWidth(0), 0);
+  });
+
   test('reflow() preserves combining characters', () {
     final terminal = Terminal()..resize(8, 5);
     terminal.write('abcde\u0301fgh');

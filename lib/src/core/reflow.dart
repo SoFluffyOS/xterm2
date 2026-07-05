@@ -124,6 +124,17 @@ class _LineReflow {
         cellsToCopy--;
       }
 
+      // A wide cell cannot be represented in a one-column terminal. Dropping
+      // it matches normal input behavior and, critically, guarantees that the
+      // reflow loop keeps making progress.
+      if (cellsToCopy == 0 && _builder.isEmpty) {
+        final wideCellWidth = line.getWidth(from);
+        assert(wideCellWidth == 2);
+        from += wideCellWidth;
+        cellsLeft -= wideCellWidth;
+        continue;
+      }
+
       for (var anchor in line.anchors.toList()) {
         if (anchor.x >= from && anchor.x <= from + cellsToCopy) {
           _builder.addAnchor(anchor, anchor.x - from);
