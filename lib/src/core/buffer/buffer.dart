@@ -1,5 +1,6 @@
 import 'dart:math' show max, min;
 
+import 'package:characters/characters.dart';
 import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/buffer/line.dart';
 import 'package:xterm/src/core/buffer/range_line.dart';
@@ -134,21 +135,21 @@ class Buffer {
       }
       return;
     }
-    final joinsPreviousGrapheme = terminal.graphemeClusterMode &&
-        (_previousCellEndsWithJoiner() || _isEmojiModifier(codePoint));
-    if (joinsPreviousGrapheme) {
+    if (cellWidth == 0) {
+      if (!terminal.graphemeClusterMode || _joinsPreviousGrapheme(codePoint)) {
+        _addCombiningCharacter(codePoint);
+      }
+      return;
+    }
+    if (cellWidth < 0) return;
+    if (terminal.graphemeClusterMode && _joinRegionalIndicator(codePoint)) {
+      return;
+    }
+    if (terminal.graphemeClusterMode && _joinsPreviousGrapheme(codePoint)) {
       if (cellWidth == 2) _setPreviousGraphemeWidth(2);
       _addCombiningCharacter(codePoint);
       return;
     }
-    if (terminal.graphemeClusterMode && _joinRegionalIndicator(codePoint)) {
-      return;
-    }
-    if (cellWidth == 0) {
-      _addCombiningCharacter(codePoint);
-      return;
-    }
-    if (cellWidth < 0) return;
 
     final rightLimit = _rightLimit;
 
@@ -273,14 +274,75 @@ class Buffer {
     return index;
   }
 
-  bool _previousCellEndsWithJoiner() {
-    if (_cursorX == 0) return false;
-    var index = min(_cursorX - 1, viewWidth - 1);
-    if (index > 0 && currentLine.getWidth(index) == 0) {
-      index--;
+  bool _joinsPreviousGrapheme(int codePoint) {
+    final index = _previousCellIndex();
+    if (index == null) return false;
+
+    final base = currentLine.getCodePoint(index);
+    if (base == 0) return false;
+    final combining = currentLine.getCombiningCharacters(index);
+
+    if (_isEmojiModifier(codePoint)) {
+      var modifierBase = base;
+      if (combining != null) {
+        for (final rune in combining.runes) {
+          if (rune == 0x200D || rune == 0xFE0E || rune == 0xFE0F) continue;
+          modifierBase = rune;
+        }
+      }
+      if (_isEmojiModifierBase(modifierBase) == false) return false;
     }
-    return currentLine.getCombiningCharacters(index)?.endsWith('\u200d') ??
-        false;
+
+    // Almost all terminal output is ASCII, where a new printable code point
+    // always starts a new grapheme. Avoid allocating strings on that path.
+    if (base < 0x80 && codePoint < 0x80 && combining == null) return false;
+    if (combining == null &&
+        unicodeV11.wcwidth(base) == 2 &&
+        unicodeV11.wcwidth(codePoint) == 2 &&
+        _isEmojiModifier(codePoint) == false &&
+        _isHangul(base) == false &&
+        _isHangul(codePoint) == false) {
+      return false;
+    }
+
+    final previous = String.fromCharCode(base) + (combining ?? '');
+    final candidate = previous + String.fromCharCode(codePoint);
+    return candidate.characters.length == 1;
+  }
+
+  static bool _isEmojiModifier(int codePoint) {
+    return codePoint >= 0x1F3FB && codePoint <= 0x1F3FF;
+  }
+
+  static bool _isHangul(int codePoint) {
+    return codePoint >= 0x1100 && codePoint <= 0x11FF ||
+        codePoint >= 0xA960 && codePoint <= 0xA97F ||
+        codePoint >= 0xAC00 && codePoint <= 0xD7A3 ||
+        codePoint >= 0xD7B0 && codePoint <= 0xD7FF;
+  }
+
+  static bool _isEmojiModifierBase(int codePoint) {
+    return switch (codePoint) {
+      0x261D || 0x26F9 || >= 0x270A && <= 0x270D => true,
+      0x1F385 || >= 0x1F3C2 && <= 0x1F3C4 || 0x1F3C7 => true,
+      >= 0x1F3CA && <= 0x1F3CC => true,
+      >= 0x1F442 && <= 0x1F443 || >= 0x1F446 && <= 0x1F450 => true,
+      >= 0x1F466 && <= 0x1F478 || 0x1F47C => true,
+      >= 0x1F481 && <= 0x1F483 || >= 0x1F485 && <= 0x1F487 => true,
+      0x1F48F || 0x1F491 || 0x1F4AA => true,
+      >= 0x1F574 && <= 0x1F575 || 0x1F57A || 0x1F590 => true,
+      >= 0x1F595 && <= 0x1F596 => true,
+      >= 0x1F645 && <= 0x1F647 || >= 0x1F64B && <= 0x1F64F => true,
+      0x1F6A3 || >= 0x1F6B4 && <= 0x1F6B6 => true,
+      0x1F6C0 || 0x1F6CC || 0x1F90C || 0x1F90F || 0x1F918 => true,
+      >= 0x1F919 && <= 0x1F91F || 0x1F926 => true,
+      >= 0x1F930 && <= 0x1F939 || >= 0x1F93C && <= 0x1F93E => true,
+      0x1F977 || >= 0x1F9B5 && <= 0x1F9B6 => true,
+      >= 0x1F9B8 && <= 0x1F9B9 || 0x1F9BB => true,
+      >= 0x1F9CD && <= 0x1F9CF || >= 0x1F9D1 && <= 0x1F9DD => true,
+      >= 0x1FAC3 && <= 0x1FAC5 || >= 0x1FAF0 && <= 0x1FAF8 => true,
+      _ => false,
+    };
   }
 
   bool _joinRegionalIndicator(int codePoint) {
@@ -305,10 +367,6 @@ class Buffer {
 
   static bool _isRegionalIndicator(int codePoint) {
     return codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF;
-  }
-
-  static bool _isEmojiModifier(int codePoint) {
-    return codePoint >= 0x1F3FB && codePoint <= 0x1F3FF;
   }
 
   static bool _supportsEmojiVariation(int codePoint) {

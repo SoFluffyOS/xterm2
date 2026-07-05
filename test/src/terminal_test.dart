@@ -329,6 +329,56 @@ void main() {
     expect(line.getCodePoint(2), 0x78);
   });
 
+  test('Terminal keeps invalid emoji modifiers separate from text', () {
+    final terminal = Terminal()..resize(8, 2);
+
+    terminal.write('"\u{1F3FF}"');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), '"'.codeUnitAt(0));
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x1F3FF);
+    expect(line.getWidth(1), 2);
+    expect(line.getWidth(2), 0);
+    expect(line.getCodePoint(3), '"'.codeUnitAt(0));
+    expect(terminal.buffer.cursorX, 4);
+  });
+
+  test('Terminal joins emoji modifiers to valid bases', () {
+    final terminal = Terminal();
+
+    terminal.write('\u{1F44B}\u{1F3FF}');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F44B);
+    expect(line.getCombiningCharacters(0), '\u{1F3FF}');
+    expect(line.getWidth(0), 2);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal keeps invalid ZWJ sequences from merging text', () {
+    final terminal = Terminal();
+
+    terminal.write('A\u200dB');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'A'.codeUnitAt(0));
+    expect(line.getCombiningCharacters(0), '\u200d');
+    expect(line.getCodePoint(1), 'B'.codeUnitAt(0));
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal keeps Indic conjuncts in one grapheme cell', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0915\u094d\u0937');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0915);
+    expect(line.getCombiningCharacters(0), '\u094d\u0937');
+    expect(terminal.buffer.cursorX, 1);
+  });
+
   test('Terminal wraps a widening ZWJ grapheme at the right edge', () {
     final terminal = Terminal()..resize(3, 2);
 
