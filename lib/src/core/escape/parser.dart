@@ -482,6 +482,23 @@ class EscapeParser {
 
       if (rawLength > _maxCsiRawLength) {
         _csiOverflowed = true;
+        if (char == 0x18 || char == 0x1a) return true;
+        if (char == Ascii.ESC) {
+          _pendingEscape = true;
+          return true;
+        }
+        if (char >= 0x80 && char <= 0x9f) {
+          _queue.rollback(1);
+          return true;
+        }
+        if (char < Ascii.space) {
+          if (char <= 0x0f) {
+            _sbcHandlers[char]?.call();
+          }
+          _discardingCsi = true;
+          _discardCsiInput();
+          return true;
+        }
         if (char >= Ascii.atSign && char <= Ascii.tilde) {
           _csi.finalByte = char;
           return true;
@@ -556,6 +573,31 @@ class EscapeParser {
   void _discardCsiInput() {
     while (_queue.isNotEmpty) {
       final char = _queue.consume();
+
+      if (char == 0x18 || char == 0x1a) {
+        _discardingCsi = false;
+        return;
+      }
+
+      if (char == Ascii.ESC) {
+        _discardingCsi = false;
+        _pendingEscape = true;
+        return;
+      }
+
+      if (char >= 0x80 && char <= 0x9f) {
+        _discardingCsi = false;
+        _queue.rollback(1);
+        return;
+      }
+
+      if (char < Ascii.space) {
+        if (char <= 0x0f) {
+          _sbcHandlers[char]?.call();
+        }
+        continue;
+      }
+
       if (char < Ascii.atSign || char > Ascii.tilde) continue;
 
       _discardingCsi = false;

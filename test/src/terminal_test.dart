@@ -1496,6 +1496,17 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal resumes escapes after oversized CSI payloads', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[${'1;' * 200}\x1b');
+    terminal.write('[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'G');
+    expect(line.getForeground(0), CellColor.named | NamedColor.green);
+  });
+
   test('Terminal executes embedded CSI controls without cancelling it', () {
     var bells = 0;
     final terminal = Terminal(onBell: () => bells++)..resize(5, 3);
