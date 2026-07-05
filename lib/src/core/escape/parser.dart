@@ -911,7 +911,8 @@ class EscapeParser {
             case 2:
               final start = _sgrTrueColorStart(i + 1);
               if (start + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final r = params[start];
               final g = params[start + 1];
@@ -923,13 +924,17 @@ class EscapeParser {
               break;
             case 5:
               if (i + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final index = params[i + 2];
               if (_isByteValue(index)) {
                 handler.setForegroundColor256(index);
               }
               i += 2;
+              break;
+            default:
+              i += 1;
               break;
           }
           continue;
@@ -970,7 +975,8 @@ class EscapeParser {
             case 2:
               final start = _sgrTrueColorStart(i + 1);
               if (start + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final r = params[start];
               final g = params[start + 1];
@@ -982,13 +988,17 @@ class EscapeParser {
               break;
             case 5:
               if (i + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final index = params[i + 2];
               if (_isByteValue(index)) {
                 handler.setBackgroundColor256(index);
               }
               i += 2;
+              break;
+            default:
+              i += 1;
               break;
           }
           continue;
@@ -1004,7 +1014,8 @@ class EscapeParser {
             case 2:
               final start = _sgrTrueColorStart(i + 1);
               if (start + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final r = params[start];
               final g = params[start + 1];
@@ -1016,13 +1027,17 @@ class EscapeParser {
               break;
             case 5:
               if (i + 2 >= params.length) {
-                continue;
+                i = params.length;
+                break;
               }
               final index = params[i + 2];
               if (_isByteValue(index)) {
                 handler.setUnderlineColor256(index);
               }
               i += 2;
+              break;
+            default:
+              i += 1;
               break;
           }
           continue;

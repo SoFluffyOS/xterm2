@@ -1461,6 +1461,28 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal does not apply malformed SGR color operands as styles', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[38;2;1;2mF'
+      '\x1b[0m'
+      '\x1b[48;5mB'
+      '\x1b[0m'
+      '\x1b[58;9mU',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(1), CellColor.normal);
+    expect(line.getUnderlineColor(2), CellColor.normal);
+    expect(
+      line.createCellData(0).flags & (CellFlags.bold | CellFlags.faint),
+      0,
+    );
+    expect(line.createCellData(2).flags & CellAttr.strikethrough, 0);
+  });
+
   test('Terminal ignores out-of-range SGR color values', () {
     final terminal = Terminal();
 
