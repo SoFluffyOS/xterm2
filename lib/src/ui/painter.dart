@@ -82,25 +82,26 @@ class TerminalPainter {
   }
 
   Size _measureCharSize() {
-    const test = 'mmmmmmmmmm';
-
     final textStyle = _textStyle.toTextStyle();
-    final builder = ParagraphBuilder(textStyle.getParagraphStyle());
-    builder.pushStyle(
-      textStyle.getTextStyle(textScaler: _textScaler),
-    );
-    builder.addText(test);
+    final paragraphStyle = textStyle.getParagraphStyle();
+    final textStyleRun = textStyle.getTextStyle(textScaler: _textScaler);
 
-    final paragraph = builder.build();
-    paragraph.layout(ParagraphConstraints(width: double.infinity));
+    var width = 0.0;
+    var height = 0.0;
+    for (var codePoint = 0x21; codePoint <= 0x7e; codePoint++) {
+      final builder = ParagraphBuilder(paragraphStyle);
+      builder.pushStyle(textStyleRun);
+      builder.addText(String.fromCharCode(codePoint));
 
-    final result = Size(
-      paragraph.maxIntrinsicWidth / test.length,
-      paragraph.height,
-    );
+      final paragraph = builder.build();
+      paragraph.layout(ParagraphConstraints(width: double.infinity));
 
-    paragraph.dispose();
-    return result;
+      width = max(width, paragraph.maxIntrinsicWidth);
+      height = max(height, paragraph.height);
+      paragraph.dispose();
+    }
+
+    return Size(width, height);
   }
 
   /// The size of each character in the terminal.

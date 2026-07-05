@@ -227,6 +227,36 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter cell width fits visible ASCII glyphs', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final textStyle = painter.textStyle.toTextStyle();
+    final paragraphStyle = textStyle.getParagraphStyle();
+    final textStyleRun = textStyle.getTextStyle(
+      textScaler: painter.textScaler,
+    );
+
+    for (final codePoint in [0x21, 0x4d, 0x57, 0x6d, 0x7e]) {
+      final builder = ui.ParagraphBuilder(paragraphStyle);
+      builder.pushStyle(textStyleRun);
+      builder.addText(String.fromCharCode(codePoint));
+
+      final paragraph = builder.build();
+      paragraph.layout(const ui.ParagraphConstraints(width: double.infinity));
+
+      expect(
+        painter.cellSize.width,
+        greaterThanOrEqualTo(paragraph.maxIntrinsicWidth),
+      );
+      paragraph.dispose();
+    }
+
+    painter.dispose();
+  });
+
   test('block cursor spans the requested cell width', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
