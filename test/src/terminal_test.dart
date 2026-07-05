@@ -1443,6 +1443,34 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal executes embedded CSI controls without cancelling it', () {
+    var bells = 0;
+    final terminal = Terminal(onBell: () => bells++)..resize(5, 3);
+
+    terminal.write('\x1b[31\x07mR');
+    terminal.write('\x1b[0m\x1b[2\nCX');
+
+    expect(bells, 1);
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.named | NamedColor.red,
+    );
+    expect(terminal.buffer.lines[1].getCodePoint(3), 'X'.codeUnitAt(0));
+  });
+
+  test('Terminal cancels CSI with CAN and restarts it with ESC', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[31\x18mN');
+    terminal.write('\x1b[31\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'mNG');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getForeground(1), CellColor.normal);
+    expect(line.getForeground(2), CellColor.named | NamedColor.green);
+  });
+
   test('Terminal ignores incomplete SGR color sequences', () {
     final terminal = Terminal();
 

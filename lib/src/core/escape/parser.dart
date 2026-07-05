@@ -441,6 +441,30 @@ class EscapeParser {
         return true;
       }
 
+      // CAN and SUB cancel the active control sequence. The next byte is
+      // processed from the ground state.
+      if (char == 0x18 || char == 0x1a) {
+        _csiOverflowed = true;
+        return true;
+      }
+
+      // ESC and C1 controls interrupt the active CSI and start their own
+      // sequence. Put the byte back so the outer parser can process it.
+      if (char == Ascii.ESC || (char >= 0x80 && char <= 0x9f)) {
+        _queue.rollback(1);
+        _csiOverflowed = true;
+        return true;
+      }
+
+      // C0 controls are valid inside CSI sequences. Execute the controls we
+      // support and otherwise ignore them without invalidating the sequence.
+      if (char < Ascii.space) {
+        if (char <= 0x0f) {
+          _sbcHandlers[char]?.call();
+        }
+        continue;
+      }
+
       if (char == Ascii.semicolon || char == Ascii.colon) {
         if (_csi.params.length < _maxCsiParams) {
           _csi.params.add(switch (hasParam) {
