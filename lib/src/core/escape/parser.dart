@@ -55,6 +55,16 @@ class EscapeParser {
 
   void _process() {
     while (_queue.isNotEmpty) {
+      if (_pendingEscape) {
+        tokenBegin = _queue.totalConsumed;
+        final processed = _processPendingEscape();
+        if (!processed) {
+          _queue.rollback(tokenEnd - tokenBegin);
+          return;
+        }
+        continue;
+      }
+
       if (_discardingCsi) {
         _discardCsiInput();
         if (_discardingCsi) return;
@@ -159,6 +169,10 @@ class EscapeParser {
     if (_queue.isEmpty) return false;
 
     final escapeChar = _queue.consume();
+    if (escapeChar == Ascii.ESC) {
+      _pendingEscape = true;
+      return true;
+    }
     final escapeHandler = _escHandlers[escapeChar];
 
     if (escapeHandler == null) {
@@ -167,6 +181,42 @@ class EscapeParser {
     }
 
     return escapeHandler();
+  }
+
+  bool _pendingEscape = false;
+
+  bool _processPendingEscape() {
+    if (_queue.isEmpty) return false;
+
+    final char = _queue.consume();
+    if (char == Ascii.ESC) return true;
+    if (char == 0x18 || char == 0x1a) {
+      _pendingEscape = false;
+      return true;
+    }
+    if (char >= 0x80 && char <= 0x9f) {
+      _pendingEscape = false;
+      _queue.rollback(1);
+      return true;
+    }
+    if (char < Ascii.space) {
+      if (char <= 0x0f) {
+        _sbcHandlers[char]?.call();
+      }
+      return true;
+    }
+
+    final escapeHandler = _escHandlers[char];
+    if (escapeHandler == null) {
+      _pendingEscape = false;
+      handler.unkownEscape(char);
+      return true;
+    }
+
+    _pendingEscape = false;
+    final processed = escapeHandler();
+    if (!processed) _pendingEscape = true;
+    return processed;
   }
 
   late final _sbcHandlers = FastLookupTable<_SbcHandler>({
@@ -1876,6 +1926,10 @@ class EscapeParser {
           _discardingOsc = false;
           return;
         }
+        _discardingOsc = false;
+        _pendingEscape = true;
+        _queue.rollback(1);
+        return;
       }
 
       if (char == Ascii.BEL) {
@@ -1885,6 +1939,17 @@ class EscapeParser {
 
       if (char == 0x9C) {
         _discardingOsc = false;
+        return;
+      }
+
+      if (char == 0x18 || char == 0x1a) {
+        _discardingOsc = false;
+        return;
+      }
+
+      if (char >= 0x80 && char <= 0x9f) {
+        _discardingOsc = false;
+        _queue.rollback(1);
         return;
       }
 
@@ -1908,6 +1973,10 @@ class EscapeParser {
           _discardingStringControl = false;
           return;
         }
+        _discardingStringControl = false;
+        _pendingEscape = true;
+        _queue.rollback(1);
+        return;
       }
 
       if (char == Ascii.BEL) {
@@ -1917,6 +1986,17 @@ class EscapeParser {
 
       if (char == 0x9C) {
         _discardingStringControl = false;
+        return;
+      }
+
+      if (char == 0x18 || char == 0x1a) {
+        _discardingStringControl = false;
+        return;
+      }
+
+      if (char >= 0x80 && char <= 0x9f) {
+        _discardingStringControl = false;
+        _queue.rollback(1);
         return;
       }
 
@@ -1945,7 +2025,11 @@ class EscapeParser {
           _handleDcs();
           return;
         }
-        _writeDcsChar(Ascii.ESC);
+        _collectingDcs = false;
+        _dcsBuffer.clear();
+        _pendingEscape = true;
+        _queue.rollback(1);
+        return;
       }
 
       if (char == Ascii.BEL) {
@@ -1957,6 +2041,19 @@ class EscapeParser {
       if (char == 0x9C) {
         _collectingDcs = false;
         _handleDcs();
+        return;
+      }
+
+      if (char == 0x18 || char == 0x1a) {
+        _collectingDcs = false;
+        _dcsBuffer.clear();
+        return;
+      }
+
+      if (char >= 0x80 && char <= 0x9f) {
+        _collectingDcs = false;
+        _dcsBuffer.clear();
+        _queue.rollback(1);
         return;
       }
 

@@ -888,6 +888,36 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'beforeafter');
   });
 
+  test('Terminal resumes split escape sequences interrupted by DCS', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x1b');
+    terminal.write('[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'G');
+    expect(line.getForeground(0), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal resumes split escape sequences interrupted by APC', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b_ignored\x1b');
+    terminal.write('[31mR');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'R');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+  });
+
+  test('Terminal cancels DCS with CAN', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x18N');
+
+    expect(terminal.buffer.lines[0].toString(), 'N');
+  });
+
   test('Terminal discards unsupported APC PM and SOS payloads', () {
     final terminal = Terminal();
 
