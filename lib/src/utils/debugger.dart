@@ -144,6 +144,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void saveCursorOrSetLeftRightMargins() {
+    onCommand('saveCursorOrSetLeftRightMargins');
+  }
+
+  @override
   void restoreCursor() {
     onCommand('restoreCursor');
   }

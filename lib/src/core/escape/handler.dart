@@ -27,6 +27,8 @@ abstract class EscapeHandler {
 
   void saveCursor();
 
+  void saveCursorOrSetLeftRightMargins();
+
   void restoreCursor();
 
   void index();

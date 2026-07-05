@@ -1131,7 +1131,7 @@ class EscapeParser {
   void _csiHandleSaveModeOrCursor() {
     if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == null && _csi.params.isEmpty) {
-      return handler.saveCursor();
+      return handler.saveCursorOrSetLeftRightMargins();
     }
 
     if (_csi.prefix == null) {

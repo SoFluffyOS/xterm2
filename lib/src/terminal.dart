@@ -633,6 +633,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void saveCursorOrSetLeftRightMargins() {
+    if (_leftRightMarginMode) {
+      return setLeftRightMargins(0);
+    }
+    saveCursor();
+  }
+
+  @override
   void restoreCursor() {
     _originMode = _buffer.restoreCursor();
   }

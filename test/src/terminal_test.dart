@@ -1616,6 +1616,26 @@ void main() {
       expect(terminal.buffer.cursorY, 0);
     });
 
+    test('CSI s sets full horizontal margins when DECLRMM is enabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;3H\x1b[s');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+      expect(terminal.buffer.cursorX, 0);
+      expect(terminal.buffer.cursorY, 0);
+    });
+
+    test('CSI s saves cursor when DECLRMM is disabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[2;3H\x1b[s\x1b[1;1H\x1b[u');
+
+      expect(terminal.buffer.cursorX, 2);
+      expect(terminal.buffer.cursorY, 1);
+    });
+
     test('DECLRMM reset clears horizontal margins', () {
       final terminal = Terminal()..resize(6, 3);
 
