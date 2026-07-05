@@ -1376,7 +1376,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
       1045 => _reportedState(_reverseWrapExtendedMode),
       2004 => _reportedState(_bracketedPasteMode),
-      2026 => 2,
+      2026 => _reportedState(_synchronizedUpdateMode),
       2027 => _reportedState(_graphemeClusterMode),
       _ => 0,
     };

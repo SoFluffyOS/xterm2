@@ -942,6 +942,19 @@ void main() {
       terminal.write(' recovered');
       expect(redraws, 2);
     });
+
+    test('reports synchronized update mode state', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?2026h\x1b[?2026\x24p');
+      terminal.write('\x1b[?2026l\x1b[?2026\x24p');
+
+      expect(output, [
+        '\x1b[?2026;1\x24y',
+        '\x1b[?2026;2\x24y',
+      ]);
+    });
   });
 
   test('Terminal reports focus only when DEC focus mode is enabled', () {
