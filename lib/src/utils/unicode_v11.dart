@@ -2,8 +2,9 @@
 
 import 'dart:typed_data';
 
-// Width and combining ranges synchronized with Unicode 15.1. The filename and
-// public type retain their historical names for compatibility.
+// Width and combining ranges synchronized with Unicode 15.1, including the
+// Emoji 16.0 presentation additions. The filename and public type retain their
+// historical names for compatibility.
 const BMP_COMBINING = [
   [0x0300, 0x036F],
   [0x0483, 0x0489],
@@ -480,11 +481,14 @@ const HIGH_WIDE = [
   [0x1F93C, 0x1F945],
   [0x1F947, 0x1F9FF],
   [0x1FA70, 0x1FA7C],
-  [0x1FA80, 0x1FA88],
-  [0x1FA90, 0x1FABD],
+  [0x1FA80, 0x1FA89],
+  [0x1FA8F, 0x1FA8F],
+  [0x1FA90, 0x1FABE],
   [0x1FABF, 0x1FAC5],
-  [0x1FACE, 0x1FADB],
-  [0x1FAE0, 0x1FAE8],
+  [0x1FAC6, 0x1FAC6],
+  [0x1FACE, 0x1FADC],
+  [0x1FADF, 0x1FADF],
+  [0x1FAE0, 0x1FAE9],
   [0x1FAF0, 0x1FAF8],
   [0x20000, 0x2FFFD],
   [0x30000, 0x3FFFD],
