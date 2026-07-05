@@ -1433,6 +1433,29 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'safe');
   });
 
+  test('Terminal ignores C0 controls inside OSC payloads', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;a\nb\x07');
+
+    expect(titles, ['ab']);
+  });
+
+  test('Terminal cancels OSC with CAN and restarts it with ESC', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;ignored\x18N');
+    terminal.write('\x1b]2;ignored\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(titles, isEmpty);
+    expect(line.toString(), 'NG');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getForeground(1), CellColor.named | NamedColor.green);
+  });
+
   test('Terminal bounds oversized CSI payloads across chunks', () {
     final terminal = Terminal();
 

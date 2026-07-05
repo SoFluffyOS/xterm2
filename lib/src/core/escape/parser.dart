@@ -1820,6 +1820,19 @@ class EscapeParser {
         return true;
       }
 
+      if (char == 0x18 || char == 0x1a) {
+        _osc.clear();
+        _oscOverflowed = true;
+        return true;
+      }
+
+      if (char >= 0x80 && char <= 0x9f) {
+        _queue.rollback(1);
+        _osc.clear();
+        _oscOverflowed = true;
+        return true;
+      }
+
       /// OSC terminates with ST
       if (char == Ascii.ESC) {
         if (_queue.isEmpty) {
@@ -1828,10 +1841,17 @@ class EscapeParser {
 
         if (_queue.consume() == Ascii.backslash) {
           _osc.add(param.toString());
+          return true;
         }
 
+        _queue.rollback(2);
+        _osc.clear();
+        _oscOverflowed = true;
         return true;
       }
+
+      // C0 controls other than BEL are ignored inside OSC payloads.
+      if (char < Ascii.space) continue;
 
       /// Parse next parameter
       if (char == Ascii.semicolon) {
