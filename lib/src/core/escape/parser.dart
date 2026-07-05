@@ -1217,6 +1217,7 @@ class EscapeParser {
       // Disabled as these can a security risk.
       case 20: // Get Icon Title
       case 21: // Get Terminal Title
+        return;
       case 22: // Push Terminal Title
         if (_csi.params.length > 3) return;
         if (_csi.params.length > 1 && !_isWindowTitleType(_csi.params[1])) {

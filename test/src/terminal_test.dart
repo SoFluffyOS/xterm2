@@ -745,6 +745,16 @@ void main() {
     expect(titles, ['first', 'second', 'third', 'second']);
   });
 
+  test('Terminal ignores title reporting requests', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[21t');
+    terminal.write('\x1b]2;second\x1b\\\x1b[23t');
+
+    expect(titles, ['first', 'second']);
+  });
+
   test('Terminal applies and resets OSC color overrides', () {
     final terminal = Terminal();
 
