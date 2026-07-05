@@ -27,6 +27,10 @@ class EscapeParser {
 
   EscapeParser(this.handler);
 
+  bool _isByteValue(int value) {
+    return value >= 0 && value <= 0xff;
+  }
+
   final _queue = ByteConsumer();
 
   /// Start of sequence or character being processed. Useful for debugging.
@@ -903,7 +907,9 @@ class EscapeParser {
               final r = params[i + 2];
               final g = params[i + 3];
               final b = params[i + 4];
-              handler.setForegroundColorRgb(r, g, b);
+              if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
+                handler.setForegroundColorRgb(r, g, b);
+              }
               i += 4;
               break;
             case 5:
@@ -911,7 +917,9 @@ class EscapeParser {
                 continue;
               }
               final index = params[i + 2];
-              handler.setForegroundColor256(index);
+              if (_isByteValue(index)) {
+                handler.setForegroundColor256(index);
+              }
               i += 2;
               break;
           }
@@ -957,7 +965,9 @@ class EscapeParser {
               final r = params[i + 2];
               final g = params[i + 3];
               final b = params[i + 4];
-              handler.setBackgroundColorRgb(r, g, b);
+              if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
+                handler.setBackgroundColorRgb(r, g, b);
+              }
               i += 4;
               break;
             case 5:
@@ -965,7 +975,9 @@ class EscapeParser {
                 continue;
               }
               final index = params[i + 2];
-              handler.setBackgroundColor256(index);
+              if (_isByteValue(index)) {
+                handler.setBackgroundColor256(index);
+              }
               i += 2;
               break;
           }
@@ -986,7 +998,9 @@ class EscapeParser {
               final r = params[i + 2];
               final g = params[i + 3];
               final b = params[i + 4];
-              handler.setUnderlineColorRgb(r, g, b);
+              if (_isByteValue(r) && _isByteValue(g) && _isByteValue(b)) {
+                handler.setUnderlineColorRgb(r, g, b);
+              }
               i += 4;
               break;
             case 5:
@@ -994,7 +1008,9 @@ class EscapeParser {
                 continue;
               }
               final index = params[i + 2];
-              handler.setUnderlineColor256(index);
+              if (_isByteValue(index)) {
+                handler.setUnderlineColor256(index);
+              }
               i += 2;
               break;
           }

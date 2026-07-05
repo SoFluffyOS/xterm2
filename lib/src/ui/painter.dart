@@ -744,7 +744,8 @@ class TerminalPainter {
         return foregroundColor;
       case CellColor.named:
       case CellColor.palette:
-        return _indexedColorOverrides[colorValue] ?? _colorPalette[colorValue];
+        return _indexedColorOverrides[colorValue] ??
+            _paletteColorOrDefault(colorValue, foregroundColor);
       case CellColor.rgb:
       default:
         return Color(colorValue | 0xFF000000);
@@ -763,11 +764,19 @@ class TerminalPainter {
         return backgroundColor;
       case CellColor.named:
       case CellColor.palette:
-        return _indexedColorOverrides[colorValue] ?? _colorPalette[colorValue];
+        return _indexedColorOverrides[colorValue] ??
+            _paletteColorOrDefault(colorValue, backgroundColor);
       case CellColor.rgb:
       default:
         return Color(colorValue | 0xFF000000);
     }
+  }
+
+  Color _paletteColorOrDefault(int colorValue, Color defaultColor) {
+    if (colorValue < 0 || colorValue >= _colorPalette.length) {
+      return defaultColor;
+    }
+    return _colorPalette[colorValue];
   }
 }
 

@@ -1461,6 +1461,26 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'Safe');
   });
 
+  test('Terminal ignores out-of-range SGR color values', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[38;5;300m'
+      '\x1b[48;5;300m'
+      '\x1b[58;5;300m'
+      '\x1b[38;2;256;1;2m'
+      '\x1b[48;2;1;256;2m'
+      '\x1b[58;2;1;2;256m'
+      'Safe',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'Safe');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(0), CellColor.normal);
+    expect(line.getUnderlineColor(0), CellColor.normal);
+  });
+
   test('Terminal supports colon-delimited SGR truecolor foreground', () {
     final terminal = Terminal();
 

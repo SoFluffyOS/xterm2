@@ -155,6 +155,25 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter falls back for invalid palette colors', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+
+    expect(
+      painter.resolveForegroundColor(CellColor.palette | 300),
+      painter.foregroundColor,
+    );
+    expect(
+      painter.resolveBackgroundColor(CellColor.palette | 300),
+      painter.backgroundColor,
+    );
+
+    painter.dispose();
+  });
+
   test('TerminalPainter dims faint text without making it transparent', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
