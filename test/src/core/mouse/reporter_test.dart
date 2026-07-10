@@ -26,6 +26,27 @@ void main() {
       expect(output, equals('\x1B[M !!'));
     });
 
+    test('report() drops legacy mouse coordinates outside encodable range', () {
+      expect(
+        MouseReporter.report(
+          TerminalMouseButton.left,
+          TerminalMouseButtonState.down,
+          CellOffset(223, 0),
+          MouseReportMode.normal,
+        ),
+        isNull,
+      );
+      expect(
+        MouseReporter.report(
+          TerminalMouseButton.left,
+          TerminalMouseButtonState.down,
+          CellOffset(2015, 0),
+          MouseReportMode.utf,
+        ),
+        isNull,
+      );
+    });
+
     test('report() supports sgr mode', () {
       final output = MouseReporter.report(
         TerminalMouseButton.left,

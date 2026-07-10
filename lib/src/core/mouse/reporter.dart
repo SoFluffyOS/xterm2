@@ -5,7 +5,7 @@ import 'package:xterm/src/core/mouse/button_state.dart';
 import 'package:xterm/src/core/mouse/modifiers.dart';
 
 abstract class MouseReporter {
-  static String report(
+  static String? report(
     TerminalMouseButton button,
     TerminalMouseButtonState state,
     CellOffset position,
@@ -21,6 +21,15 @@ abstract class MouseReporter {
     switch (reportMode) {
       case MouseReportMode.normal:
       case MouseReportMode.utf:
+        final maxPosition = switch (reportMode) {
+          MouseReportMode.normal => 223,
+          MouseReportMode.utf => 2015,
+          _ => throw StateError('Unexpected mouse report mode'),
+        };
+        if (x > maxPosition || y > maxPosition) {
+          return null;
+        }
+
         // Button ID 3 is used to signal a button release.
         final baseButtonID =
             state == TerminalMouseButtonState.up ? 3 : button.id;
@@ -31,17 +40,8 @@ abstract class MouseReporter {
         // The button ID is reported as shifted by 32 to produce a printable
         // character.
         final btn = String.fromCharCode(32 + buttonID);
-        // Normal mode only supports a maximum position of 223, while utf
-        // supports positions up to 2015. Both modes send a null byte if the
-        // position exceeds that limit.
-        final col = (reportMode == MouseReportMode.normal && x > 223) ||
-                (reportMode == MouseReportMode.utf && x > 2015)
-            ? '\x00'
-            : String.fromCharCode(32 + x);
-        final row = (reportMode == MouseReportMode.normal && y > 223) ||
-                (reportMode == MouseReportMode.utf && y > 2015)
-            ? '\x00'
-            : String.fromCharCode(32 + y);
+        final col = String.fromCharCode(32 + x);
+        final row = String.fromCharCode(32 + y);
         return "\x1b[M$btn$col$row";
       case MouseReportMode.sgr:
       case MouseReportMode.sgrPixels:
