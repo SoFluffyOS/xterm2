@@ -520,70 +520,80 @@ class Buffer {
     );
   }
 
-  void scrollDown(int lines) {
+  void scrollDown(int count) {
     if (_usesFullHorizontalMargins) {
-      _scrollDownFullWidth(lines);
+      _scrollDownFullWidth(count);
       return;
     }
 
     final width = _marginRight - _marginLeft + 1;
     for (var i = absoluteMarginBottom; i >= absoluteMarginTop; i--) {
-      if (i >= absoluteMarginTop + lines) {
-        this.lines[i].copyFrom(
-              this.lines[i - lines],
-              _marginLeft,
-              _marginLeft,
-              width,
-            );
+      if (i >= absoluteMarginTop + count) {
+        lines[i].copyFrom(
+          lines[i - count],
+          _marginLeft,
+          _marginLeft,
+          width,
+        );
       } else {
-        this
-            .lines[i]
-            .eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
+        lines[i].eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
       }
     }
   }
 
-  void scrollUp(int lines) {
+  void scrollUp(int count) {
     if (_usesFullHorizontalMargins) {
-      _scrollUpFullWidth(lines);
+      _scrollUpFullWidth(count);
       return;
     }
 
     final width = _marginRight - _marginLeft + 1;
     for (var i = absoluteMarginTop; i <= absoluteMarginBottom; i++) {
-      if (i <= absoluteMarginBottom - lines) {
-        this.lines[i].copyFrom(
-              this.lines[i + lines],
-              _marginLeft,
-              _marginLeft,
-              width,
-            );
+      if (i <= absoluteMarginBottom - count) {
+        lines[i].copyFrom(
+          lines[i + count],
+          _marginLeft,
+          _marginLeft,
+          width,
+        );
       } else {
-        this
-            .lines[i]
-            .eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
+        lines[i].eraseRange(_marginLeft, _marginRight + 1, terminal.cursor);
       }
     }
   }
 
-  void _scrollDownFullWidth(int lines) {
+  void _scrollDownFullWidth(int count) {
     for (var i = absoluteMarginBottom; i >= absoluteMarginTop; i--) {
-      if (i >= absoluteMarginTop + lines) {
-        this.lines[i] = this.lines[i - lines];
+      if (i >= absoluteMarginTop + count) {
+        lines[i] = lines[i - count];
       } else {
-        this.lines[i] = _newEmptyLine();
+        lines[i] = _newEmptyLine();
       }
     }
   }
 
-  void _scrollUpFullWidth(int lines) {
+  void _scrollUpFullWidth(int count) {
+    if (_canScrollUpByPushingLines) {
+      final linesToPush = min(count, viewHeight);
+      for (var i = 0; i < linesToPush; i++) {
+        lines.push(_newEmptyLine());
+      }
+      return;
+    }
+
     for (var i = absoluteMarginTop; i <= absoluteMarginBottom; i++) {
-      if (i <= absoluteMarginBottom - lines) {
-        this.lines[i] = this.lines[i + lines];
+      if (i <= absoluteMarginBottom - count) {
+        lines[i] = lines[i + count];
       } else {
-        this.lines[i] = _newEmptyLine();
+        lines[i] = _newEmptyLine();
       }
     }
+  }
+
+  bool get _canScrollUpByPushingLines {
+    if (!isAltBuffer) return false;
+    if (_marginTop != 0) return false;
+    return _marginBottom == viewHeight - 1;
   }
 
   /// https://vt100.net/docs/vt100-ug/chapter3.html#IND IND – Index
