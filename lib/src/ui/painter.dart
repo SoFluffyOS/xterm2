@@ -392,6 +392,12 @@ class TerminalPainter {
 
     final isActiveHyperlink =
         cellData.hyperlinkId != 0 && cellData.hyperlinkId == activeHyperlinkId;
+    if (combiningCharacters == null &&
+        charCode == 0x20 &&
+        !isActiveHyperlink &&
+        !_hasVisibleSpaceDecoration(cellFlags)) {
+      return;
+    }
     final color = resolveCellForegroundColor(
       cellData,
       foregroundOverride: foregroundOverride,
@@ -535,6 +541,15 @@ class TerminalPainter {
   @pragma('vm:prefer-inline')
   bool _hasUnderline(int cellFlags) {
     return cellFlags & CellAttr.underlineMask != 0;
+  }
+
+  @pragma('vm:prefer-inline')
+  bool _hasVisibleSpaceDecoration(int cellFlags) {
+    return cellFlags &
+            (CellAttr.underlineMask |
+                CellAttr.strikethrough |
+                CellAttr.overline) !=
+        0;
   }
 
   @pragma('vm:prefer-inline')

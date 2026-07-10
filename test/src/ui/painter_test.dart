@@ -76,6 +76,24 @@ void main() {
     painter.dispose();
   });
 
+  test('paintLine skips undecorated space glyph layouts', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('   \x1b[4m \x1b[0m ');
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    painter.paintLineForegrounds(canvas, Offset.zero, terminal.buffer.lines[0]);
+
+    expect(painter.paragraphCacheLength, 1);
+
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
   test('paintLine foreground override uses separate glyph cache entry', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
