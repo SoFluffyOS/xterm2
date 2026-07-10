@@ -82,7 +82,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;
     }
-    return event.ctrl || event.alt;
+    return event.ctrl || event.alt || event.shift;
   }
 
   bool _shouldEncodeCharacter(TerminalKeyboardEvent event, int mode) {

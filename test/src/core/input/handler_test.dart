@@ -72,6 +72,18 @@ void main() {
       expect(output, ['\x1b[27u']);
     });
 
+    test('disambiguates shifted control keys in Kitty mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.backspace, shift: true);
+      terminal.keyInput(TerminalKey.enter, shift: true);
+      terminal.keyInput(TerminalKey.tab, shift: true);
+
+      expect(output, ['\x1b[127;2u', '\x1b[13;2u', '\x1b[9;2u']);
+    });
+
     test('reports Kitty alternate key codes', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
