@@ -368,6 +368,7 @@ class TerminalViewState extends State<TerminalView> {
 
     child = TerminalScrollGestureHandler(
       terminal: widget.terminal,
+      terminalController: _controller,
       simulateScroll: widget.simulateScroll,
       readOnly: widget.readOnly,
       getCellOffset: (offset) => renderTerminal.getCellOffset(offset),

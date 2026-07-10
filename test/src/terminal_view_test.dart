@@ -766,5 +766,27 @@ void main() {
 
       expect(terminalOutput.join(), isEmpty);
     });
+
+    testWidgets('respects disabled scroll pointer input', (tester) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.useAltBuffer();
+      final controller = TerminalController(
+        pointerInputs: PointerInputs.none(),
+      );
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(
+          terminal,
+          autofocus: true,
+          controller: controller,
+          simulateScroll: true,
+        ),
+      ));
+
+      await tester.drag(find.byType(TerminalView), const Offset(0, -100));
+
+      expect(terminalOutput.join(), isEmpty);
+    });
   });
 }

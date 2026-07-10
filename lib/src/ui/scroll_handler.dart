@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm/core.dart';
+import 'package:xterm/src/ui/controller.dart';
 import 'package:xterm/src/ui/infinite_scroll_view.dart';
+import 'package:xterm/src/ui/pointer_input.dart';
 
 /// Handles scrolling gestures in the alternate screen buffer. In alternate
 /// screen buffer, the terminal don't have a scrollback buffer, instead, the
@@ -11,6 +13,7 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   const TerminalScrollGestureHandler({
     super.key,
     required this.terminal,
+    required this.terminalController,
     required this.getCellOffset,
     required this.getLineHeight,
     this.simulateScroll = true,
@@ -19,6 +22,8 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   });
 
   final Terminal terminal;
+
+  final TerminalController terminalController;
 
   /// Returns the cell offset for the pixel offset.
   final CellOffset Function(Offset) getCellOffset;
@@ -88,7 +93,11 @@ class _TerminalScrollGestureHandlerState
   /// then if the application doesn't recognize mouse wheel events, this method
   /// will simulate scroll events by sending up/down arrow keys.
   void _sendScrollEvent(bool up) {
-    if (widget.readOnly) return;
+    if (widget.readOnly ||
+        !widget.terminalController
+            .shouldSendPointerInput(PointerInput.scroll)) {
+      return;
+    }
 
     final position = widget.getCellOffset(lastPointerPosition);
     final pixelPosition = CellOffset(
