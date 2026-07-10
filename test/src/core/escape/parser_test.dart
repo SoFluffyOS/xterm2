@@ -213,6 +213,15 @@ void main() {
       verify(handler.setStatusLineType(2)).called(1);
     });
 
+    test('parses conformance level sequence', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[65;1"p');
+
+      verify(handler.setConformanceLevel(65, 1)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

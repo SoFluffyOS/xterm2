@@ -304,6 +304,8 @@ abstract class EscapeHandler {
 
   void setLinesPerPage(int rows);
 
+  void setConformanceLevel(int level, int controls);
+
   void sendSize();
 
   void sendPixelSize();

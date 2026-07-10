@@ -312,6 +312,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _statusLineType = 0;
 
+  int _conformanceLevel = 61;
+
+  int _conformanceControls = 1;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -781,6 +785,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setLinesPerPage(int rows) {
     resize(_viewWidth, rows);
+  }
+
+  @override
+  void setConformanceLevel(int level, int controls) {
+    _conformanceLevel = level;
+    _conformanceControls = switch (controls) {
+      0 => 1,
+      _ => controls,
+    };
   }
 
   @override
@@ -1435,6 +1448,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),
+      '"p' => '$_conformanceLevel;$_conformanceControls"p',
       '"q' => '${switch (_cursorStyle.isProtected) {
           true => 1,
           false => 0,

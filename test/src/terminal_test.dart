@@ -1661,6 +1661,15 @@ void main() {
     ]);
   });
 
+  test('Terminal reports conformance level status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[65;1"p\x1bP\$q"p\x1b\\');
+
+    expect(output, ['\x1bP1\$r65;1"p\x1b\\']);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

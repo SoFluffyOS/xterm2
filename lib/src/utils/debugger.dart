@@ -577,6 +577,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setConformanceLevel(int level, int controls) {
+    onCommand('setConformanceLevel($level, $controls)');
+  }
+
+  @override
   void sendSize() {
     onCommand('sendSize');
   }

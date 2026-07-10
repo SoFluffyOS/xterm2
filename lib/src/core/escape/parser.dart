@@ -920,6 +920,20 @@ class EscapeParser {
 
   void _csiHandleSoftReset() {
     if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.doubleQuotes) {
+      if (_csi.prefix != null || _csi.params.length > 2) return;
+      final level = switch (_csi.params) {
+        [final value, ...] => value,
+        _ => 61,
+      };
+      final controls = switch (_csi.params) {
+        [_, final value] => value,
+        _ => 1,
+      };
+      return handler.setConformanceLevel(level, controls);
+    }
+
+    if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.dollarSign) {
       final mode = switch (_csi.params) {
         [final value, ...] => value,
