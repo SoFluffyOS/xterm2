@@ -188,6 +188,26 @@ void main() {
     });
   });
 
+  group('BufferLine anchors', () {
+    test('move with content shifted by inserted cells', () {
+      final terminal = Terminal()..resize(5, 1);
+      terminal.write('abcde');
+      final line = terminal.buffer.lines[0];
+      final startAnchor = line.createAnchor(0);
+      final middleAnchor = line.createAnchor(2);
+      final droppedAnchor = line.createAnchor(4);
+
+      line.insertCells(0, 1);
+
+      expect(line.getText(), 'abcd');
+      expect(startAnchor.attached, isTrue);
+      expect(startAnchor.x, 1);
+      expect(middleAnchor.attached, isTrue);
+      expect(middleAnchor.x, 3);
+      expect(droppedAnchor.attached, isFalse);
+    });
+  });
+
   group('Buffer.createAnchor', () {
     test('works', () {
       final terminal = Terminal();
