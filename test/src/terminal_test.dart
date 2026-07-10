@@ -1777,12 +1777,39 @@ void main() {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
 
-    terminal.write('\x1bP\$q5,}\x1b\\\x1bP\$q1,|\x1b\\');
+    terminal.write(
+      '\x1b[5;4;5,}'
+      '\x1b[1;7;0,|'
+      '\x1bP\$q5,}\x1b\\'
+      '\x1bP\$q1,|\x1b\\',
+    );
 
     expect(output, [
-      '\x1bP1\$r5;0;0,}\x1b\\',
-      '\x1bP1\$r1;0;0,|\x1b\\',
+      '\x1bP1\$r5;4;5,}\x1b\\',
+      '\x1bP1\$r1;7;0,|\x1b\\',
     ]);
+  });
+
+  test('Terminal applies DECAC normal text colors', () {
+    final terminal = Terminal()..resize(3, 1);
+
+    terminal.write('\x1b[1;7;0,|A\x1b[0mB\x1b[39;49mC');
+
+    for (var column = 0; column < 3; column++) {
+      expect(
+          terminal.buffer.lines[0].getForeground(column), 7 | CellColor.named);
+      expect(
+          terminal.buffer.lines[0].getBackground(column), 0 | CellColor.named);
+    }
+  });
+
+  test('Terminal includes assigned normal colors in checksums', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(2, 1);
+
+    terminal.write('\x1b[1;7;0,|A\x1b[1;1*y');
+
+    expect(output, ['\x1bP1!~FEBF\x1b\\']);
   });
 
   test('Terminal handles split DECRQSS payloads', () {

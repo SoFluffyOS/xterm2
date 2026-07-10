@@ -217,6 +217,10 @@ abstract class EscapeHandler {
 
   void setTitleMode(int mode, bool enabled);
 
+  void setAssignedColor(int selector, int foreground, int background);
+
+  void setAlternateTextColor(int attribute, int foreground, int background);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);

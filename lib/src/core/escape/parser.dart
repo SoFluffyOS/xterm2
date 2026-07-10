@@ -703,6 +703,14 @@ class EscapeParser {
 
   /// `ESC [ Ps ' }` Insert Column (DECIC).
   void _csiHandleInsertColumns() {
+    if (_isCommaCsi(paramCount: 3)) {
+      return handler.setAlternateTextColor(
+        _csi.params[0],
+        _csi.params[1],
+        _csi.params[2],
+      );
+    }
+
     if (_isDollarCsi(paramCount: 1)) {
       return handler.setActiveStatusDisplay(_csi.params[0]);
     }
@@ -860,10 +868,25 @@ class EscapeParser {
         _csi.params.length <= maxParams;
   }
 
+  bool _isCommaCsi({required int paramCount}) {
+    return _csi.prefix == null &&
+        _csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.comma &&
+        _csi.params.length == paramCount;
+  }
+
   /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).
   ///
   /// `ESC [ Ps * |` Select Number of Lines per Screen (DECSNLS).
   void _csiHandlePageSize() {
+    if (_isCommaCsi(paramCount: 3)) {
+      return handler.setAssignedColor(
+        _csi.params[0],
+        _csi.params[1],
+        _csi.params[2],
+      );
+    }
+
     if (_isPlainCsi()) {
       return handler.setTransmitTerminationCharacter(_firstParamOrDefault(0));
     }

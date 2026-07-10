@@ -599,6 +599,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setAssignedColor(int selector, int foreground, int background) {
+    onCommand('setAssignedColor($selector, $foreground, $background)');
+  }
+
+  @override
+  void setAlternateTextColor(int attribute, int foreground, int background) {
+    onCommand('setAlternateTextColor($attribute, $foreground, $background)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }

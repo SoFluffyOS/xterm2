@@ -326,6 +326,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _lineTransmitTerminationCharacter = 0;
 
+  final _assignedColors = <int, ({int foreground, int background})>{};
+
+  final _alternateTextColors = <int, ({int foreground, int background})>{};
+
   final _titleModes = <int>{};
 
   bool _synchronizedUpdateMode = false;
@@ -1241,12 +1245,25 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _checksumColor(int color, {required bool foreground}) {
     final type = color & CellColor.typeMask;
-    if (type != CellColor.named && type != CellColor.palette) return 0;
-    final value = color & CellColor.valueMask;
+    final value = switch (type) {
+      CellColor.normal => _assignedChecksumColor(foreground: foreground),
+      CellColor.named || CellColor.palette => color & CellColor.valueMask,
+      _ => null,
+    };
+    if (value == null) return 0;
     if (value < 0 || value > 15) return 0;
     return switch (foreground) {
       true => value << 4,
       false => value,
+    };
+  }
+
+  int? _assignedChecksumColor({required bool foreground}) {
+    final color = _assignedColors[1];
+    if (color == null) return null;
+    return switch (foreground) {
+      true => color.foreground,
+      false => color.background,
     };
   }
 
@@ -1598,13 +1615,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (query.endsWith(',}')) {
       final attribute = int.tryParse(query.substring(0, query.length - 2));
       if (attribute == null || attribute < 0 || attribute > 15) return null;
-      return '$attribute;0;0,}';
+      final color = _alternateTextColors[attribute];
+      return '$attribute;${color?.foreground ?? 0};${color?.background ?? 0},}';
     }
 
     if (query.endsWith(',|')) {
       final attribute = int.tryParse(query.substring(0, query.length - 2));
       if (attribute == null || attribute < 1 || attribute > 2) return null;
-      return '$attribute;0;0,|';
+      final color = _assignedColors[attribute];
+      return '$attribute;${color?.foreground ?? 0};${color?.background ?? 0},|';
     }
 
     return null;
@@ -1969,6 +1988,51 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       return;
     }
     _titleModes.remove(mode);
+  }
+
+  @override
+  void setAssignedColor(int selector, int foreground, int background) {
+    if (selector < 1 || selector > 2) return;
+    if (!_isDecColor(foreground) || !_isDecColor(background)) return;
+
+    final previous = _assignedColors[selector];
+    _assignedColors[selector] = (
+      foreground: foreground,
+      background: background,
+    );
+
+    if (selector != 1) return;
+    if (_matchesAssignedColor(_cursorStyle.foreground, previous?.foreground)) {
+      _cursorStyle.foreground = _namedColor(foreground);
+    }
+    if (_matchesAssignedColor(_cursorStyle.background, previous?.background)) {
+      _cursorStyle.background = _namedColor(background);
+    }
+  }
+
+  @override
+  void setAlternateTextColor(int attribute, int foreground, int background) {
+    if (attribute < 0 || attribute > 15) return;
+    if (!_isDecColor(foreground) || !_isDecColor(background)) return;
+
+    _alternateTextColors[attribute] = (
+      foreground: foreground,
+      background: background,
+    );
+  }
+
+  bool _isDecColor(int color) {
+    return color >= 0 && color < 16;
+  }
+
+  bool _matchesAssignedColor(int current, int? assigned) {
+    if ((current & CellColor.typeMask) == CellColor.normal) return true;
+    if (assigned == null) return false;
+    return current == _namedColor(assigned);
+  }
+
+  int _namedColor(int color) {
+    return color | CellColor.named;
   }
 
   @override
@@ -2543,6 +2607,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void resetCursorStyle() {
     _cursorStyle.reset();
+    _resetAssignedTextColors();
+  }
+
+  void _resetAssignedTextColors() {
+    final normalTextColor = _assignedColors[1];
+    if (normalTextColor == null) return;
+    _cursorStyle.foreground = _namedColor(normalTextColor.foreground);
+    _cursorStyle.background = _namedColor(normalTextColor.background);
   }
 
   @override
@@ -2672,7 +2744,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void resetForeground() {
-    _cursorStyle.resetForegroundColor();
+    final normalTextColor = _assignedColors[1];
+    if (normalTextColor == null) {
+      _cursorStyle.resetForegroundColor();
+      return;
+    }
+    _cursorStyle.foreground = _namedColor(normalTextColor.foreground);
   }
 
   @override
@@ -2692,7 +2769,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void resetBackground() {
-    _cursorStyle.resetBackgroundColor();
+    final normalTextColor = _assignedColors[1];
+    if (normalTextColor == null) {
+      _cursorStyle.resetBackgroundColor();
+      return;
+    }
+    _cursorStyle.background = _namedColor(normalTextColor.background);
   }
 
   @override

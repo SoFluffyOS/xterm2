@@ -143,6 +143,16 @@ void main() {
       verify(handler.setLinesPerPage(36)).called(1);
     });
 
+    test('parses DEC color assignment sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1;7;0,|\x1b[3;4;5,}');
+
+      verify(handler.setAssignedColor(1, 7, 0)).called(1);
+      verify(handler.setAlternateTextColor(3, 4, 5)).called(1);
+    });
+
     test('parses column insert and delete sequences', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
