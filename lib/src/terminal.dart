@@ -1923,6 +1923,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       40 => _reportedState(_enableColumnMode),
       45 => _reportedState(_reverseWrapMode),
       47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
+      1048 => _reportedState(false),
       66 => _reportedState(_appKeypadMode),
       67 => _reportedState(_backarrowKeyMode),
       69 => _reportedState(_leftRightMarginMode),
