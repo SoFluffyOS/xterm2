@@ -2121,6 +2121,20 @@ void main() {
     );
   });
 
+  test('Terminal ignores empty OSC 8 URI with explicit id', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]8;;https://example.com\x1b\\a'
+      '\x1b]8;id=keep;\x1b\\b'
+      '\x1b]8;;\x1b\\c',
+    );
+
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(2, 0)), isNull);
+  });
+
   test('Terminal clears OSC 8 metadata when linked cells are erased', () {
     final terminal = Terminal()
       ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');

@@ -1928,16 +1928,18 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setHyperlink(String params, String uri) {
-    if (uri.isEmpty) {
-      _cursorStyle.hyperlinkId = 0;
-      return;
-    }
-
     String? explicitId;
     for (final param in params.split(':')) {
       if (!param.startsWith('id=')) continue;
-      explicitId = param.substring(3);
+      final id = param.substring(3);
+      if (id.isNotEmpty) explicitId = id;
       break;
+    }
+
+    if (uri.isEmpty) {
+      if (explicitId != null) return;
+      _cursorStyle.hyperlinkId = 0;
+      return;
     }
 
     final key = explicitId == null ? null : '$explicitId\x00$uri';
