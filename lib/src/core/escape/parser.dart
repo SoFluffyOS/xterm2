@@ -1792,6 +1792,10 @@ class EscapeParser {
         return enabled
             ? handler.setMouseReportMode(MouseReportMode.sgrPixels)
             : handler.setMouseReportMode(MouseReportMode.normal);
+      case 1036:
+        return handler.setAltEscPrefixMode(enabled);
+      case 1039:
+        return handler.setAltSendsEscapeMode(enabled);
       case 1045:
         return handler.setReverseWrapExtendedMode(enabled);
       case 1047:

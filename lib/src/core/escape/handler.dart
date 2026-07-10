@@ -201,6 +201,10 @@ abstract class EscapeHandler {
 
   void setAltBufferMouseScrollMode(bool enabled);
 
+  void setAltEscPrefixMode(bool enabled);
+
+  void setAltSendsEscapeMode(bool enabled);
+
   void setBracketedPasteMode(bool enabled);
 
   void setInBandSizeReportMode(bool enabled);

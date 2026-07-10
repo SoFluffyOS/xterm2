@@ -130,8 +130,17 @@ void main() {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
 
-      parser.write('\x1b[?2031h\x1b[?2031l\x1b[?2048h\x1b[?2048l');
+      parser.write(
+        '\x1b[?1036h\x1b[?1036l'
+        '\x1b[?1039h\x1b[?1039l'
+        '\x1b[?2031h\x1b[?2031l'
+        '\x1b[?2048h\x1b[?2048l',
+      );
 
+      verify(handler.setAltEscPrefixMode(true)).called(1);
+      verify(handler.setAltEscPrefixMode(false)).called(1);
+      verify(handler.setAltSendsEscapeMode(true)).called(1);
+      verify(handler.setAltSendsEscapeMode(false)).called(1);
       verify(handler.setReportColorSchemeMode(true)).called(1);
       verify(handler.setReportColorSchemeMode(false)).called(1);
       verify(handler.setInBandSizeReportMode(true)).called(1);

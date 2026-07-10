@@ -20,6 +20,38 @@ void main() {
       expect(output, ['\x1b\x7f']);
     });
 
+    test('supports xterm alt escape prefix modes', () {
+      final output = <String>[];
+      final terminal = Terminal(
+        onOutput: output.add,
+        platform: TerminalTargetPlatform.linux,
+      );
+
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+      terminal.write('\x1b[?1036l');
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+      terminal.write('\x1b[?1036h');
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+
+      expect(output, ['\x1bA', '\x1bA']);
+    });
+
+    test('supports macOS alt sends escape mode', () {
+      final output = <String>[];
+      final terminal = Terminal(
+        onOutput: output.add,
+        platform: TerminalTargetPlatform.macos,
+      );
+
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+      terminal.write('\x1b[?1039h');
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+      terminal.write('\x1b[?1039l');
+      terminal.keyInput(TerminalKey.keyA, alt: true);
+
+      expect(output, ['\x1bA']);
+    });
+
     test('supports DEC backarrow key mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

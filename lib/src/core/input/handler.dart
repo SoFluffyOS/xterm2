@@ -203,7 +203,9 @@ class AltInputHandler implements TerminalInputHandler {
       return null;
     }
     if (event.platform == TerminalTargetPlatform.macos) {
-      return null;
+      if (!event.state.altSendsEscapeMode) return null;
+    } else {
+      if (!event.state.altEscPrefixMode) return null;
     }
 
     final key = event.key;

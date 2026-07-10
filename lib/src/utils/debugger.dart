@@ -590,6 +590,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setAltEscPrefixMode(bool enabled) {
+    onCommand('setAltEscPrefixMode($enabled)');
+  }
+
+  @override
+  void setAltSendsEscapeMode(bool enabled) {
+    onCommand('setAltSendsEscapeMode($enabled)');
+  }
+
+  @override
   void setBracketedPasteMode(bool enabled) {
     onCommand('setBracketedPasteMode($enabled)');
   }

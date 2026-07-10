@@ -731,6 +731,22 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setAltEscPrefixMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setAltEscPrefixMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void setAltSendsEscapeMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setAltSendsEscapeMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setBracketedPasteMode(bool? enabled) => super.noSuchMethod(
         Invocation.method(
           #setBracketedPasteMode,

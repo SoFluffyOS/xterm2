@@ -48,6 +48,10 @@ abstract class TerminalState {
 
   bool get altBufferMouseScrollMode;
 
+  bool get altEscPrefixMode;
+
+  bool get altSendsEscapeMode;
+
   bool get bracketedPasteMode;
 
   bool get inBandSizeReportMode;

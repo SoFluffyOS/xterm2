@@ -272,6 +272,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _altBufferMouseScrollMode = false;
 
+  bool _altEscPrefixMode = true;
+
+  bool _altSendsEscapeMode = false;
+
   bool _bracketedPasteMode = false;
 
   bool _inBandSizeReportMode = false;
@@ -363,6 +367,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get altBufferMouseScrollMode => _altBufferMouseScrollMode;
+
+  @override
+  bool get altEscPrefixMode => _altEscPrefixMode;
+
+  @override
+  bool get altSendsEscapeMode => _altSendsEscapeMode;
 
   @override
   bool get bracketedPasteMode => _bracketedPasteMode;
@@ -864,6 +874,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
+    _altEscPrefixMode = true;
+    _altSendsEscapeMode = false;
     _bracketedPasteMode = false;
     _inBandSizeReportMode = false;
     _reportColorSchemeMode = false;
@@ -909,6 +921,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
+    _altEscPrefixMode = true;
+    _altSendsEscapeMode = false;
     _bracketedPasteMode = false;
     _inBandSizeReportMode = false;
     _reportColorSchemeMode = false;
@@ -1747,6 +1761,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setAltEscPrefixMode(bool enabled) {
+    _altEscPrefixMode = enabled;
+  }
+
+  @override
+  void setAltSendsEscapeMode(bool enabled) {
+    _altSendsEscapeMode = enabled;
+  }
+
+  @override
   void setBracketedPasteMode(bool enabled) {
     _bracketedPasteMode = enabled;
   }
@@ -1830,6 +1854,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _reportedState(_altBufferMouseScrollMode),
       1015 => _reportedState(_mouseReportMode == MouseReportMode.urxvt),
       1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
+      1036 => _reportedState(_altEscPrefixMode),
+      1039 => _reportedState(_altSendsEscapeMode),
       1045 => _reportedState(_reverseWrapExtendedMode),
       2004 => _reportedState(_bracketedPasteMode),
       2026 => _reportedState(_synchronizedUpdateMode),
@@ -1886,6 +1912,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _altBufferMouseScrollMode,
       1015 => _mouseReportMode == MouseReportMode.urxvt,
       1016 => _mouseReportMode == MouseReportMode.sgrPixels,
+      1036 => _altEscPrefixMode,
+      1039 => _altSendsEscapeMode,
       1045 => _reverseWrapExtendedMode,
       2004 => _bracketedPasteMode,
       2026 => _synchronizedUpdateMode,
@@ -1971,6 +1999,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           true => MouseReportMode.sgrPixels,
           false => MouseReportMode.normal,
         });
+      case 1036:
+        return setAltEscPrefixMode(enabled);
+      case 1039:
+        return setAltSendsEscapeMode(enabled);
       case 1045:
         return setReverseWrapExtendedMode(enabled);
       case 2004:
