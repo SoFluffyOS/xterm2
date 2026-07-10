@@ -2192,6 +2192,21 @@ void main() {
       expect(terminal.hyperlinkAt(CellOffset(column, 0)), isNull);
     }
   });
+
+  test('Terminal delete chars shifts hyperlinks without linking tail blanks',
+      () {
+    final terminal = Terminal()..resize(5, 1);
+
+    terminal.write('A\x1b]8;;https://example.com\x1b\\BCD');
+    terminal.write('\r\x1b[P');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getText(0, 3), 'BCD');
+    expect(line.getCodePoint(3), 0);
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(2, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(3, 0)), isNull);
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

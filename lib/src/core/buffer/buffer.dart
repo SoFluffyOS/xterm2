@@ -889,7 +889,7 @@ class Buffer {
   void deleteChars(int count) {
     final start = _cursorX.clamp(0, viewWidth);
     count = min(count, _rightLimit - start);
-    currentLine.removeCells(start, count, terminal.cursor, _rightLimit);
+    currentLine.removeCells(start, count, _blankCellStyle, _rightLimit);
   }
 
   bool get _usesFullHorizontalMargins {
@@ -957,17 +957,16 @@ class Buffer {
 
   void insertBlankChars(int count) {
     count = min(count, _rightLimit - _cursorX);
+    currentLine.insertCells(_cursorX, count, _blankCellStyle, _rightLimit);
+  }
+
+  CursorStyle get _blankCellStyle {
     final style = terminal.cursor;
-    currentLine.insertCells(
-      _cursorX,
-      count,
-      CursorStyle(
-        foreground: style.foreground,
-        background: style.background,
-        underlineColor: style.underlineColor,
-        attrs: style.attrs,
-      ),
-      _rightLimit,
+    return CursorStyle(
+      foreground: style.foreground,
+      background: style.background,
+      underlineColor: style.underlineColor,
+      attrs: style.attrs,
     );
   }
 
