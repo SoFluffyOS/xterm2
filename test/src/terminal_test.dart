@@ -1752,6 +1752,39 @@ void main() {
     ]);
   });
 
+  test('Terminal reports default VT520 status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1bP\$q+q\x1b\\'
+      '\x1bP\$q*}\x1b\\'
+      '\x1bP\$q*u\x1b\\'
+      '\x1bP\$q-r\x1b\\'
+      '\x1bP\$q,y\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r0+q\x1b\\',
+      '\x1bP1\$r0*}\x1b\\',
+      '\x1bP1\$r0*u\x1b\\',
+      '\x1bP1\$r0-r\x1b\\',
+      '\x1bP1\$r0,y\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports VT520 color attribute status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP\$q5,}\x1b\\\x1bP\$q1,|\x1b\\');
+
+    expect(output, [
+      '\x1bP1\$r5;0;0,}\x1b\\',
+      '\x1bP1\$r1;0;0,|\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

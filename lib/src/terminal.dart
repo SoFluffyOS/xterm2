@@ -1535,6 +1535,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final titleModeStatus = _titleModeStatusString(query);
     if (titleModeStatus != null) return titleModeStatus;
 
+    final colorStatus = _attributeColorStatusString(query);
+    if (colorStatus != null) return colorStatus;
+
     return switch (query) {
       'm' => _sgrStatusString(),
       '>4m' => '>4;$_modifyOtherKeysMode' 'm',
@@ -1563,8 +1566,48 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),
       't' => '${_viewHeight}t',
+      '+q' ||
+      '*}' ||
+      '+r' ||
+      '-q' ||
+      ',z' ||
+      '-r' ||
+      '*u' ||
+      '*r' ||
+      ')p' ||
+      r'$q' ||
+      '*s' ||
+      r'$s' ||
+      '"t' ||
+      '*p' ||
+      'p' ||
+      ',x' ||
+      '+w' ||
+      ' p' ||
+      '"u' ||
+      '-p' ||
+      '){' ||
+      ',{' ||
+      ',y' =>
+        '0$query',
       _ => null,
     };
+  }
+
+  String? _attributeColorStatusString(String query) {
+    if (query.endsWith(',}')) {
+      final attribute = int.tryParse(query.substring(0, query.length - 2));
+      if (attribute == null || attribute < 0 || attribute > 15) return null;
+      return '$attribute;0;0,}';
+    }
+
+    if (query.endsWith(',|')) {
+      final attribute = int.tryParse(query.substring(0, query.length - 2));
+      if (attribute == null || attribute < 1 || attribute > 2) return null;
+      return '$attribute;0;0,|';
+    }
+
+    return null;
   }
 
   String? _titleModeStatusString(String query) {
