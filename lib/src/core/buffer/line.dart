@@ -43,6 +43,8 @@ class BufferLine with IndexedItem {
 
   List<CellAnchor> get anchors => _anchors;
 
+  bool get hasCombiningCharacters => _combiningCharacters.isNotEmpty;
+
   int getForeground(int index) {
     return _data[index * _cellSize + _cellForeground];
   }

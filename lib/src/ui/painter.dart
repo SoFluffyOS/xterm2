@@ -324,11 +324,19 @@ class TerminalPainter {
   }) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
+    final hasCombiningCharacters = line.hasCombiningCharacters;
     var hasBlinkingText = false;
     for (var i = 0; i < line.length; i++) {
       line.getCellData(i, cellData);
 
       final charWidth = cellData.content >> CellContent.widthShift;
+      if (cellData.content & CellContent.codepointMask == 0) {
+        if (charWidth == 2) {
+          i++;
+        }
+        continue;
+      }
+
       final cellOffset = offset.translate(i * cellWidth, 0);
       if (cellData.flags & CellFlags.blink != 0) {
         hasBlinkingText = true;
@@ -338,7 +346,10 @@ class TerminalPainter {
         canvas,
         cellOffset,
         cellData,
-        combiningCharacters: line.getCombiningCharacters(i),
+        combiningCharacters: switch (hasCombiningCharacters) {
+          true => line.getCombiningCharacters(i),
+          false => null,
+        },
         blinkVisible: blinkVisible,
         activeHyperlinkId: activeHyperlinkId,
         foregroundOverride: switch (i == cursorColumn) {
