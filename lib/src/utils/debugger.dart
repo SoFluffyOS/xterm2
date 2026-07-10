@@ -600,6 +600,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setReportColorSchemeMode(bool enabled) {
+    onCommand('setReportColorSchemeMode($enabled)');
+  }
+
+  @override
   void setSynchronizedUpdateMode(bool enabled) {
     onCommand('setSynchronizedUpdateMode($enabled)');
   }

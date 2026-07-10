@@ -14,6 +14,32 @@ import '../_fixture/_fixture.dart';
 @GenerateNiceMocks([MockSpec<TerminalInputHandler>()])
 import 'terminal_view_test.mocks.dart';
 
+const _lightTheme = TerminalTheme(
+  cursor: Color(0xff111111),
+  selection: Color(0xffcccccc),
+  foreground: Color(0xff111111),
+  background: Color(0xffffffff),
+  black: Color(0xff000000),
+  red: Color(0xffaa0000),
+  green: Color(0xff00aa00),
+  yellow: Color(0xffaa5500),
+  blue: Color(0xff0000aa),
+  magenta: Color(0xffaa00aa),
+  cyan: Color(0xff00aaaa),
+  white: Color(0xffaaaaaa),
+  brightBlack: Color(0xff555555),
+  brightRed: Color(0xffff5555),
+  brightGreen: Color(0xff55ff55),
+  brightYellow: Color(0xffffff55),
+  brightBlue: Color(0xff5555ff),
+  brightMagenta: Color(0xffff55ff),
+  brightCyan: Color(0xff55ffff),
+  brightWhite: Color(0xffffffff),
+  searchHitBackground: Color(0xffffff2b),
+  searchHitBackgroundCurrent: Color(0xff31ff26),
+  searchHitForeground: Color(0xff000000),
+);
+
 void main() {
   testWidgets('terminal writes avoid layout when geometry is unchanged', (
     tester,
@@ -57,6 +83,43 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     expect(terminal.onColorQuery, isNull);
     expect(terminal.onColorSchemeQuery, isNull);
+  });
+
+  testWidgets('TerminalView reports color scheme changes when requested', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    await tester.pumpWidget(MaterialApp(
+      home: TerminalView(
+        terminal,
+        theme: TerminalThemes.whiteOnBlack,
+      ),
+    ));
+
+    terminal.write('\x1b[?2031h');
+
+    await tester.pumpWidget(MaterialApp(
+      home: TerminalView(
+        terminal,
+        theme: _lightTheme,
+      ),
+    ));
+
+    terminal.write('\x1b[?2031l');
+
+    await tester.pumpWidget(MaterialApp(
+      home: TerminalView(
+        terminal,
+        theme: TerminalThemes.whiteOnBlack,
+      ),
+    ));
+
+    expect(output, [
+      '\x1b[?997;1n',
+      '\x1b[?997;2n',
+    ]);
   });
 
   final binding = TestWidgetsFlutterBinding.ensureInitialized();

@@ -52,6 +52,8 @@ abstract class TerminalState {
 
   bool get inBandSizeReportMode;
 
+  bool get reportColorSchemeMode;
+
   bool get graphemeClusterMode;
 
   int get kittyKeyboardMode;

@@ -276,6 +276,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _inBandSizeReportMode = false;
 
+  bool _reportColorSchemeMode = false;
+
   bool _graphemeClusterMode = true;
 
   bool _leftRightMarginMode = false;
@@ -367,6 +369,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get inBandSizeReportMode => _inBandSizeReportMode;
+
+  @override
+  bool get reportColorSchemeMode => _reportColorSchemeMode;
 
   @override
   bool get graphemeClusterMode => _graphemeClusterMode;
@@ -861,6 +866,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _inBandSizeReportMode = false;
+    _reportColorSchemeMode = false;
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
@@ -905,6 +911,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _inBandSizeReportMode = false;
+    _reportColorSchemeMode = false;
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
@@ -1080,6 +1087,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final colorScheme = onColorSchemeQuery?.call();
     if (colorScheme == null) return;
     onOutput?.call(_emitter.colorScheme(colorScheme));
+  }
+
+  void reportColorSchemeChange() {
+    if (!_reportColorSchemeMode) return;
+    sendColorScheme();
   }
 
   @override
@@ -1748,6 +1760,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setReportColorSchemeMode(bool enabled) {
+    _reportColorSchemeMode = enabled;
+    if (!enabled) return;
+
+    sendColorScheme();
+  }
+
+  @override
   void setSynchronizedUpdateMode(bool enabled) {
     _synchronizedUpdateTimer?.cancel();
     _synchronizedUpdateMode = enabled;
@@ -1814,6 +1834,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       2004 => _reportedState(_bracketedPasteMode),
       2026 => _reportedState(_synchronizedUpdateMode),
       2027 => _reportedState(_graphemeClusterMode),
+      2031 => _reportedState(_reportColorSchemeMode),
       2048 => _reportedState(_inBandSizeReportMode),
       _ => 0,
     };
@@ -1869,6 +1890,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       2004 => _bracketedPasteMode,
       2026 => _synchronizedUpdateMode,
       2027 => _graphemeClusterMode,
+      2031 => _reportColorSchemeMode,
       2048 => _inBandSizeReportMode,
       _ => null,
     };
@@ -1957,6 +1979,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return setSynchronizedUpdateMode(enabled);
       case 2027:
         return setGraphemeClusterMode(enabled);
+      case 2031:
+        return setReportColorSchemeMode(enabled);
       case 2048:
         return setInBandSizeReportMode(enabled);
     }

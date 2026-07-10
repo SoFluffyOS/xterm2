@@ -1152,6 +1152,7 @@ void main() {
       '\x1b[?1045\x24p'
       '\x1b[?25l'
       '\x1b[?25\x24p'
+      '\x1b[?2031\x24p'
       '\x1b[?2048\x24p'
       '\x1b[?9999\x24p',
     );
@@ -1164,6 +1165,7 @@ void main() {
       '\x1b[?67;1\x24y',
       '\x1b[?1045;1\x24y',
       '\x1b[?25;2\x24y',
+      '\x1b[?2031;2\x24y',
       '\x1b[?2048;2\x24y',
       '\x1b[?9999;0\x24y',
     ]);
@@ -1281,6 +1283,28 @@ void main() {
     terminal.write('\x1b[?996n');
 
     expect(output, isEmpty);
+  });
+
+  test('Terminal reports color scheme changes when mode 2031 is enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorSchemeQuery: () => TerminalColorScheme.dark,
+    );
+
+    terminal.write('\x1b[?2031h');
+    terminal.reportColorSchemeChange();
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.light;
+    terminal.reportColorSchemeChange();
+    terminal.write('\x1b[?2031l');
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.dark;
+    terminal.reportColorSchemeChange();
+
+    expect(output, [
+      '\x1b[?997;1n',
+      '\x1b[?997;1n',
+      '\x1b[?997;2n',
+    ]);
   });
 
   test('Terminal reports XTVERSION with default and callback values', () {

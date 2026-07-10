@@ -205,6 +205,8 @@ abstract class EscapeHandler {
 
   void setInBandSizeReportMode(bool enabled);
 
+  void setReportColorSchemeMode(bool enabled);
+
   void setSynchronizedUpdateMode(bool enabled);
 
   void setGraphemeClusterMode(bool enabled);
