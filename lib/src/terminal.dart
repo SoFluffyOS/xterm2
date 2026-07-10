@@ -1113,6 +1113,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       'Dsmg' => '\x1b[?69l',
       'Clmg' => '\x1b[s',
       'Cmg' => '\x1b[%i%p1%d;%p2%ds',
+      'Ms' => '\x1b]52;%p1%s;%p2%s\x07',
+      'Ss' => '\x1b[%p1%d q',
+      'Se' => '\x1b[0 q',
+      'Smulx' => '\x1b[4:%p1%dm',
+      'Setulc' =>
+        '\x1b[58:2::%p1%{65536}%/%d:%p1%{256}%/%{255}%&%d:%p1%{255}%&%d%;m',
+      'sitm' => '\x1b[3m',
+      'ritm' => '\x1b[23m',
+      'smxx' => '\x1b[9m',
+      'rmxx' => '\x1b[29m',
       _ => null,
     };
   }
