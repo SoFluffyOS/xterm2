@@ -316,6 +316,21 @@ void main() {
     expect(terminal.buffer.cursorX, 2);
   });
 
+  test('Terminal drops VS16-expanded graphemes that cannot fit', () {
+    final terminal = Terminal()..resize(1, 2);
+
+    terminal.write('\u2764\ufe0fx');
+
+    final firstLine = terminal.buffer.lines[0];
+    final secondLine = terminal.buffer.lines[1];
+    expect(firstLine.getCodePoint(0), 0x2764);
+    expect(firstLine.getWidth(0), 1);
+    expect(firstLine.getCombiningCharacters(0), isNull);
+    expect(secondLine.getCodePoint(0), 0x78);
+    expect(secondLine.getWidth(0), 1);
+    expect(terminal.buffer.cursorX, 0);
+  });
+
   test('Terminal expands width when a ZWJ grapheme gains a wide codepoint', () {
     final terminal = Terminal()..resize(10, 2);
 

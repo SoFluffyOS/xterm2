@@ -130,8 +130,8 @@ class Buffer {
     final cellWidth = unicodeV11.wcwidth(codePoint);
     if (terminal.graphemeClusterMode &&
         (codePoint == 0xFE0E || codePoint == 0xFE0F)) {
-      if (_previousSupportsEmojiVariation()) {
-        _resizePreviousGrapheme(codePoint);
+      if (_previousSupportsEmojiVariation() &&
+          _resizePreviousGrapheme(codePoint)) {
         _addCombiningCharacter(codePoint);
       }
       return;
@@ -147,7 +147,7 @@ class Buffer {
       return;
     }
     if (terminal.graphemeClusterMode && _joinsPreviousGrapheme(codePoint)) {
-      if (cellWidth == 2) _setPreviousGraphemeWidth(2);
+      if (cellWidth == 2 && !_setPreviousGraphemeWidth(2)) return;
       _addCombiningCharacter(codePoint);
       return;
     }
@@ -229,6 +229,9 @@ class Buffer {
     if (index == null || currentLine.getCodePoint(index) == 0) return false;
 
     final width = currentLine.getWidth(index);
+    if (desiredWidth == width) return true;
+    if (desiredWidth > viewWidth) return false;
+
     if (desiredWidth == 2 && width == 1) {
       if (index + 1 >= viewWidth) {
         if (!terminal.autoWrapMode) return false;
