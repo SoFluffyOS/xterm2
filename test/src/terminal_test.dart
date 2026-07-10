@@ -1534,6 +1534,40 @@ void main() {
     );
   });
 
+  test('Terminal reports modified navigation terminfo capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kUP': '\x1b[1;2A',
+      'kri': '\x1b[1;2A',
+      'kUP5': '\x1b[1;5A',
+      'kDN': '\x1b[1;2B',
+      'kind': '\x1b[1;2B',
+      'kDN7': '\x1b[1;7B',
+      'kRIT3': '\x1b[1;3C',
+      'kLFT6': '\x1b[1;6D',
+      'kHOM': '\x1b[1;2H',
+      'kEND7': '\x1b[1;7F',
+      'kIC5': '\x1b[2;5~',
+      'kDC4': '\x1b[3;4~',
+      'kPRV6': '\x1b[5;6~',
+      'kNXT3': '\x1b[6;3~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
