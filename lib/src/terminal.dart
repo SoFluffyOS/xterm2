@@ -2057,6 +2057,17 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call('\x1b[6;$_cellPixelHeight;${_cellPixelWidth}t');
   }
 
+  @override
+  void sendWindowReport() {
+    onOutput?.call('\x1b[$viewHeight;$viewWidth;1;1;1"w');
+  }
+
+  @override
+  void sendTerminalStateReport(int request) {
+    if (request != 1) return;
+    onOutput?.call('\x1bP1\$s\x1b\\');
+  }
+
   void _sendInBandSizeReport() {
     final pixelWidth = viewWidth * _cellPixelWidth;
     final pixelHeight = viewHeight * _cellPixelHeight;

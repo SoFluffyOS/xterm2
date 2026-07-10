@@ -796,6 +796,12 @@ class EscapeParser {
   /// Copy Rectangular Area (DECCRA).
   void _csiHandleCopyRect() {
     if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.doubleQuotes) {
+      if (_csi.prefix != null || _csi.params.isNotEmpty) return;
+      return handler.sendWindowReport();
+    }
+
+    if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.space) {
       if (_csi.prefix != null || _csi.params.length > 1) return;
       return handler.setLockKeyStyle(_firstParamOrDefault(0));
@@ -954,6 +960,10 @@ class EscapeParser {
   }
 
   void _csiHandleKittyKeyboardMode() {
+    if (_isDollarCsi(paramCount: 1)) {
+      return handler.sendTerminalStateReport(_csi.params[0]);
+    }
+
     if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.space) {
       if (_csi.prefix != null || _csi.params.length > 1) return;

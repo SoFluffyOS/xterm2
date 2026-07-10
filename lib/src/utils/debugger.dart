@@ -648,6 +648,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
     onCommand('sendCellSize');
   }
 
+  @override
+  void sendWindowReport() {
+    onCommand('sendWindowReport');
+  }
+
+  @override
+  void sendTerminalStateReport(int request) {
+    onCommand('sendTerminalStateReport($request)');
+  }
+
   /* Modes */
 
   @override

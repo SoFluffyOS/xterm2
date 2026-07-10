@@ -337,6 +337,10 @@ abstract class EscapeHandler {
 
   void sendCellSize();
 
+  void sendWindowReport();
+
+  void sendTerminalStateReport(int request);
+
   /* Select Graphic Rendition (SGR) */
 
   void resetCursorStyle();

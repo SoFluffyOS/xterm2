@@ -182,9 +182,19 @@ void main() {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
 
-      parser.write('\x1b[2;3;4;5;1;6;7;1\$v');
+      parser.write('\x1b[2;3;4;5;1;6;7;1\$v\x1b["v');
 
       verify(handler.copyRect(2, 3, 4, 5, 1, 6, 7, 1)).called(1);
+      verify(handler.sendWindowReport()).called(1);
+    });
+
+    test('parses terminal state report sequence', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1\$u');
+
+      verify(handler.sendTerminalStateReport(1)).called(1);
     });
 
     test('parses rectangular checksum sequences', () {

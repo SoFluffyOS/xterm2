@@ -2045,6 +2045,18 @@ void main() {
     ]);
   });
 
+  test('Terminal reports DEC window and terminal state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1b["v\x1b[1\$u\x1b[2\$u');
+
+    expect(output, [
+      '\x1b[24;80;1;1;1"w',
+      '\x1bP1\$s\x1b\\',
+    ]);
+  });
+
   test('Terminal emits in-band size reports when mode 2048 is enabled', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
