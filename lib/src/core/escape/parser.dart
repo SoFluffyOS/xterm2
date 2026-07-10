@@ -702,12 +702,20 @@ class EscapeParser {
 
   /// `ESC [ Ps ' }` Insert Column (DECIC).
   void _csiHandleInsertColumns() {
+    if (_isDollarCsi(paramCount: 1)) {
+      return handler.setActiveStatusDisplay(_csi.params[0]);
+    }
+
     if (!_isSingleQuoteCsi()) return;
     handler.insertColumns(_firstParamOrDefault(1));
   }
 
   /// `ESC [ Ps ' ~` Delete Column (DECDC).
   void _csiHandleDeleteColumns() {
+    if (_isDollarCsi(paramCount: 1)) {
+      return handler.setStatusLineType(_csi.params[0]);
+    }
+
     if (!_isSingleQuoteCsi()) return;
     handler.deleteColumns(_firstParamOrDefault(1));
   }

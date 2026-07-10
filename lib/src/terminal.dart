@@ -308,6 +308,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _warningBellVolume = 0;
 
+  int _activeStatusDisplay = 0;
+
+  int _statusLineType = 0;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1436,11 +1440,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           false => 0,
         }}"q',
       r'$|' => '$_viewWidth\$|',
+      r'$}' => '$_activeStatusDisplay\$}',
       '*x' => '${switch (_attributeChangeExtentRectangular) {
           true => 2,
           false => 0,
         }}*x',
       '*|' => '$_viewHeight*|',
+      r'$~' => '$_statusLineType\$~',
       ' q' => '${_cursorShapeStatus()} q',
       ' r' => '$_keyClickVolume r',
       ' u' => '$_marginBellVolume u',
@@ -1755,6 +1761,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setWarningBellVolume(int volume) {
     _warningBellVolume = volume.clamp(0, 8);
+  }
+
+  @override
+  void setActiveStatusDisplay(int display) {
+    _activeStatusDisplay = display.clamp(0, 1);
+  }
+
+  @override
+  void setStatusLineType(int type) {
+    _statusLineType = type.clamp(0, 2);
   }
 
   @override

@@ -1644,6 +1644,23 @@ void main() {
     ]);
   });
 
+  test('Terminal reports status line status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[1\$}'
+      '\x1b[2\$~'
+      '\x1bP\$q\$}\x1b\\'
+      '\x1bP\$q\$~\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r1\$}\x1b\\',
+      '\x1bP1\$r2\$~\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

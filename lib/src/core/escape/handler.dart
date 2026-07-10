@@ -192,6 +192,10 @@ abstract class EscapeHandler {
 
   void setWarningBellVolume(int volume);
 
+  void setActiveStatusDisplay(int display);
+
+  void setStatusLineType(int type);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);

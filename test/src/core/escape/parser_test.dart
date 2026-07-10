@@ -203,6 +203,16 @@ void main() {
       verify(handler.setWarningBellVolume(5)).called(1);
     });
 
+    test('parses status line sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1\$}\x1b[2\$~');
+
+      verify(handler.setActiveStatusDisplay(1)).called(1);
+      verify(handler.setStatusLineType(2)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
