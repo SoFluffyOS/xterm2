@@ -1442,6 +1442,49 @@ void main() {
     expect(output, ['\x1bP1+r436F=323536\x1b\\']);
   });
 
+  test('Terminal reports common terminfo rendering capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'clear': '\x1b[H\x1b[2J',
+      'E3': '\x1b[3J',
+      'fe': '\x1b[?1004h',
+      'fd': '\x1b[?1004l',
+      'kxIN': '\x1b[I',
+      'kxOUT': '\x1b[O',
+      'bold': '\x1b[1m',
+      'dim': '\x1b[2m',
+      'invis': '\x1b[8m',
+      'rev': '\x1b[7m',
+      'smul': '\x1b[4m',
+      'rmul': '\x1b[24m',
+      'sgr0': '\x1b(B\x1b[m',
+      'op': '\x1b[39;49m',
+      'setrgbf': '\x1b[38:2:%p1%d:%p2%d:%p3%dm',
+      'setrgbb': '\x1b[48:2:%p1%d:%p2%d:%p3%dm',
+      'cup': '\x1b[%i%p1%d;%p2%dH',
+      'ech': '\x1b[%p1%dX',
+      'indn': '\x1b[%p1%dS',
+      'rin': '\x1b[%p1%dT',
+      'rep': '%p1%c\x1b[%p2%{1}%-%db',
+      'smcup': '\x1b[?1049h',
+      'rmcup': '\x1b[?1049l',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
@@ -2325,6 +2368,12 @@ void main() {
     );
     expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
   });
+}
+
+String _hexEncode(String value) {
+  return value.codeUnits.map((unit) {
+    return unit.toRadixString(16).padLeft(2, '0').toUpperCase();
+  }).join();
 }
 
 class _TestInputHandler implements TerminalInputHandler {
