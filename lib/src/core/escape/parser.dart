@@ -1716,6 +1716,8 @@ class EscapeParser {
         return handler.setKeyboardActionMode(enabled);
       case 4:
         return handler.setInsertMode(enabled);
+      case 12:
+        return handler.setSendReceiveMode(enabled);
       case 20:
         return handler.setLineFeedMode(enabled);
       default:

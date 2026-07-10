@@ -56,6 +56,16 @@ void main() {
       verify(handler.setKeyboardActionMode(false)).called(1);
     });
 
+    test('parses ANSI send receive mode', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[12h\x1b[12l');
+
+      verify(handler.setSendReceiveMode(true)).called(1);
+      verify(handler.setSendReceiveMode(false)).called(1);
+    });
+
     test('parses DEC private mode save and restore', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

@@ -236,6 +236,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _insertMode = false;
 
+  bool _sendReceiveMode = true;
+
   bool _keyboardActionMode = false;
 
   bool _lineFeedMode = false;
@@ -868,6 +870,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorStyle.hyperlinkId = 0;
     _protectionMode = _ProtectionMode.off;
     _insertMode = false;
+    _sendReceiveMode = true;
     _keyboardActionMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
@@ -917,6 +920,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorStyle.hyperlinkId = 0;
     _protectionMode = _ProtectionMode.off;
     _insertMode = false;
+    _sendReceiveMode = true;
     _keyboardActionMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
@@ -1660,6 +1664,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setSendReceiveMode(bool enabled) {
+    _sendReceiveMode = enabled;
+  }
+
+  @override
   void setKeyboardActionMode(bool enabled) {
     _keyboardActionMode = enabled;
   }
@@ -1851,6 +1860,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     return switch (mode) {
       2 => _reportedState(_keyboardActionMode),
       4 => _reportedState(_insertMode),
+      12 => _reportedState(_sendReceiveMode),
       20 => _reportedState(_lineFeedMode),
       _ => 0,
     };
