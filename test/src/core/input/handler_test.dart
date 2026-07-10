@@ -11,6 +11,22 @@ void main() {
       expect(output, ['\r']);
     });
 
+    test('supports DEC application keypad with NumLock compatibility mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b=');
+      terminal.keyInput(TerminalKey.numpad1);
+      terminal.write('\x1b[?1035l');
+      terminal.keyInput(TerminalKey.numpad1);
+      terminal.keyInput(TerminalKey.numpadAdd);
+      terminal.keyInput(TerminalKey.numpadEnter);
+      terminal.write('\x1b[?1035h');
+      terminal.keyInput(TerminalKey.numpad1);
+
+      expect(output, ['\x1bOq', '\x1bOk', '\x1bOM']);
+    });
+
     test('honors ANSI keyboard action mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

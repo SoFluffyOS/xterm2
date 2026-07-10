@@ -40,6 +40,8 @@ abstract class TerminalState {
 
   bool get appKeypadMode;
 
+  bool get ignoreKeypadWithNumLockMode;
+
   bool get backarrowKeyMode;
 
   bool get reportFocusMode;

@@ -141,12 +141,15 @@ void main() {
       final parser = EscapeParser(handler);
 
       parser.write(
+        '\x1b[?1035h\x1b[?1035l'
         '\x1b[?1036h\x1b[?1036l'
         '\x1b[?1039h\x1b[?1039l'
         '\x1b[?2031h\x1b[?2031l'
         '\x1b[?2048h\x1b[?2048l',
       );
 
+      verify(handler.setIgnoreKeypadWithNumLockMode(true)).called(1);
+      verify(handler.setIgnoreKeypadWithNumLockMode(false)).called(1);
       verify(handler.setAltEscPrefixMode(true)).called(1);
       verify(handler.setAltEscPrefixMode(false)).called(1);
       verify(handler.setAltSendsEscapeMode(true)).called(1);

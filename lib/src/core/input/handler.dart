@@ -30,6 +30,7 @@ const defaultInputHandler = CascadeInputHandler([
   KittyKeyboardInputHandler(),
   ModifyOtherKeysInputHandler(),
   BackspaceInputHandler(),
+  ApplicationKeypadInputHandler(),
   KeytabInputHandler(),
   CtrlInputHandler(),
   AltInputHandler(),
@@ -50,6 +51,41 @@ class BackspaceInputHandler implements TerminalInputHandler {
       false => '',
     };
     return '$prefix\b';
+  }
+}
+
+/// Translates numpad keys in application keypad mode.
+class ApplicationKeypadInputHandler implements TerminalInputHandler {
+  const ApplicationKeypadInputHandler();
+
+  @override
+  String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) return null;
+    if (!event.state.appKeypadMode) return null;
+    if (event.state.ignoreKeypadWithNumLockMode) return null;
+
+    final suffix = switch (event.key) {
+      TerminalKey.numpad0 => 'p',
+      TerminalKey.numpad1 => 'q',
+      TerminalKey.numpad2 => 'r',
+      TerminalKey.numpad3 => 's',
+      TerminalKey.numpad4 => 't',
+      TerminalKey.numpad5 => 'u',
+      TerminalKey.numpad6 => 'v',
+      TerminalKey.numpad7 => 'w',
+      TerminalKey.numpad8 => 'x',
+      TerminalKey.numpad9 => 'y',
+      TerminalKey.numpadDecimal => 'n',
+      TerminalKey.numpadDivide => 'o',
+      TerminalKey.numpadMultiply => 'j',
+      TerminalKey.numpadSubtract => 'm',
+      TerminalKey.numpadAdd => 'k',
+      TerminalKey.numpadEnter => 'M',
+      _ => null,
+    };
+    if (suffix == null) return null;
+
+    return '\x1bO$suffix';
   }
 }
 

@@ -570,6 +570,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setIgnoreKeypadWithNumLockMode(bool enabled) {
+    onCommand('setIgnoreKeypadWithNumLockMode($enabled)');
+  }
+
+  @override
   void setBackarrowKeyMode(bool enabled) {
     onCommand('setBackarrowKeyMode($enabled)');
   }

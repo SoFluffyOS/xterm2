@@ -266,6 +266,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _appKeypadMode = false;
 
+  bool _ignoreKeypadWithNumLockMode = true;
+
   bool _backarrowKeyMode = false;
 
   bool _reportFocusMode = false;
@@ -357,6 +359,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get appKeypadMode => _appKeypadMode;
+
+  @override
+  bool get ignoreKeypadWithNumLockMode => _ignoreKeypadWithNumLockMode;
 
   @override
   bool get backarrowKeyMode => _backarrowKeyMode;
@@ -877,6 +882,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorVisibleMode = true;
     _applicationCursorType = null;
     _appKeypadMode = false;
+    _ignoreKeypadWithNumLockMode = true;
     _backarrowKeyMode = false;
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
@@ -925,6 +931,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorVisibleMode = true;
     _applicationCursorType = null;
     _appKeypadMode = false;
+    _ignoreKeypadWithNumLockMode = true;
     _backarrowKeyMode = false;
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
@@ -1749,6 +1756,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setIgnoreKeypadWithNumLockMode(bool enabled) {
+    _ignoreKeypadWithNumLockMode = enabled;
+  }
+
+  @override
   void setBackarrowKeyMode(bool enabled) {
     _backarrowKeyMode = enabled;
   }
@@ -1868,6 +1880,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _reportedState(_altBufferMouseScrollMode),
       1015 => _reportedState(_mouseReportMode == MouseReportMode.urxvt),
       1016 => _reportedState(_mouseReportMode == MouseReportMode.sgrPixels),
+      1035 => _reportedState(_ignoreKeypadWithNumLockMode),
       1036 => _reportedState(_altEscPrefixMode),
       1039 => _reportedState(_altSendsEscapeMode),
       1045 => _reportedState(_reverseWrapExtendedMode),
@@ -1926,6 +1939,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1007 => _altBufferMouseScrollMode,
       1015 => _mouseReportMode == MouseReportMode.urxvt,
       1016 => _mouseReportMode == MouseReportMode.sgrPixels,
+      1035 => _ignoreKeypadWithNumLockMode,
       1036 => _altEscPrefixMode,
       1039 => _altSendsEscapeMode,
       1045 => _reverseWrapExtendedMode,
@@ -2013,6 +2027,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           true => MouseReportMode.sgrPixels,
           false => MouseReportMode.normal,
         });
+      case 1035:
+        return setIgnoreKeypadWithNumLockMode(enabled);
       case 1036:
         return setAltEscPrefixMode(enabled);
       case 1039:

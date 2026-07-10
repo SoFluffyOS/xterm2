@@ -1794,6 +1794,8 @@ class EscapeParser {
         return enabled
             ? handler.setMouseReportMode(MouseReportMode.sgrPixels)
             : handler.setMouseReportMode(MouseReportMode.normal);
+      case 1035:
+        return handler.setIgnoreKeypadWithNumLockMode(enabled);
       case 1036:
         return handler.setAltEscPrefixMode(enabled);
       case 1039:

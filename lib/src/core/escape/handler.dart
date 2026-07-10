@@ -193,6 +193,8 @@ abstract class EscapeHandler {
 
   void setAppKeypadMode(bool enabled);
 
+  void setIgnoreKeypadWithNumLockMode(bool enabled);
+
   void setBackarrowKeyMode(bool enabled);
 
   void setReportFocusMode(bool enabled);
