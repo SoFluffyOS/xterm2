@@ -126,6 +126,18 @@ void main() {
       verify(handler.setGraphemeClusterMode(false)).called(1);
     });
 
+    test('parses Ghostty reporting modes', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?2031h\x1b[?2031l\x1b[?2048h\x1b[?2048l');
+
+      verify(handler.setReportColorSchemeMode(true)).called(1);
+      verify(handler.setReportColorSchemeMode(false)).called(1);
+      verify(handler.setInBandSizeReportMode(true)).called(1);
+      verify(handler.setInBandSizeReportMode(false)).called(1);
+    });
+
     test('parses G2 and G3 character set controls', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
