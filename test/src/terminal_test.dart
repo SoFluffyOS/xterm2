@@ -1485,6 +1485,55 @@ void main() {
     );
   });
 
+  test('Terminal reports common terminfo keyboard capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kbs': '\x7f',
+      'kcbt': '\x1b[Z',
+      'kent': '\x1bOM',
+      'khome': '\x1b[H',
+      'kend': '\x1b[F',
+      'kich1': '\x1b[2~',
+      'kdch1': '\x1b[3~',
+      'kpp': '\x1b[5~',
+      'knp': '\x1b[6~',
+      'kcuu1': '\x1b[A',
+      'kcud1': '\x1b[B',
+      'kcuf1': '\x1b[C',
+      'kcub1': '\x1b[D',
+      'kf1': '\x1bOP',
+      'kf2': '\x1bOQ',
+      'kf3': '\x1bOR',
+      'kf4': '\x1bOS',
+      'kf5': '\x1b[15~',
+      'kf6': '\x1b[17~',
+      'kf7': '\x1b[18~',
+      'kf8': '\x1b[19~',
+      'kf9': '\x1b[20~',
+      'kf10': '\x1b[21~',
+      'kf11': '\x1b[23~',
+      'kf12': '\x1b[24~',
+      'u6': '\x1b[%i%d;%dR',
+      'u7': '\x1b[6n',
+      'u8': '\x1b[?%[;0123456789]c',
+      'u9': '\x1b[c',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
