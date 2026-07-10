@@ -1607,6 +1607,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void insertColumns(int amount) {
+    _buffer.insertColumns(amount);
+  }
+
+  @override
+  void deleteColumns(int amount) {
+    _buffer.deleteColumns(amount);
+  }
+
+  @override
   void scrollUp(int amount) {
     _buffer.scrollUp(amount);
   }

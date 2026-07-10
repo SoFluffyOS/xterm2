@@ -137,6 +137,10 @@ abstract class EscapeHandler {
 
   void deleteChars(int amount);
 
+  void insertColumns(int amount);
+
+  void deleteColumns(int amount);
+
   void scrollUp(int amount);
 
   void scrollDown(int amount);

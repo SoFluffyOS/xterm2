@@ -1483,6 +1483,27 @@ void main() {
     ]);
   });
 
+  test('Terminal inserts and deletes columns inside margins', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('ABCDEF\r\nabcdef\r\n123456');
+    terminal.write('\x1b[1;3H\x1b[2\'}');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'ABCD');
+    expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+    expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+    expect(terminal.buffer.lines[1].getText(0, 6), 'abcd');
+    expect(terminal.buffer.lines[2].getText(0, 6), '1234');
+
+    final deleteTerminal = Terminal()..resize(6, 3);
+    deleteTerminal.write('ABCDEF\r\nabcdef\r\n123456');
+    deleteTerminal.write('\x1b[1;3H\x1b[2\'~');
+
+    expect(deleteTerminal.buffer.lines[0].getText(0, 6), 'ABEF');
+    expect(deleteTerminal.buffer.lines[1].getText(0, 6), 'abef');
+    expect(deleteTerminal.buffer.lines[2].getText(0, 6), '1256');
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

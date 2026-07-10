@@ -899,6 +899,30 @@ class Buffer {
     currentLine.removeCells(start, count, _blankCellStyle, _rightLimit);
   }
 
+  void insertColumns(int count) {
+    if (!isInVerticalMargin || !isInHorizontalMargin) {
+      return;
+    }
+
+    count = min(count, _marginRight - _cursorX + 1);
+    for (var row = absoluteMarginTop; row <= absoluteMarginBottom; row++) {
+      lines[row]
+          .insertCells(_cursorX, count, _blankCellStyle, _marginRight + 1);
+    }
+  }
+
+  void deleteColumns(int count) {
+    if (!isInVerticalMargin || !isInHorizontalMargin) {
+      return;
+    }
+
+    count = min(count, _marginRight - _cursorX + 1);
+    for (var row = absoluteMarginTop; row <= absoluteMarginBottom; row++) {
+      lines[row]
+          .removeCells(_cursorX, count, _blankCellStyle, _marginRight + 1);
+    }
+  }
+
   bool get _usesFullHorizontalMargins {
     return _marginLeft == 0 && _marginRight == viewWidth - 1;
   }

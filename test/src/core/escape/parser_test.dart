@@ -142,6 +142,16 @@ void main() {
       verify(handler.setLinesPerPage(30)).called(1);
     });
 
+    test('parses column insert and delete sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write("\x1b[2'}\x1b['~");
+
+      verify(handler.insertColumns(2)).called(1);
+      verify(handler.deleteColumns(1)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

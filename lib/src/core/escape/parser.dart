@@ -657,7 +657,9 @@ class EscapeParser {
     's'.codeUnitAt(0): _csiHandleSaveModeOrCursor,
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     't'.codeUnitAt(0): _csiWindowManipulation,
+    '~'.codeUnitAt(0): _csiHandleDeleteColumns,
     '|'.codeUnitAt(0): _csiHandleColumnsPerPage,
+    '}'.codeUnitAt(0): _csiHandleInsertColumns,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
     'B'.codeUnitAt(0): _csiHandleCursorDown,
     'C'.codeUnitAt(0): _csiHandleCursorForward,
@@ -679,6 +681,25 @@ class EscapeParser {
     'Z'.codeUnitAt(0): _csiHandleCursorBackwardTabulation,
     '@'.codeUnitAt(0): _csiHandleInsertBlankCharacters,
   });
+
+  /// `ESC [ Ps ' }` Insert Column (DECIC).
+  void _csiHandleInsertColumns() {
+    if (!_isSingleQuoteCsi()) return;
+    handler.insertColumns(_firstParamOrDefault(1));
+  }
+
+  /// `ESC [ Ps ' ~` Delete Column (DECDC).
+  void _csiHandleDeleteColumns() {
+    if (!_isSingleQuoteCsi()) return;
+    handler.deleteColumns(_firstParamOrDefault(1));
+  }
+
+  bool _isSingleQuoteCsi() {
+    return _csi.prefix == null &&
+        _csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.singleQuote &&
+        _csi.params.length <= 1;
+  }
 
   /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).
   void _csiHandleColumnsPerPage() {

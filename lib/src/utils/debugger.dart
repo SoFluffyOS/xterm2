@@ -436,6 +436,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void insertColumns(int amount) {
+    onCommand('insertColumns($amount)');
+  }
+
+  @override
+  void deleteColumns(int amount) {
+    onCommand('deleteColumns($amount)');
+  }
+
+  @override
   void scrollUp(int amount) {
     onCommand('scrollUp($amount)');
   }
