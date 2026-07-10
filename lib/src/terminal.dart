@@ -318,6 +318,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _protectedFieldsAttribute = 0;
 
+  int _transmitTerminationCharacter = 0;
+
+  int _lineTransmitTerminationCharacter = 0;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1450,6 +1454,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),
+      '|' => '$_transmitTerminationCharacter|',
+      "'s" => "$_lineTransmitTerminationCharacter's",
       '}' => '$_protectedFieldsAttribute}',
       '"p' => '$_conformanceLevel;$_conformanceControls"p',
       '"q' => '${switch (_cursorStyle.isProtected) {
@@ -1793,6 +1799,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setProtectedFieldsAttribute(int attribute) {
     _protectedFieldsAttribute = attribute;
+  }
+
+  @override
+  void setTransmitTerminationCharacter(int character) {
+    _transmitTerminationCharacter = character;
+  }
+
+  @override
+  void setLineTransmitTerminationCharacter(int character) {
+    _lineTransmitTerminationCharacter = character;
   }
 
   @override

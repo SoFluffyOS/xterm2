@@ -1679,6 +1679,23 @@ void main() {
     expect(output, ['\x1bP1\$r1}\x1b\\']);
   });
 
+  test('Terminal reports transmit termination character status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[13|'
+      '\x1b[10\'s'
+      '\x1bP\$q|\x1b\\'
+      '\x1bP\$q\'s\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r13|\x1b\\',
+      '\x1bP1\$r10\'s\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

@@ -820,6 +820,10 @@ class EscapeParser {
   ///
   /// `ESC [ Ps * |` Select Number of Lines per Screen (DECSNLS).
   void _csiHandlePageSize() {
+    if (_isPlainCsi()) {
+      return handler.setTransmitTerminationCharacter(_firstParamOrDefault(0));
+    }
+
     if (_csi.prefix != null ||
         _csi.intermediates.length != 1 ||
         _csi.params.length > 1) {
@@ -1528,6 +1532,13 @@ class EscapeParser {
   ///
   /// `ESC [ Ps ; Ps s` Set Left and Right Margins (DECSLRM)
   void _csiHandleSaveModeOrCursor() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.singleQuote) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler
+          .setLineTransmitTerminationCharacter(_firstParamOrDefault(0));
+    }
+
     if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == null && _csi.params.isEmpty) {
       return handler.saveCursorOrSetLeftRightMargins();

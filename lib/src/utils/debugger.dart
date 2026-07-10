@@ -562,6 +562,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setTransmitTerminationCharacter(int character) {
+    onCommand('setTransmitTerminationCharacter($character)');
+  }
+
+  @override
+  void setLineTransmitTerminationCharacter(int character) {
+    onCommand('setLineTransmitTerminationCharacter($character)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }

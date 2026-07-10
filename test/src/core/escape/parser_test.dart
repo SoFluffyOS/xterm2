@@ -231,6 +231,16 @@ void main() {
       verify(handler.setProtectedFieldsAttribute(1)).called(1);
     });
 
+    test('parses transmit termination character sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[13|\x1b[10\'s');
+
+      verify(handler.setTransmitTerminationCharacter(13)).called(1);
+      verify(handler.setLineTransmitTerminationCharacter(10)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
