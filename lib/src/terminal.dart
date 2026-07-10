@@ -576,6 +576,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     newWidth = max(newWidth, 1);
     newHeight = max(newHeight, 1);
 
+    final nextCellPixelWidth = pixelWidth ?? _cellPixelWidth;
+    final nextCellPixelHeight = pixelHeight ?? _cellPixelHeight;
+    if (newWidth == _viewWidth &&
+        newHeight == _viewHeight &&
+        nextCellPixelWidth == _cellPixelWidth &&
+        nextCellPixelHeight == _cellPixelHeight) {
+      return;
+    }
+
     onResize?.call(newWidth, newHeight, pixelWidth ?? 0, pixelHeight ?? 0);
     if (pixelWidth != null) {
       _cellPixelWidth = pixelWidth;

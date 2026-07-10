@@ -1383,6 +1383,25 @@ void main() {
     ]);
   });
 
+  test('Terminal skips no-op resizes', () {
+    final resizes = <(int, int, int, int)>[];
+    final terminal = Terminal();
+
+    terminal.onResize = (width, height, pixelWidth, pixelHeight) {
+      resizes.add((width, height, pixelWidth, pixelHeight));
+    };
+    terminal.resize(100, 30, 9, 18);
+    terminal.resize(100, 30, 9, 18);
+    terminal.resize(100, 30);
+    terminal.resize(100, 30, 10, 18);
+
+    expect(resizes, [
+      (100, 30, 9, 18),
+      (100, 30, 10, 18),
+    ]);
+    expect(terminal.viewWidth, 100);
+  });
+
   test('Terminal reports one-based cursor position', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
