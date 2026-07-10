@@ -418,6 +418,53 @@ void main() {
 
       expect(output, isEmpty);
     });
+
+    testWidgets('shift bypasses mouse reporting for selection', (tester) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add)..write('abcdef');
+      terminal.write('\x1b[?1002h');
+
+      final controller = TerminalController(
+        pointerInputs: PointerInputs.all(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cellSize = state.renderTerminal.cellSize;
+      final start = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 0.5, cellSize.height * 0.5),
+      );
+      final end = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 3.5, cellSize.height * 0.5),
+      );
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendEventToBinding(pointer.down(start));
+      await tester.pump();
+      await tester.sendEventToBinding(pointer.move(end));
+      await tester.pump();
+      await tester.sendEventToBinding(pointer.up());
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(output, isEmpty);
+      final selection = controller.selection;
+      expect(selection, isNotNull);
+      if (selection != null) {
+        expect(terminal.buffer.getText(selection), 'abcd');
+      }
+    });
   });
 
   group('TerminalView.autofocus', () {

@@ -88,6 +88,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   bool get _shouldSendTapEvent =>
       !widget.readOnly &&
+      !_isShiftPressed &&
       widget.terminalController.shouldSendPointerInput(PointerInput.tap);
 
   void _onPointerMotion(PointerEvent event) {
@@ -96,6 +97,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       _ => PointerInput.drag,
     };
     if (widget.readOnly ||
+        _isShiftPressed ||
         !widget.terminalController.shouldSendPointerInput(input)) {
       return;
     }
@@ -118,6 +120,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   bool get _terminalReportsDrag {
     if (widget.readOnly ||
+        _isShiftPressed ||
         !widget.terminalController.shouldSendPointerInput(PointerInput.drag)) {
       return false;
     }
@@ -172,15 +175,21 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   TerminalMouseModifiers _currentModifiers() {
+    final shift = _isShiftPressed;
     final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
     return TerminalMouseModifiers(
-      shift: pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
-          pressedKeys.contains(LogicalKeyboardKey.shiftRight),
+      shift: shift,
       alt: pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
           pressedKeys.contains(LogicalKeyboardKey.altRight),
       control: pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
           pressedKeys.contains(LogicalKeyboardKey.controlRight),
     );
+  }
+
+  bool get _isShiftPressed {
+    final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
+    return pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
+        pressedKeys.contains(LogicalKeyboardKey.shiftRight);
   }
 
   void onTapDown(TapDownDetails details) {
