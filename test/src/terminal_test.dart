@@ -1568,6 +1568,36 @@ void main() {
     );
   });
 
+  test('Terminal reports modified function-key terminfo capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kf13': '\x1b[1;2P',
+      'kf24': '\x1b[24;2~',
+      'kf25': '\x1b[1;5P',
+      'kf36': '\x1b[24;5~',
+      'kf37': '\x1b[1;6P',
+      'kf48': '\x1b[24;6~',
+      'kf49': '\x1b[1;3P',
+      'kf60': '\x1b[24;3~',
+      'kf61': '\x1b[1;4P',
+      'kf63': '\x1b[1;4R',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};6B663634'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal reports text area and cell pixel sizes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

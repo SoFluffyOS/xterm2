@@ -1091,6 +1091,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   String? _terminfoCapability(String key) {
+    final modifiedFunctionKey = _modifiedFunctionKeyCapability(key);
+    if (modifiedFunctionKey != null) return modifiedFunctionKey;
+
     return switch (key) {
       'TN' => 'xterm-256color',
       'Co' => '256',
@@ -1269,6 +1272,50 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       'kNXT7' => '\x1b[6;7~',
       _ => null,
     };
+  }
+
+  String? _modifiedFunctionKeyCapability(String key) {
+    if (!key.startsWith('kf')) return null;
+
+    final number = int.tryParse(key.substring(2));
+    if (number == null) return null;
+    if (number < 13 || number > 63) return null;
+
+    final group = switch (number) {
+      >= 13 && <= 24 => (offset: number - 13, modifier: 2),
+      >= 25 && <= 36 => (offset: number - 25, modifier: 5),
+      >= 37 && <= 48 => (offset: number - 37, modifier: 6),
+      >= 49 && <= 60 => (offset: number - 49, modifier: 3),
+      >= 61 && <= 63 => (offset: number - 61, modifier: 4),
+      _ => null,
+    };
+    if (group == null) return null;
+
+    if (group.offset < 4) {
+      final finalByte = switch (group.offset) {
+        0 => 'P',
+        1 => 'Q',
+        2 => 'R',
+        3 => 'S',
+        _ => null,
+      };
+      if (finalByte == null) return null;
+      return '\x1b[1;${group.modifier}$finalByte';
+    }
+
+    final base = switch (group.offset) {
+      4 => 15,
+      5 => 17,
+      6 => 18,
+      7 => 19,
+      8 => 20,
+      9 => 21,
+      10 => 23,
+      11 => 24,
+      _ => null,
+    };
+    if (base == null) return null;
+    return '\x1b[$base;${group.modifier}~';
   }
 
   String? _statusString(String query) {
