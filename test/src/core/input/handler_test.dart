@@ -11,6 +11,15 @@ void main() {
       expect(output, ['\r']);
     });
 
+    test('encodes alt backspace as escape delete', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.keyInput(TerminalKey.backspace, alt: true);
+
+      expect(output, ['\x1b\x7f']);
+    });
+
     test('keeps cursor keys normal in application keypad mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
