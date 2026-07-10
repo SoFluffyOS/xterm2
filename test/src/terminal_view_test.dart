@@ -747,5 +747,24 @@ void main() {
 
       expect(terminalOutput.join(), isEmpty);
     });
+
+    testWidgets('does nothing when read only', (tester) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.useAltBuffer();
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(
+          terminal,
+          autofocus: true,
+          readOnly: true,
+          simulateScroll: true,
+        ),
+      ));
+
+      await tester.drag(find.byType(TerminalView), const Offset(0, -100));
+
+      expect(terminalOutput.join(), isEmpty);
+    });
   });
 }

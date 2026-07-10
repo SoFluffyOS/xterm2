@@ -14,6 +14,7 @@ class TerminalScrollGestureHandler extends StatefulWidget {
     required this.getCellOffset,
     required this.getLineHeight,
     this.simulateScroll = true,
+    this.readOnly = false,
     required this.child,
   });
 
@@ -29,6 +30,8 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   /// doesn't declare it supports mouse wheel events. true by default as it
   /// is the default behavior of most terminals.
   final bool simulateScroll;
+
+  final bool readOnly;
 
   final Widget child;
 
@@ -85,6 +88,8 @@ class _TerminalScrollGestureHandlerState
   /// then if the application doesn't recognize mouse wheel events, this method
   /// will simulate scroll events by sending up/down arrow keys.
   void _sendScrollEvent(bool up) {
+    if (widget.readOnly) return;
+
     final position = widget.getCellOffset(lastPointerPosition);
     final pixelPosition = CellOffset(
       lastPointerPosition.dx.floor(),
