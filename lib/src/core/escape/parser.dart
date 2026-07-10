@@ -658,7 +658,7 @@ class EscapeParser {
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     't'.codeUnitAt(0): _csiWindowManipulation,
     '~'.codeUnitAt(0): _csiHandleDeleteColumns,
-    '|'.codeUnitAt(0): _csiHandleColumnsPerPage,
+    '|'.codeUnitAt(0): _csiHandlePageSize,
     '}'.codeUnitAt(0): _csiHandleInsertColumns,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
     'B'.codeUnitAt(0): _csiHandleCursorDown,
@@ -702,20 +702,31 @@ class EscapeParser {
   }
 
   /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).
-  void _csiHandleColumnsPerPage() {
+  ///
+  /// `ESC [ Ps * |` Select Number of Lines per Screen (DECSNLS).
+  void _csiHandlePageSize() {
     if (_csi.prefix != null ||
         _csi.intermediates.length != 1 ||
-        _csi.intermediates.single != Ascii.dollarSign ||
         _csi.params.length > 1) {
       return;
     }
 
-    final cols = switch (_csi.params) {
-      [] || [0] => 80,
-      [final value] => value,
-      _ => 80,
-    };
-    handler.setColumnsPerPage(cols);
+    switch (_csi.intermediates.single) {
+      case Ascii.dollarSign:
+        final cols = switch (_csi.params) {
+          [] || [0] => 80,
+          [final value] => value,
+          _ => 80,
+        };
+        handler.setColumnsPerPage(cols);
+      case Ascii.asterisk:
+        final rows = switch (_csi.params) {
+          [] || [0] => 24,
+          [final value] => value,
+          _ => 24,
+        };
+        handler.setLinesPerPage(rows);
+    }
   }
 
   void _csiHandleCursorStyle() {

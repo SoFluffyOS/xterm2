@@ -135,11 +135,12 @@ void main() {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
 
-      parser.write('\x1b[100\$|\x1b[\$|\x1b[30t');
+      parser.write('\x1b[100\$|\x1b[\$|\x1b[30t\x1b[36*|');
 
       verify(handler.setColumnsPerPage(100)).called(1);
       verify(handler.setColumnsPerPage(80)).called(1);
       verify(handler.setLinesPerPage(30)).called(1);
+      verify(handler.setLinesPerPage(36)).called(1);
     });
 
     test('parses column insert and delete sequences', () {

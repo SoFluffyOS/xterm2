@@ -1418,6 +1418,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           false => 0,
         }}"q',
       r'$|' => '$_viewWidth\$|',
+      '*|' => '$_viewHeight*|',
       ' q' => '${_cursorShapeStatus()} q',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),

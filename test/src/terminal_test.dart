@@ -1474,12 +1474,14 @@ void main() {
 
     terminal.write('\x1b[100\$|\x1bP\$q\$|\x1b\\');
     terminal.write('\x1b[30t\x1bP\$qt\x1b\\');
+    terminal.write('\x1b[36*|\x1bP\$q*|\x1b\\');
 
     expect(terminal.viewWidth, 100);
-    expect(terminal.viewHeight, 30);
+    expect(terminal.viewHeight, 36);
     expect(output, [
       '\x1bP1\$r100\$|\x1b\\',
       '\x1bP1\$r30t\x1b\\',
+      '\x1bP1\$r36*|\x1b\\',
     ]);
   });
 
