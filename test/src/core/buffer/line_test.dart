@@ -206,6 +206,35 @@ void main() {
       expect(middleAnchor.x, 3);
       expect(droppedAnchor.attached, isFalse);
     });
+
+    test('detach every anchor in content dropped by inserted cells', () {
+      final terminal = Terminal()..resize(5, 1);
+      terminal.write('abcde');
+      final line = terminal.buffer.lines[0];
+      final firstDroppedAnchor = line.createAnchor(3);
+      final secondDroppedAnchor = line.createAnchor(4);
+
+      line.insertCells(0, 2);
+
+      expect(firstDroppedAnchor.attached, isFalse);
+      expect(secondDroppedAnchor.attached, isFalse);
+    });
+
+    test('detach every anchor in removed cells', () {
+      final terminal = Terminal()..resize(5, 1);
+      terminal.write('abcde');
+      final line = terminal.buffer.lines[0];
+      final firstRemovedAnchor = line.createAnchor(1);
+      final secondRemovedAnchor = line.createAnchor(2);
+      final shiftedAnchor = line.createAnchor(3);
+
+      line.removeCells(1, 2);
+
+      expect(firstRemovedAnchor.attached, isFalse);
+      expect(secondRemovedAnchor.attached, isFalse);
+      expect(shiftedAnchor.attached, isTrue);
+      expect(shiftedAnchor.x, 1);
+    });
   });
 
   group('Buffer.createAnchor', () {
