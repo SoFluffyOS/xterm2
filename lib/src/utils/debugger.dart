@@ -532,6 +532,21 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setKeyClickVolume(int volume) {
+    onCommand('setKeyClickVolume($volume)');
+  }
+
+  @override
+  void setMarginBellVolume(int volume) {
+    onCommand('setMarginBellVolume($volume)');
+  }
+
+  @override
+  void setWarningBellVolume(int volume) {
+    onCommand('setWarningBellVolume($volume)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }

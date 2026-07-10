@@ -1624,6 +1624,26 @@ void main() {
     expect(output, ['\x1bP1\$r2*x\x1b\\']);
   });
 
+  test('Terminal reports VT520 bell volume status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[3 r'
+      '\x1b[4 u'
+      '\x1b[5 t'
+      '\x1bP\$q r\x1b\\'
+      '\x1bP\$q u\x1b\\'
+      '\x1bP\$q t\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r3 r\x1b\\',
+      '\x1bP1\$r4 u\x1b\\',
+      '\x1bP1\$r5 t\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

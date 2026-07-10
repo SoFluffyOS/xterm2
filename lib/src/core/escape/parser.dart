@@ -871,6 +871,12 @@ class EscapeParser {
   }
 
   void _csiHandleKittyKeyboardMode() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.space) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler.setMarginBellVolume(_firstParamOrDefault(0));
+    }
+
     if (_csi.intermediates.isNotEmpty) return;
     switch (_csi.prefix) {
       case Ascii.questionMark:
@@ -1446,6 +1452,12 @@ class EscapeParser {
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
     if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.space) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler.setKeyClickVolume(_firstParamOrDefault(0));
+    }
+
+    if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.dollarSign) {
       return _csiHandleChangeRectAttributes();
     }
@@ -1541,6 +1553,12 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_st/
   void _csiWindowManipulation() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.space) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler.setWarningBellVolume(_firstParamOrDefault(0));
+    }
+
     if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.dollarSign) {
       return _csiHandleReverseRectAttributes();

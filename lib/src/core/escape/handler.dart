@@ -186,6 +186,12 @@ abstract class EscapeHandler {
 
   void setAttributeChangeExtent(bool rectangular);
 
+  void setKeyClickVolume(int volume);
+
+  void setMarginBellVolume(int volume);
+
+  void setWarningBellVolume(int volume);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);

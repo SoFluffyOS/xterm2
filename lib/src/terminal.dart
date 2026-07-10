@@ -302,6 +302,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _attributeChangeExtentRectangular = false;
 
+  int _keyClickVolume = 0;
+
+  int _marginBellVolume = 0;
+
+  int _warningBellVolume = 0;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1436,6 +1442,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         }}*x',
       '*|' => '$_viewHeight*|',
       ' q' => '${_cursorShapeStatus()} q',
+      ' r' => '$_keyClickVolume r',
+      ' u' => '$_marginBellVolume u',
+      ' t' => '$_warningBellVolume t',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),
       't' => '${_viewHeight}t',
@@ -1731,6 +1740,21 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setAttributeChangeExtent(bool rectangular) {
     _attributeChangeExtentRectangular = rectangular;
+  }
+
+  @override
+  void setKeyClickVolume(int volume) {
+    _keyClickVolume = volume.clamp(0, 8);
+  }
+
+  @override
+  void setMarginBellVolume(int volume) {
+    _marginBellVolume = volume.clamp(0, 8);
+  }
+
+  @override
+  void setWarningBellVolume(int volume) {
+    _warningBellVolume = volume.clamp(0, 8);
   }
 
   @override

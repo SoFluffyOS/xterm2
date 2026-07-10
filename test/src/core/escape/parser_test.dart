@@ -192,6 +192,17 @@ void main() {
       verify(handler.reverseRectAttributes(2, 3, 4, 5, 7)).called(1);
     });
 
+    test('parses VT520 bell volume sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[3 r\x1b[4 u\x1b[5 t');
+
+      verify(handler.setKeyClickVolume(3)).called(1);
+      verify(handler.setMarginBellVolume(4)).called(1);
+      verify(handler.setWarningBellVolume(5)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
