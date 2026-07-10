@@ -1069,6 +1069,20 @@ void main() {
       expect(redraws, 2);
     });
 
+    test('resize disables synchronized update mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      terminal.resize(100, 24);
+      terminal.write('\x1b[?2026\x24p');
+
+      expect(redraws, 2);
+      expect(output, ['\x1b[?2026;2\x24y']);
+    });
+
     test('reports synchronized update mode state', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

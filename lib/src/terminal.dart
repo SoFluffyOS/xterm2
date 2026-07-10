@@ -642,6 +642,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       return;
     }
 
+    final wasSynchronizedUpdateMode = _synchronizedUpdateMode;
+    if (wasSynchronizedUpdateMode) {
+      _synchronizedUpdateTimer?.cancel();
+      _synchronizedUpdateTimer = null;
+      _synchronizedUpdateMode = false;
+    }
+
     onResize?.call(newWidth, newHeight, pixelWidth ?? 0, pixelHeight ?? 0);
     if (pixelWidth != null) {
       _cellPixelWidth = pixelWidth;
@@ -663,6 +670,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
     _altBuffer.resetVerticalMargins();
     _mainBuffer.resetVerticalMargins();
+
+    if (wasSynchronizedUpdateMode) notifyListeners();
   }
 
   @override
