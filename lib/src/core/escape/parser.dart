@@ -673,6 +673,7 @@ class EscapeParser {
     'x'.codeUnitAt(0): _csiHandleFillRect,
     'z'.codeUnitAt(0): _csiHandleEraseRect,
     't'.codeUnitAt(0): _csiWindowManipulation,
+    'v'.codeUnitAt(0): _csiHandleCopyRect,
     '~'.codeUnitAt(0): _csiHandleDeleteColumns,
     '|'.codeUnitAt(0): _csiHandlePageSize,
     '{'.codeUnitAt(0): _csiHandleSelectiveEraseRect,
@@ -723,6 +724,22 @@ class EscapeParser {
     if (!_isDollarCsi(paramCount: 5)) return;
     handler.fillRect(_csi.params[0], _csi.params[1], _csi.params[2],
         _csi.params[3], _csi.params[4]);
+  }
+
+  /// `ESC [ Pts; Pl; Pbs; Prs; Pps; Ptd; Pld; Ppd $ v`
+  /// Copy Rectangular Area (DECCRA).
+  void _csiHandleCopyRect() {
+    if (!_isDollarCsi(paramCount: 8)) return;
+    handler.copyRect(
+      _csi.params[0],
+      _csi.params[1],
+      _csi.params[2],
+      _csi.params[3],
+      _csi.params[4],
+      _csi.params[5],
+      _csi.params[6],
+      _csi.params[7],
+    );
   }
 
   /// `ESC [ Pt; Pl; Pb; Pr $ {` Selective Erase Rectangular Area (DECSERA).

@@ -481,6 +481,23 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void copyRect(
+    int sourceTop,
+    int sourceLeft,
+    int sourceBottom,
+    int sourceRight,
+    int sourcePage,
+    int destinationTop,
+    int destinationLeft,
+    int destinationPage,
+  ) {
+    onCommand(
+      'copyRect($sourceTop, $sourceLeft, $sourceBottom, $sourceRight, '
+      '$sourcePage, $destinationTop, $destinationLeft, $destinationPage)',
+    );
+  }
+
+  @override
   void selectiveEraseRect(int top, int left, int bottom, int right) {
     onCommand('selectiveEraseRect($top, $left, $bottom, $right)');
   }

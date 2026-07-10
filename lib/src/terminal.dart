@@ -1659,6 +1659,29 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void copyRect(
+    int sourceTop,
+    int sourceLeft,
+    int sourceBottom,
+    int sourceRight,
+    int sourcePage,
+    int destinationTop,
+    int destinationLeft,
+    int destinationPage,
+  ) {
+    _buffer.copyRect(
+      sourceTop,
+      sourceLeft,
+      sourceBottom,
+      sourceRight,
+      sourcePage,
+      destinationTop,
+      destinationLeft,
+      destinationPage,
+    );
+  }
+
+  @override
   void selectiveEraseRect(int top, int left, int bottom, int right) {
     _buffer.eraseRect(top, left, bottom, right, respectProtected: true);
   }

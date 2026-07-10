@@ -168,6 +168,15 @@ void main() {
       verify(handler.selectiveEraseRect(2, 3, 4, 5)).called(1);
     });
 
+    test('parses rectangular copy sequence', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[2;3;4;5;1;6;7;1\$v');
+
+      verify(handler.copyRect(2, 3, 4, 5, 1, 6, 7, 1)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

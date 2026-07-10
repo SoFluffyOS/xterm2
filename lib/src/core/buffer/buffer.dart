@@ -558,6 +558,63 @@ class Buffer {
     }
   }
 
+  void copyRect(
+    int sourceTop,
+    int sourceLeft,
+    int sourceBottom,
+    int sourceRight,
+    int sourcePage,
+    int destinationTop,
+    int destinationLeft,
+    int destinationPage,
+  ) {
+    if (sourcePage != 1 || destinationPage != 1) return;
+
+    final sourceRect =
+        _normalizeRect(sourceTop, sourceLeft, sourceBottom, sourceRight);
+    if (sourceRect == null) return;
+
+    final destinationRect = _normalizeRect(
+      destinationTop,
+      destinationLeft,
+      destinationTop + sourceRect.bottom - sourceRect.top,
+      destinationLeft + sourceRect.right - sourceRect.left,
+    );
+    if (destinationRect == null) return;
+
+    final width = min(
+      sourceRect.right - sourceRect.left + 1,
+      destinationRect.right - destinationRect.left + 1,
+    );
+    final height = min(
+      sourceRect.bottom - sourceRect.top + 1,
+      destinationRect.bottom - destinationRect.top + 1,
+    );
+    if (width <= 0 || height <= 0) return;
+
+    final copiedLines = <BufferLine>[];
+    for (var row = 0; row < height; row++) {
+      final sourceLine = lines[sourceRect.top + row + scrollBack];
+      copiedLines.add(BufferLine(width)
+        ..copyFrom(
+          sourceLine,
+          sourceRect.left,
+          0,
+          width,
+        ));
+    }
+
+    for (var row = 0; row < height; row++) {
+      final destinationLine = lines[destinationRect.top + row + scrollBack];
+      destinationLine.copyFrom(
+        copiedLines[row],
+        0,
+        destinationRect.left,
+        width,
+      );
+    }
+  }
+
   ({int top, int left, int bottom, int right})? _normalizeRect(
     int top,
     int left,

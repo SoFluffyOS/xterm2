@@ -155,6 +155,17 @@ abstract class EscapeHandler {
 
   void fillRect(int char, int top, int left, int bottom, int right);
 
+  void copyRect(
+    int sourceTop,
+    int sourceLeft,
+    int sourceBottom,
+    int sourceRight,
+    int sourcePage,
+    int destinationTop,
+    int destinationLeft,
+    int destinationPage,
+  );
+
   void selectiveEraseRect(int top, int left, int bottom, int right);
 
   void insertBlankChars(int amount);

@@ -1556,6 +1556,16 @@ void main() {
     expect(terminal.buffer.lines[1].getCodePoint(3), 'i'.codeUnitAt(0));
   });
 
+  test('Terminal copies rectangular areas with overlap safety', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[1;2;2;4;1;1;3;1\$v');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abbcdf');
+    expect(terminal.buffer.lines[1].getText(0, 6), 'ghhijl');
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
