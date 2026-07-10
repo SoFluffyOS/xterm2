@@ -308,6 +308,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _warningBellVolume = 0;
 
+  int _lockKeyStyle = 0;
+
+  int _terminalModeEmulation = 0;
+
   int _activeStatusDisplay = 0;
 
   int _statusLineType = 0;
@@ -1479,7 +1483,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       ' q' => '${_cursorShapeStatus()} q',
       ' r' => '$_keyClickVolume r',
       ' u' => '$_marginBellVolume u',
+      ' v' => '$_lockKeyStyle v',
       ' t' => '$_warningBellVolume t',
+      ' ~' => '$_terminalModeEmulation ~',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),
       't' => '${_viewHeight}t',
@@ -1801,6 +1807,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setWarningBellVolume(int volume) {
     _warningBellVolume = volume.clamp(0, 8);
+  }
+
+  @override
+  void setLockKeyStyle(int style) {
+    _lockKeyStyle = style;
+  }
+
+  @override
+  void setTerminalModeEmulation(int mode) {
+    _terminalModeEmulation = mode;
   }
 
   @override

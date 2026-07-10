@@ -203,6 +203,16 @@ void main() {
       verify(handler.setWarningBellVolume(5)).called(1);
     });
 
+    test('parses VT520 lock key and emulation sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[2 v\x1b[1 ~');
+
+      verify(handler.setLockKeyStyle(2)).called(1);
+      verify(handler.setTerminalModeEmulation(1)).called(1);
+    });
+
     test('parses status line sequences', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

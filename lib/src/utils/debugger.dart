@@ -547,6 +547,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setLockKeyStyle(int style) {
+    onCommand('setLockKeyStyle($style)');
+  }
+
+  @override
+  void setTerminalModeEmulation(int mode) {
+    onCommand('setTerminalModeEmulation($mode)');
+  }
+
+  @override
   void setActiveStatusDisplay(int display) {
     onCommand('setActiveStatusDisplay($display)');
   }

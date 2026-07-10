@@ -192,6 +192,10 @@ abstract class EscapeHandler {
 
   void setWarningBellVolume(int volume);
 
+  void setLockKeyStyle(int style);
+
+  void setTerminalModeEmulation(int mode);
+
   void setActiveStatusDisplay(int display);
 
   void setStatusLineType(int type);

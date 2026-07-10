@@ -716,6 +716,12 @@ class EscapeParser {
 
   /// `ESC [ Ps ' ~` Delete Column (DECDC).
   void _csiHandleDeleteColumns() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.space) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler.setTerminalModeEmulation(_firstParamOrDefault(0));
+    }
+
     if (_isDollarCsi(paramCount: 1)) {
       return handler.setStatusLineType(_csi.params[0]);
     }
@@ -749,6 +755,12 @@ class EscapeParser {
   /// `ESC [ Pts; Pl; Pbs; Prs; Pps; Ptd; Pld; Ppd $ v`
   /// Copy Rectangular Area (DECCRA).
   void _csiHandleCopyRect() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.space) {
+      if (_csi.prefix != null || _csi.params.length > 1) return;
+      return handler.setLockKeyStyle(_firstParamOrDefault(0));
+    }
+
     if (!_isDollarCsi(paramCount: 8)) return;
     handler.copyRect(
       _csi.params[0],

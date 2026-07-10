@@ -1644,6 +1644,23 @@ void main() {
     ]);
   });
 
+  test('Terminal reports VT520 lock key and emulation status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[2 v'
+      '\x1b[1 ~'
+      '\x1bP\$q v\x1b\\'
+      '\x1bP\$q ~\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r2 v\x1b\\',
+      '\x1bP1\$r1 ~\x1b\\',
+    ]);
+  });
+
   test('Terminal reports status line status strings', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
