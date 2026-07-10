@@ -296,6 +296,16 @@ void main() {
       verify(handler.moveCursorX(-3)).called(1);
     });
 
+    test('parses back and forward index escapes', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b6\x1b9');
+
+      verify(handler.backIndex()).called(1);
+      verify(handler.forwardIndex()).called(1);
+    });
+
     test('parses 8-bit C1 controls', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

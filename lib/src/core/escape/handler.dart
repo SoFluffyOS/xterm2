@@ -45,6 +45,10 @@ abstract class EscapeHandler {
 
   void reverseIndex();
 
+  void backIndex();
+
+  void forwardIndex();
+
   void designateCharset(int charset, int name);
 
   void useCharset(int charset);

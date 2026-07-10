@@ -657,6 +657,38 @@ class Buffer {
     }
   }
 
+  void backIndex() {
+    if (_cursorX == 0) return;
+    if (_cursorX == _marginLeft && isInVerticalMargin) {
+      for (var row = absoluteMarginTop; row <= absoluteMarginBottom; row++) {
+        lines[row].insertCells(
+          _marginLeft,
+          1,
+          _blankCellStyle,
+          _marginRight + 1,
+        );
+      }
+      return;
+    }
+    moveCursorX(-1);
+  }
+
+  void forwardIndex() {
+    if (_cursorX == viewWidth - 1) return;
+    if (_cursorX == _marginRight && isInVerticalMargin) {
+      for (var row = absoluteMarginTop; row <= absoluteMarginBottom; row++) {
+        lines[row].removeCells(
+          _marginLeft,
+          1,
+          _blankCellStyle,
+          _marginRight + 1,
+        );
+      }
+      return;
+    }
+    moveCursorX(1);
+  }
+
   void cursorGoForward() {
     _cursorX = min(_cursorX + 1, _rightLimit);
   }

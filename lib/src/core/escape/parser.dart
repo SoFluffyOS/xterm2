@@ -262,8 +262,10 @@ class EscapeParser {
   late final _escHandlers = FastLookupTable<_EscHandler>({
     '['.charCode: _escHandleCSI,
     ']'.charCode: _escHandleOSC,
+    '6'.charCode: _escHandleBackIndex,
     '7'.charCode: _escHandleSaveCursor,
     '8'.charCode: _escHandleRestoreCursor,
+    '9'.charCode: _escHandleForwardIndex,
     'D'.charCode: _escHandleIndex,
     'E'.charCode: _escHandleNextLine,
     'H'.charCode: _escHandleTabSet,
@@ -322,6 +324,18 @@ class EscapeParser {
   /// https://terminalguide.namepad.de/seq/a_esc_cd/
   bool _escHandleIndex() {
     handler.index();
+    return true;
+  }
+
+  /// `ESC 6` Back Index (DECBI).
+  bool _escHandleBackIndex() {
+    handler.backIndex();
+    return true;
+  }
+
+  /// `ESC 9` Forward Index (DECFI).
+  bool _escHandleForwardIndex() {
+    handler.forwardIndex();
     return true;
   }
 

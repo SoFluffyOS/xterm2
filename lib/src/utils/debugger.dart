@@ -189,6 +189,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void backIndex() {
+    onCommand('backIndex');
+  }
+
+  @override
+  void forwardIndex() {
+    onCommand('forwardIndex');
+  }
+
+  @override
   void designateCharset(int charset, int name) {
     onCommand('designateCharset($charset, $name)');
   }

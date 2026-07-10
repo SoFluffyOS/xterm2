@@ -1506,6 +1506,22 @@ void main() {
     expect(deleteTerminal.buffer.lines[2].getText(0, 6), '1256');
   });
 
+  test('Terminal applies back and forward index at horizontal margins', () {
+    final backIndexTerminal = Terminal()..resize(6, 1);
+    backIndexTerminal.write('ABCDEF');
+    backIndexTerminal.write('\x1b[?69h\x1b[2;5s\x1b[1;2H\x1b6');
+
+    expect(backIndexTerminal.buffer.lines[0].getText(0, 6), 'ABCDF');
+    expect(backIndexTerminal.buffer.lines[0].getCodePoint(1), 0);
+
+    final forwardIndexTerminal = Terminal()..resize(6, 1);
+    forwardIndexTerminal.write('ABCDEF');
+    forwardIndexTerminal.write('\x1b[?69h\x1b[2;5s\x1b[1;5H\x1b9');
+
+    expect(forwardIndexTerminal.buffer.lines[0].getText(0, 6), 'ACDEF');
+    expect(forwardIndexTerminal.buffer.lines[0].getCodePoint(4), 0);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

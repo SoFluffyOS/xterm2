@@ -992,6 +992,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void backIndex() {
+    _buffer.backIndex();
+  }
+
+  @override
+  void forwardIndex() {
+    _buffer.forwardIndex();
+  }
+
+  @override
   void designateCharset(int charset, int name) {
     _buffer.charset.designate(charset, name);
   }
