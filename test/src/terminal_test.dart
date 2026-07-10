@@ -127,7 +127,7 @@ void main() {
         .map((line) => line.toString())
         .toList();
 
-    terminal.write('\x1b[?3h');
+    terminal.write('\x1b[?40h\x1b[?3h');
 
     expect(
       terminal.buffer.lines
@@ -151,6 +151,17 @@ void main() {
       terminal.buffer.lines[terminal.buffer.lines.length - 1].getAttributes(0),
       0,
     );
+  });
+
+  test('Terminal ignores DECCOLM until mode 3 is enabled', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('abc');
+
+    terminal.write('\x1b[?3h');
+
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].toString(), 'abc');
   });
 
   test('Terminal dispose clears listeners and stops deferred updates',
@@ -1148,6 +1159,9 @@ void main() {
       '\x1b[12\x24p'
       '\x1b[20\x24p'
       '\x1b[?7\x24p'
+      '\x1b[?40\x24p'
+      '\x1b[?40h'
+      '\x1b[?40\x24p'
       '\x1b[?45h'
       '\x1b[?45\x24p'
       '\x1b[?67h'
@@ -1173,6 +1187,8 @@ void main() {
       '\x1b[12;2\x24y',
       '\x1b[20;2\x24y',
       '\x1b[?7;1\x24y',
+      '\x1b[?40;2\x24y',
+      '\x1b[?40;1\x24y',
       '\x1b[?45;1\x24y',
       '\x1b[?67;1\x24y',
       '\x1b[?1045;1\x24y',

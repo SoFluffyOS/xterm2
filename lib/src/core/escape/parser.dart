@@ -1746,6 +1746,8 @@ class EscapeParser {
         return handler.setCursorBlinkMode(enabled);
       case 25:
         return handler.setCursorVisibleMode(enabled);
+      case 40:
+        return handler.setEnableColumnMode(enabled);
       case 45:
         return handler.setReverseWrapMode(enabled);
       case 47:

@@ -525,6 +525,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setEnableColumnMode(bool enabled) {
+    onCommand('setEnableColumnMode($enabled)');
+  }
+
+  @override
   void setAutoWrapMode(bool enabled) {
     onCommand('setAutoWrapMode($enabled)');
   }

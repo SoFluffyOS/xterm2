@@ -78,6 +78,16 @@ void main() {
       verify(handler.restoreDecMode(25)).called(1);
     });
 
+    test('parses DEC enable column mode', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?40h\x1b[?40l');
+
+      verify(handler.setEnableColumnMode(true)).called(1);
+      verify(handler.setEnableColumnMode(false)).called(1);
+    });
+
     test('parses XTSHIFTESCAPE mouse shift capture', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

@@ -248,6 +248,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _originMode = false;
 
+  bool _enableColumnMode = false;
+
   bool _autoWrapMode = true;
 
   bool _reverseWrapMode = false;
@@ -876,6 +878,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorKeysMode = false;
     _reverseDisplayMode = false;
     _originMode = false;
+    _enableColumnMode = false;
     _autoWrapMode = true;
     _reverseWrapMode = false;
     _reverseWrapExtendedMode = false;
@@ -926,6 +929,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorKeysMode = false;
     _reverseDisplayMode = false;
     _originMode = false;
+    _enableColumnMode = false;
     _autoWrapMode = true;
     _reverseWrapMode = false;
     _reverseWrapExtendedMode = false;
@@ -1703,6 +1707,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setColumnMode(bool enabled) {
+    if (!_enableColumnMode) return;
+
+    _buffer.resetViewport();
+  }
+
+  @override
+  void setEnableColumnMode(bool enabled) {
+    _enableColumnMode = enabled;
+    if (!enabled) return;
+
     _buffer.resetViewport();
   }
 
@@ -1876,6 +1890,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       9 => _reportedState(_mouseMode == MouseMode.clickOnly),
       12 || 13 => _reportedState(_cursorBlinkMode),
       25 => _reportedState(_cursorVisibleMode),
+      40 => _reportedState(_enableColumnMode),
       45 => _reportedState(_reverseWrapMode),
       47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
       66 => _reportedState(_appKeypadMode),
@@ -1935,6 +1950,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       9 => _mouseMode == MouseMode.clickOnly,
       12 || 13 => _cursorBlinkMode,
       25 => _cursorVisibleMode,
+      40 => _enableColumnMode,
       45 => _reverseWrapMode,
       47 || 1047 || 1049 => isUsingAltBuffer,
       66 => _appKeypadMode,
@@ -1982,6 +1998,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return setCursorBlinkMode(enabled);
       case 25:
         return setCursorVisibleMode(enabled);
+      case 40:
+        return setEnableColumnMode(enabled);
       case 45:
         return setReverseWrapMode(enabled);
       case 47:
