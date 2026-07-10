@@ -2153,6 +2153,45 @@ void main() {
       'https://example.com/after-prune',
     );
   });
+
+  test('Terminal insert blank chars shifts hyperlinks without linking blanks',
+      () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC');
+    terminal.write('\r\x1b[2@');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getCodePoint(1), 0);
+    expect(line.getText(2, 5), 'ABC');
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(2, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(4, 0)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal insert blank chars clears hyperlinks pushed past line end',
+      () {
+    final terminal = Terminal()..resize(3, 1);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC');
+    terminal.write('\r\x1b[3@');
+
+    final line = terminal.buffer.lines[0];
+    for (var column = 0; column < 3; column++) {
+      expect(line.getCodePoint(column), 0);
+    }
+    for (var column = 0; column < 3; column++) {
+      expect(terminal.hyperlinkAt(CellOffset(column, 0)), isNull);
+    }
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

@@ -957,7 +957,18 @@ class Buffer {
 
   void insertBlankChars(int count) {
     count = min(count, _rightLimit - _cursorX);
-    currentLine.insertCells(_cursorX, count, terminal.cursor, _rightLimit);
+    final style = terminal.cursor;
+    currentLine.insertCells(
+      _cursorX,
+      count,
+      CursorStyle(
+        foreground: style.foreground,
+        background: style.background,
+        underlineColor: style.underlineColor,
+        attrs: style.attrs,
+      ),
+      _rightLimit,
+    );
   }
 
   void insertLines(int count) {
