@@ -691,6 +691,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setBackarrowKeyMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setBackarrowKeyMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setReportFocusMode(bool? enabled) => super.noSuchMethod(
         Invocation.method(
           #setReportFocusMode,

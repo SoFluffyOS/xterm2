@@ -264,6 +264,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _appKeypadMode = false;
 
+  bool _backarrowKeyMode = false;
+
   bool _reportFocusMode = false;
 
   bool _mouseShiftCaptureMode = false;
@@ -345,6 +347,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get appKeypadMode => _appKeypadMode;
+
+  @override
+  bool get backarrowKeyMode => _backarrowKeyMode;
 
   @override
   bool get reportFocusMode => _reportFocusMode;
@@ -844,6 +849,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorVisibleMode = true;
     _applicationCursorType = null;
     _appKeypadMode = false;
+    _backarrowKeyMode = false;
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
@@ -886,6 +892,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorVisibleMode = true;
     _applicationCursorType = null;
     _appKeypadMode = false;
+    _backarrowKeyMode = false;
     _reportFocusMode = false;
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
@@ -1688,6 +1695,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setBackarrowKeyMode(bool enabled) {
+    _backarrowKeyMode = enabled;
+  }
+
+  @override
   void setReportFocusMode(bool enabled) {
     _reportFocusMode = enabled;
   }
@@ -1764,6 +1776,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       45 => _reportedState(_reverseWrapMode),
       47 || 1047 || 1049 => _reportedState(isUsingAltBuffer),
       66 => _reportedState(_appKeypadMode),
+      67 => _reportedState(_backarrowKeyMode),
       69 => _reportedState(_leftRightMarginMode),
       1000 || 1001 => _reportedState(_mouseMode == MouseMode.upDownScroll),
       1002 => _reportedState(_mouseMode == MouseMode.upDownScrollDrag),
@@ -1817,6 +1830,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       45 => _reverseWrapMode,
       47 || 1047 || 1049 => isUsingAltBuffer,
       66 => _appKeypadMode,
+      67 => _backarrowKeyMode,
       69 => _leftRightMarginMode,
       1000 || 1001 => _mouseMode == MouseMode.upDownScroll,
       1002 => _mouseMode == MouseMode.upDownScrollDrag,
@@ -1866,6 +1880,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return useMainBuffer();
       case 66:
         return setAppKeypadMode(enabled);
+      case 67:
+        return setBackarrowKeyMode(enabled);
       case 69:
         return setLeftRightMarginMode(enabled);
       case 1000:

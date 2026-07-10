@@ -1752,6 +1752,8 @@ class EscapeParser {
         }
       case 66:
         return handler.setAppKeypadMode(enabled);
+      case 67:
+        return handler.setBackarrowKeyMode(enabled);
       case 69:
         return handler.setLeftRightMarginMode(enabled);
       case 1000:

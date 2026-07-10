@@ -191,6 +191,8 @@ abstract class EscapeHandler {
 
   void setAppKeypadMode(bool enabled);
 
+  void setBackarrowKeyMode(bool enabled);
+
   void setReportFocusMode(bool enabled);
 
   void setMouseShiftCaptureMode(bool enabled);

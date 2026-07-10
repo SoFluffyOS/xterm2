@@ -20,6 +20,20 @@ void main() {
       expect(output, ['\x1b\x7f']);
     });
 
+    test('supports DEC backarrow key mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.keyInput(TerminalKey.backspace);
+      terminal.write('\x1b[?67h');
+      terminal.keyInput(TerminalKey.backspace);
+      terminal.keyInput(TerminalKey.backspace, alt: true);
+      terminal.write('\x1b[?67l');
+      terminal.keyInput(TerminalKey.backspace);
+
+      expect(output, ['\x7f', '\b', '\x1b\b', '\x7f']);
+    });
+
     test('keeps cursor keys normal in application keypad mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

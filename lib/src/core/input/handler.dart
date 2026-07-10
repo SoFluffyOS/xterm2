@@ -29,10 +29,29 @@ class CascadeInputHandler implements TerminalInputHandler {
 const defaultInputHandler = CascadeInputHandler([
   KittyKeyboardInputHandler(),
   ModifyOtherKeysInputHandler(),
+  BackspaceInputHandler(),
   KeytabInputHandler(),
   CtrlInputHandler(),
   AltInputHandler(),
 ]);
+
+/// Translates Backspace according to DEC Backarrow Key Mode (DECBKM).
+class BackspaceInputHandler implements TerminalInputHandler {
+  const BackspaceInputHandler();
+
+  @override
+  String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) return null;
+    if (event.key != TerminalKey.backspace) return null;
+    if (!event.state.backarrowKeyMode) return null;
+
+    final prefix = switch (event.alt) {
+      true => '\x1b',
+      false => '',
+    };
+    return '$prefix\b';
+  }
+}
 
 /// Translates textual keys using xterm modifyOtherKeys mode 2.
 class ModifyOtherKeysInputHandler implements TerminalInputHandler {

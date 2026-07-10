@@ -565,6 +565,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setBackarrowKeyMode(bool enabled) {
+    onCommand('setBackarrowKeyMode($enabled)');
+  }
+
+  @override
   void setReportFocusMode(bool enabled) {
     onCommand('setReportFocusMode($enabled)');
   }
