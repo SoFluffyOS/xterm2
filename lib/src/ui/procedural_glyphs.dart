@@ -199,8 +199,11 @@ bool _paintProceduralGlyph(
   final width = cellSize.width;
   final height = cellSize.height;
   const overlap = 0.5;
+  final fillPaint = Paint()
+    ..color = paint.color
+    ..isAntiAlias = false;
 
-  void fill(Rect rect) => canvas.drawRect(rect.inflate(overlap), paint);
+  void fill(Rect rect) => canvas.drawRect(rect.inflate(overlap), fillPaint);
 
   if (codePoint == 0x2588) {
     fill(Rect.fromLTWH(x, y, width, height));
@@ -232,7 +235,8 @@ bool _paintProceduralGlyph(
   if (codePoint >= 0x2591 && codePoint <= 0x2593) {
     final opacity = (codePoint - 0x2590) / 4;
     final shadePaint = Paint()
-      ..color = paint.color.withValues(alpha: paint.color.a * opacity);
+      ..color = paint.color.withValues(alpha: paint.color.a * opacity)
+      ..isAntiAlias = false;
     canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadePaint);
     return true;
   }
