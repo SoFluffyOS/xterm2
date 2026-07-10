@@ -1506,6 +1506,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       1016 => _mouseReportMode == MouseReportMode.sgrPixels,
       1045 => _reverseWrapExtendedMode,
       2004 => _bracketedPasteMode,
+      2026 => _synchronizedUpdateMode,
       2027 => _graphemeClusterMode,
       _ => null,
     };
@@ -1588,6 +1589,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return setReverseWrapExtendedMode(enabled);
       case 2004:
         return setBracketedPasteMode(enabled);
+      case 2026:
+        return setSynchronizedUpdateMode(enabled);
       case 2027:
         return setGraphemeClusterMode(enabled);
     }
