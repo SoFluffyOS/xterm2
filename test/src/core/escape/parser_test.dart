@@ -131,6 +131,17 @@ void main() {
       verify(handler.setLeftRightMargins(2, null)).called(1);
     });
 
+    test('parses page size sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[100\$|\x1b[\$|\x1b[30t');
+
+      verify(handler.setColumnsPerPage(100)).called(1);
+      verify(handler.setColumnsPerPage(80)).called(1);
+      verify(handler.setLinesPerPage(30)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

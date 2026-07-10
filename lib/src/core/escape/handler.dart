@@ -247,6 +247,10 @@ abstract class EscapeHandler {
 
   void resize(int cols, int rows);
 
+  void setColumnsPerPage(int cols);
+
+  void setLinesPerPage(int rows);
+
   void sendSize();
 
   void sendPixelSize();

@@ -762,6 +762,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setColumnsPerPage(int cols) {
+    resize(cols, _viewHeight);
+  }
+
+  @override
+  void setLinesPerPage(int rows) {
+    resize(_viewWidth, rows);
+  }
+
+  @override
   String toString() {
     return 'Terminal(#$hashCode, $_viewWidth x $_viewHeight, ${_buffer.height} lines)';
   }
@@ -1407,9 +1417,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           true => 1,
           false => 0,
         }}"q',
+      r'$|' => '$_viewWidth\$|',
       ' q' => '${_cursorShapeStatus()} q',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),
+      't' => '${_viewHeight}t',
       _ => null,
     };
   }

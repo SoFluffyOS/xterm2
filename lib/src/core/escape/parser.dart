@@ -657,6 +657,7 @@ class EscapeParser {
     's'.codeUnitAt(0): _csiHandleSaveModeOrCursor,
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     't'.codeUnitAt(0): _csiWindowManipulation,
+    '|'.codeUnitAt(0): _csiHandleColumnsPerPage,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
     'B'.codeUnitAt(0): _csiHandleCursorDown,
     'C'.codeUnitAt(0): _csiHandleCursorForward,
@@ -678,6 +679,23 @@ class EscapeParser {
     'Z'.codeUnitAt(0): _csiHandleCursorBackwardTabulation,
     '@'.codeUnitAt(0): _csiHandleInsertBlankCharacters,
   });
+
+  /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).
+  void _csiHandleColumnsPerPage() {
+    if (_csi.prefix != null ||
+        _csi.intermediates.length != 1 ||
+        _csi.intermediates.single != Ascii.dollarSign ||
+        _csi.params.length > 1) {
+      return;
+    }
+
+    final cols = switch (_csi.params) {
+      [] || [0] => 80,
+      [final value] => value,
+      _ => 80,
+    };
+    handler.setColumnsPerPage(cols);
+  }
 
   void _csiHandleCursorStyle() {
     if (_csi.intermediates.length == 1 &&
@@ -1449,6 +1467,9 @@ class EscapeParser {
         return;
       // Unknown CSI.
       default:
+        if (_csi.params.first >= 24 && _csi.params.length == 1) {
+          handler.setLinesPerPage(_csi.params.first);
+        }
         return;
     }
   }

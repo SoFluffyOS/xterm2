@@ -1468,6 +1468,21 @@ void main() {
     ]);
   });
 
+  test('Terminal applies and reports page size sequences', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1b[100\$|\x1bP\$q\$|\x1b\\');
+    terminal.write('\x1b[30t\x1bP\$qt\x1b\\');
+
+    expect(terminal.viewWidth, 100);
+    expect(terminal.viewHeight, 30);
+    expect(output, [
+      '\x1bP1\$r100\$|\x1b\\',
+      '\x1bP1\$r30t\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

@@ -461,6 +461,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setColumnsPerPage(int cols) {
+    onCommand('setColumnsPerPage($cols)');
+  }
+
+  @override
+  void setLinesPerPage(int rows) {
+    onCommand('setLinesPerPage($rows)');
+  }
+
+  @override
   void sendSize() {
     onCommand('sendSize');
   }
