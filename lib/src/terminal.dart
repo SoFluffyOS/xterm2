@@ -472,12 +472,51 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [textInput]
   void paste(String text) {
     if (_isDisposed) return;
+    final sanitizedText = _sanitizePasteText(text);
     if (_bracketedPasteMode) {
-      onOutput?.call(_emitter.bracketedPaste(text));
+      onOutput?.call(_emitter.bracketedPaste(sanitizedText));
       return;
     }
 
-    onOutput?.call(text.replaceAll('\r\n', '\r').replaceAll('\n', '\r'));
+    onOutput?.call(sanitizedText.replaceAll('\n', '\r'));
+  }
+
+  static const _pasteControlReplacements = {
+    0x00, // NUL
+    0x03, // VINTR / Ctrl+C
+    0x04, // EOT
+    0x05, // ENQ
+    0x08, // BS
+    0x0f, // VDISCARD / Ctrl+O
+    0x11, // VSTART / Ctrl+Q
+    0x12, // VREPRINT / Ctrl+R
+    0x13, // VSTOP / Ctrl+S
+    0x15, // VKILL / Ctrl+U
+    0x16, // VLNEXT / Ctrl+V
+    0x17, // VWERASE / Ctrl+W
+    0x1a, // VSUSP / Ctrl+Z
+    0x1b, // ESC
+    0x1c, // VQUIT / Ctrl+\
+    0x7f, // DEL
+  };
+
+  String _sanitizePasteText(String text) {
+    var sanitized = StringBuffer();
+    var changed = false;
+
+    for (final codePoint in text.runes) {
+      if (_pasteControlReplacements.contains(codePoint)) {
+        sanitized.writeCharCode(0x20);
+        changed = true;
+        continue;
+      }
+      sanitized.writeCharCode(codePoint);
+    }
+
+    return switch (changed) {
+      true => sanitized.toString(),
+      false => text,
+    };
   }
 
   /// Reports a terminal viewport focus change to the underlying application.

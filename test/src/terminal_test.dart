@@ -1014,13 +1014,13 @@ void main() {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
 
-    terminal.paste('a\nb\r\nc');
+    terminal.paste('a\nb\r\nc\x03');
     terminal.write('\x1b[?2004h');
-    terminal.paste('safe\x1b[201~\x03');
+    terminal.paste('safe\x1b[201~\x03\x00\x08\x7f');
 
     expect(output, [
-      'a\rb\rc',
-      '\x1b[200~safe[201~\x1b[201~',
+      'a\rb\r\rc ',
+      '\x1b[200~safe [201~    \x1b[201~',
     ]);
   });
 

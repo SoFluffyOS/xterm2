@@ -54,8 +54,7 @@ class EscapeEmitter {
   }
 
   String bracketedPaste(String text) {
-    final filtered = text.replaceAll(RegExp('[\x1b\x03]'), '');
-    return '\x1b[200~$filtered\x1b[201~';
+    return '\x1b[200~$text\x1b[201~';
   }
 
   String size(int rows, int cols) {
