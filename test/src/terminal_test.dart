@@ -1522,6 +1522,40 @@ void main() {
     expect(forwardIndexTerminal.buffer.lines[0].getCodePoint(4), 0);
   });
 
+  test('Terminal applies rectangular erase and fill operations', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl\x1b[3;1Hmnopqr');
+    terminal.write('\x1b[2;2;3;4\$z');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abcdef');
+    expect(terminal.buffer.lines[1].getCodePoint(0), 'g'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(1), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(3), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(4), 'k'.codeUnitAt(0));
+    expect(terminal.buffer.lines[2].getCodePoint(1), 0);
+    expect(terminal.buffer.lines[2].getCodePoint(3), 0);
+
+    terminal.write('\x1b[88;1;2;2;4\$x');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'aXXXef');
+    expect(terminal.buffer.lines[1].getText(0, 6), 'gXXXkl');
+  });
+
+  test('Terminal preserves protected cells during selective rectangle erase',
+      () {
+    final terminal = Terminal()..resize(5, 2);
+
+    terminal.write('\x1b[1;1Habcde\x1b[2;1Hfghij');
+    terminal.write('\x1b[1"q\x1b[2;2Hgh\x1b[0"q');
+    terminal.write('\x1b[2;1;2;3\${');
+
+    expect(terminal.buffer.lines[1].getCodePoint(0), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(1), 'g'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(2), 'h'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(3), 'i'.codeUnitAt(0));
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

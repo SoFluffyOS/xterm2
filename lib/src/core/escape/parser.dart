@@ -670,9 +670,12 @@ class EscapeParser {
     'r'.codeUnitAt(0): _csiHandleSetMargins,
     's'.codeUnitAt(0): _csiHandleSaveModeOrCursor,
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
+    'x'.codeUnitAt(0): _csiHandleFillRect,
+    'z'.codeUnitAt(0): _csiHandleEraseRect,
     't'.codeUnitAt(0): _csiWindowManipulation,
     '~'.codeUnitAt(0): _csiHandleDeleteColumns,
     '|'.codeUnitAt(0): _csiHandlePageSize,
+    '{'.codeUnitAt(0): _csiHandleSelectiveEraseRect,
     '}'.codeUnitAt(0): _csiHandleInsertColumns,
     'A'.codeUnitAt(0): _csiHandleCursorUp,
     'B'.codeUnitAt(0): _csiHandleCursorDown,
@@ -708,11 +711,39 @@ class EscapeParser {
     handler.deleteColumns(_firstParamOrDefault(1));
   }
 
+  /// `ESC [ Pt; Pl; Pb; Pr $ z` Erase Rectangular Area (DECERA).
+  void _csiHandleEraseRect() {
+    if (!_isDollarCsi(paramCount: 4)) return;
+    handler.eraseRect(
+        _csi.params[0], _csi.params[1], _csi.params[2], _csi.params[3]);
+  }
+
+  /// `ESC [ Pch; Pt; Pl; Pb; Pr $ x` Fill Rectangular Area (DECFRA).
+  void _csiHandleFillRect() {
+    if (!_isDollarCsi(paramCount: 5)) return;
+    handler.fillRect(_csi.params[0], _csi.params[1], _csi.params[2],
+        _csi.params[3], _csi.params[4]);
+  }
+
+  /// `ESC [ Pt; Pl; Pb; Pr $ {` Selective Erase Rectangular Area (DECSERA).
+  void _csiHandleSelectiveEraseRect() {
+    if (!_isDollarCsi(paramCount: 4)) return;
+    handler.selectiveEraseRect(
+        _csi.params[0], _csi.params[1], _csi.params[2], _csi.params[3]);
+  }
+
   bool _isSingleQuoteCsi() {
     return _csi.prefix == null &&
         _csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.singleQuote &&
         _csi.params.length <= 1;
+  }
+
+  bool _isDollarCsi({required int paramCount}) {
+    return _csi.prefix == null &&
+        _csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.dollarSign &&
+        _csi.params.length == paramCount;
   }
 
   /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).

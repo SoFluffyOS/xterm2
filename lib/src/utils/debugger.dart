@@ -471,6 +471,21 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void eraseRect(int top, int left, int bottom, int right) {
+    onCommand('eraseRect($top, $left, $bottom, $right)');
+  }
+
+  @override
+  void fillRect(int char, int top, int left, int bottom, int right) {
+    onCommand('fillRect($char, $top, $left, $bottom, $right)');
+  }
+
+  @override
+  void selectiveEraseRect(int top, int left, int bottom, int right) {
+    onCommand('selectiveEraseRect($top, $left, $bottom, $right)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }

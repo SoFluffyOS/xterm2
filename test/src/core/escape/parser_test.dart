@@ -153,6 +153,21 @@ void main() {
       verify(handler.deleteColumns(1)).called(1);
     });
 
+    test('parses rectangular erase and fill sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write(
+        '\x1b[2;3;4;5\$z'
+        '\x1b[42;2;3;4;5\$x'
+        '\x1b[2;3;4;5\${',
+      );
+
+      verify(handler.eraseRect(2, 3, 4, 5)).called(1);
+      verify(handler.fillRect(42, 2, 3, 4, 5)).called(1);
+      verify(handler.selectiveEraseRect(2, 3, 4, 5)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

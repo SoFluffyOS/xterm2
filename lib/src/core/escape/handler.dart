@@ -151,6 +151,12 @@ abstract class EscapeHandler {
 
   void eraseChars(int amount);
 
+  void eraseRect(int top, int left, int bottom, int right);
+
+  void fillRect(int char, int top, int left, int bottom, int right);
+
+  void selectiveEraseRect(int top, int left, int bottom, int right);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);

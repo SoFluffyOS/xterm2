@@ -524,6 +524,83 @@ class Buffer {
     );
   }
 
+  void eraseRect(
+    int top,
+    int left,
+    int bottom,
+    int right, {
+    bool respectProtected = false,
+  }) {
+    final rect = _normalizeRect(top, left, bottom, right);
+    if (rect == null) return;
+
+    for (var row = rect.top; row <= rect.bottom; row++) {
+      lines[row + scrollBack].eraseRange(
+        rect.left,
+        rect.right + 1,
+        terminal.cursor,
+        respectProtected: respectProtected,
+      );
+    }
+  }
+
+  void fillRect(int char, int top, int left, int bottom, int right) {
+    final rect = _normalizeRect(top, left, bottom, right);
+    if (rect == null) return;
+    if (unicodeV11.wcwidth(char) != 1) return;
+
+    for (var row = rect.top; row <= rect.bottom; row++) {
+      final line = lines[row + scrollBack];
+      line.eraseRange(rect.left, rect.right + 1, terminal.cursor);
+      for (var col = rect.left; col <= rect.right; col++) {
+        line.setCell(col, char, 1, terminal.cursor);
+      }
+    }
+  }
+
+  ({int top, int left, int bottom, int right})? _normalizeRect(
+    int top,
+    int left,
+    int bottom,
+    int right,
+  ) {
+    final topOffset = switch (terminal.originMode) {
+      true => marginTop,
+      false => 0,
+    };
+    final leftOffset = switch (terminal.originMode) {
+      true => marginLeft,
+      false => 0,
+    };
+    final bottomLimit = switch (terminal.originMode) {
+      true => marginBottom,
+      false => viewHeight - 1,
+    };
+    final rightLimit = switch (terminal.originMode) {
+      true => marginRight,
+      false => viewWidth - 1,
+    };
+
+    final normalizedTop =
+        (topOffset + max(top, 1) - 1).clamp(0, bottomLimit).toInt();
+    final normalizedLeft =
+        (leftOffset + max(left, 1) - 1).clamp(0, rightLimit).toInt();
+    final normalizedBottom =
+        (topOffset + max(bottom, 1) - 1).clamp(0, bottomLimit).toInt();
+    final normalizedRight =
+        (leftOffset + max(right, 1) - 1).clamp(0, rightLimit).toInt();
+
+    if (normalizedTop > normalizedBottom) return null;
+    if (normalizedLeft > normalizedRight) return null;
+
+    return (
+      top: normalizedTop,
+      left: normalizedLeft,
+      bottom: normalizedBottom,
+      right: normalizedRight,
+    );
+  }
+
   void scrollDown(int count) {
     if (_usesFullHorizontalMargins) {
       _scrollDownFullWidth(count);

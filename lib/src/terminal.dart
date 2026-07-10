@@ -1643,6 +1643,27 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void eraseRect(int top, int left, int bottom, int right) {
+    _buffer.eraseRect(
+      top,
+      left,
+      bottom,
+      right,
+      respectProtected: _usesIsoProtection,
+    );
+  }
+
+  @override
+  void fillRect(int char, int top, int left, int bottom, int right) {
+    _buffer.fillRect(char, top, left, bottom, right);
+  }
+
+  @override
+  void selectiveEraseRect(int top, int left, int bottom, int right) {
+    _buffer.eraseRect(top, left, bottom, right, respectProtected: true);
+  }
+
+  @override
   void insertBlankChars(int amount) {
     _buffer.insertBlankChars(amount);
   }
