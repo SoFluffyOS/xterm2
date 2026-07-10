@@ -1403,6 +1403,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),
+      '"q' => '${switch (_cursorStyle.isProtected) {
+          true => 1,
+          false => 0,
+        }}"q',
       ' q' => '${_cursorShapeStatus()} q',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
       's' => _leftRightMarginStatusString(),

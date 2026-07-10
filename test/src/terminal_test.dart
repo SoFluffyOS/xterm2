@@ -1409,6 +1409,7 @@ void main() {
       '\x1b[1;3;4m'
       '\x1b[3;10r'
       '\x1b[5 q'
+      '\x1bP\$q"q\x1b\\'
       '\x1bP\$qm\x1b\\'
       '\x1bP\$qr\x1b\\'
       '\x1bP\$q q\x1b\\'
@@ -1416,10 +1417,24 @@ void main() {
     );
 
     expect(output, [
+      '\x1bP1\$r0"q\x1b\\',
       '\x1bP1\$r0;1;3;4m\x1b\\',
       '\x1bP1\$r3;10r\x1b\\',
       '\x1bP1\$r5 q\x1b\\',
       '\x1bP0\$r\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports DECRQSS protected attribute state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[1"q\x1bP\$q"q\x1b\\');
+    terminal.write('\x1b[2"q\x1bP\$q"q\x1b\\');
+
+    expect(output, [
+      '\x1bP1\$r1"q\x1b\\',
+      '\x1bP1\$r0"q\x1b\\',
     ]);
   });
 
