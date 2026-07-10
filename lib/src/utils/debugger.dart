@@ -321,6 +321,18 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void sendRectChecksum(
+    int id,
+    int page,
+    int? top,
+    int? left,
+    int? bottom,
+    int? right,
+  ) {
+    onCommand('sendRectChecksum($id, $page, $top, $left, $bottom, $right)');
+  }
+
+  @override
   void sendColorScheme() {
     onCommand('sendColorScheme');
   }

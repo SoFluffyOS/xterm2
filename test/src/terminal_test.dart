@@ -1566,6 +1566,19 @@ void main() {
     expect(terminal.buffer.lines[1].getText(0, 6), 'ghhijl');
   });
 
+  test('Terminal reports rectangular checksums', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(3, 2);
+
+    terminal.write('\x1b[1;1Habc\x1b[2;1Hdef');
+    terminal.write('\x1b[1;1;1;1;1;2*y\x1b[2;1*y');
+
+    expect(output, [
+      '\x1bP1!~FF3D\x1b\\',
+      '\x1bP2!~FDAB\x1b\\',
+    ]);
+  });
+
   test('Terminal changes and reverses rectangular attributes', () {
     final terminal = Terminal()..resize(6, 2);
 

@@ -177,6 +177,16 @@ void main() {
       verify(handler.copyRect(2, 3, 4, 5, 1, 6, 7, 1)).called(1);
     });
 
+    test('parses rectangular checksum sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[7;1*y\x1b[8;1;2;3;4;5*y');
+
+      verify(handler.sendRectChecksum(7, 1, null, null, null, null)).called(1);
+      verify(handler.sendRectChecksum(8, 1, 2, 3, 4, 5)).called(1);
+    });
+
     test('parses rectangular attribute sequences', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

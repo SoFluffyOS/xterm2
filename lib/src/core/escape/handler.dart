@@ -91,6 +91,15 @@ abstract class EscapeHandler {
 
   void sendCursorPosition();
 
+  void sendRectChecksum(
+    int id,
+    int page,
+    int? top,
+    int? left,
+    int? bottom,
+    int? right,
+  );
+
   void sendColorScheme();
 
   void sendXtVersion();

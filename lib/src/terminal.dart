@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' show max;
+import 'dart:math' show max, min;
 
 import 'package:xterm/src/base/observable.dart';
 import 'package:xterm/src/core/buffer/buffer.dart';
@@ -1185,6 +1185,80 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void sendCursorPosition() {
     onOutput?.call(_emitter.cursorPosition(_buffer.cursorX, _buffer.cursorY));
+  }
+
+  @override
+  void sendRectChecksum(
+    int id,
+    int page,
+    int? top,
+    int? left,
+    int? bottom,
+    int? right,
+  ) {
+    if (page != 1) return;
+    final checksum = _rectChecksum(
+      top ?? 1,
+      left ?? 1,
+      bottom ?? viewHeight,
+      right ?? viewWidth,
+    );
+    final checksumText = checksum.toRadixString(16).padLeft(4, '0');
+    onOutput?.call('\x1bP$id!~${checksumText.toUpperCase()}\x1b\\');
+  }
+
+  int _rectChecksum(int top, int left, int bottom, int right) {
+    final topIndex = min(max(top, 1), viewHeight) - 1;
+    final leftIndex = min(max(left, 1), viewWidth) - 1;
+    final bottomIndex = min(max(bottom, 1), viewHeight) - 1;
+    final rightIndex = min(max(right, 1), viewWidth) - 1;
+    if (topIndex > bottomIndex || leftIndex > rightIndex) return 0;
+
+    var sum = 0;
+    for (var row = topIndex; row <= bottomIndex; row++) {
+      final line = _buffer.lines[_buffer.scrollBack + row];
+      for (var col = leftIndex; col <= rightIndex; col++) {
+        sum += _cellChecksum(line, col);
+      }
+    }
+    return (-sum) & 0xffff;
+  }
+
+  int _cellChecksum(BufferLine line, int col) {
+    if (col > 0 && line.getWidth(col - 1) == 2) return 0;
+
+    final codePoint = switch (line.getCodePoint(col)) {
+      0 => 0x20,
+      final value => value,
+    };
+    if (codePoint < 0x20) return 0;
+
+    return codePoint +
+        _checksumColor(line.getForeground(col), foreground: true) +
+        _checksumColor(line.getBackground(col), foreground: false) +
+        _checksumAttributes(line.getAttributes(col));
+  }
+
+  int _checksumColor(int color, {required bool foreground}) {
+    final type = color & CellColor.typeMask;
+    if (type != CellColor.named && type != CellColor.palette) return 0;
+    final value = color & CellColor.valueMask;
+    if (value < 0 || value > 15) return 0;
+    return switch (foreground) {
+      true => value << 4,
+      false => value,
+    };
+  }
+
+  int _checksumAttributes(int attrs) {
+    var value = 0;
+    if (attrs & CellAttr.protected != 0) value |= 0x04;
+    if (attrs & CellAttr.invisible != 0) value |= 0x08;
+    if (attrs & CellAttr.underline != 0) value |= 0x10;
+    if (attrs & CellAttr.inverse != 0) value |= 0x20;
+    if (attrs & CellAttr.blink != 0) value |= 0x40;
+    if (attrs & CellAttr.bold != 0) value |= 0x80;
+    return value;
   }
 
   @override

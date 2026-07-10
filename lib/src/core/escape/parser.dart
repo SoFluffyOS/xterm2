@@ -671,6 +671,7 @@ class EscapeParser {
     's'.codeUnitAt(0): _csiHandleSaveModeOrCursor,
     'u'.codeUnitAt(0): _csiHandleKittyKeyboardMode,
     'x'.codeUnitAt(0): _csiHandleFillRect,
+    'y'.codeUnitAt(0): _csiHandleRectChecksum,
     'z'.codeUnitAt(0): _csiHandleEraseRect,
     't'.codeUnitAt(0): _csiWindowManipulation,
     'v'.codeUnitAt(0): _csiHandleCopyRect,
@@ -735,6 +736,37 @@ class EscapeParser {
     if (!_isDollarCsi(paramCount: 4)) return;
     handler.eraseRect(
         _csi.params[0], _csi.params[1], _csi.params[2], _csi.params[3]);
+  }
+
+  /// `ESC [ Pid; Pp; Pt; Pl; Pb; Pr * y`
+  /// Request Checksum of Rectangular Area (DECRQCRA).
+  void _csiHandleRectChecksum() {
+    if (!_isAsteriskCsi(maxParams: 6)) return;
+    if (_csi.params.length != 2 && _csi.params.length != 6) return;
+
+    final id = _csi.params[0];
+    final page = _csi.params[1];
+    final hasRect = _csi.params.length == 6;
+    handler.sendRectChecksum(
+      id,
+      page,
+      switch (hasRect) {
+        true => _csi.params[2],
+        false => null,
+      },
+      switch (hasRect) {
+        true => _csi.params[3],
+        false => null,
+      },
+      switch (hasRect) {
+        true => _csi.params[4],
+        false => null,
+      },
+      switch (hasRect) {
+        true => _csi.params[5],
+        false => null,
+      },
+    );
   }
 
   /// `ESC [ Pch; Pt; Pl; Pb; Pr $ x` Fill Rectangular Area (DECFRA).
