@@ -46,6 +46,16 @@ void main() {
       verify(handler.moveCursorY(3)).called(1);
     });
 
+    test('parses ANSI keyboard action mode', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[2h\x1b[2l');
+
+      verify(handler.setKeyboardActionMode(true)).called(1);
+      verify(handler.setKeyboardActionMode(false)).called(1);
+    });
+
     test('parses DEC private mode save and restore', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

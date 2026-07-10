@@ -11,6 +11,21 @@ void main() {
       expect(output, ['\r']);
     });
 
+    test('honors ANSI keyboard action mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[2h');
+      expect(terminal.keyInput(TerminalKey.keyA), isFalse);
+      terminal.charInput(0x61, ctrl: true);
+      terminal.textInput('text');
+      terminal.paste('paste');
+      terminal.write('\x1b[2l');
+      expect(terminal.keyInput(TerminalKey.numpadEnter), isTrue);
+
+      expect(output, ['\r']);
+    });
+
     test('encodes alt backspace as escape delete', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

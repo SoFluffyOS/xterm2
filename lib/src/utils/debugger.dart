@@ -483,6 +483,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setKeyboardActionMode(bool enabled) {
+    onCommand('setKeyboardActionMode($enabled)');
+  }
+
+  @override
   void setLineFeedMode(bool enabled) {
     onCommand('setLineFeedMode($enabled)');
   }

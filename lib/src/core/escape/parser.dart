@@ -1712,6 +1712,8 @@ class EscapeParser {
 
   void _setMode(int mode, bool enabled) {
     switch (mode) {
+      case 2:
+        return handler.setKeyboardActionMode(enabled);
       case 4:
         return handler.setInsertMode(enabled);
       case 20:

@@ -1141,6 +1141,7 @@ void main() {
 
     terminal.write(
       '\x1b[4h'
+      '\x1b[2\x24p'
       '\x1b[4\x24p'
       '\x1b[20\x24p'
       '\x1b[?7\x24p'
@@ -1160,6 +1161,7 @@ void main() {
     );
 
     expect(output, [
+      '\x1b[2;2\x24y',
       '\x1b[4;1\x24y',
       '\x1b[20;2\x24y',
       '\x1b[?7;1\x24y',

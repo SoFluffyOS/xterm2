@@ -572,6 +572,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setKeyboardActionMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setKeyboardActionMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void setLineFeedMode(bool? enabled) => super.noSuchMethod(
         Invocation.method(
           #setLineFeedMode,

@@ -157,6 +157,8 @@ abstract class EscapeHandler {
 
   void setInsertMode(bool enabled);
 
+  void setKeyboardActionMode(bool enabled);
+
   void setLineFeedMode(bool enabled);
 
   void setUnknownMode(int mode, bool enabled);

@@ -236,6 +236,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _insertMode = false;
 
+  bool _keyboardActionMode = false;
+
   bool _lineFeedMode = false;
 
   bool _cursorKeysMode = false;
@@ -460,6 +462,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     String? text,
   }) {
     if (_isDisposed) return false;
+    if (_keyboardActionMode) return false;
     final output = inputHandler?.call(
       TerminalKeyboardEvent(
         key: key,
@@ -495,6 +498,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     bool ctrl = false,
   }) {
     if (_isDisposed) return false;
+    if (_keyboardActionMode) return false;
     if (ctrl) {
       // a(97) ~ z(122)
       if (charCode >= Ascii.a && charCode <= Ascii.z) {
@@ -531,6 +535,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [paste]
   void textInput(String text) {
     if (_isDisposed) return;
+    if (_keyboardActionMode) return;
     onOutput?.call(text);
   }
 
@@ -543,6 +548,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [textInput]
   void paste(String text) {
     if (_isDisposed) return;
+    if (_keyboardActionMode) return;
     final sanitizedText = _sanitizePasteText(text);
     if (_bracketedPasteMode) {
       onOutput?.call(_emitter.bracketedPaste(sanitizedText));
@@ -857,6 +863,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorStyle.hyperlinkId = 0;
     _protectionMode = _ProtectionMode.off;
     _insertMode = false;
+    _keyboardActionMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
     _reverseDisplayMode = false;
@@ -904,6 +911,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _cursorStyle.hyperlinkId = 0;
     _protectionMode = _ProtectionMode.off;
     _insertMode = false;
+    _keyboardActionMode = false;
     _lineFeedMode = false;
     _cursorKeysMode = false;
     _reverseDisplayMode = false;
@@ -1645,6 +1653,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setKeyboardActionMode(bool enabled) {
+    _keyboardActionMode = enabled;
+  }
+
+  @override
   void setLineFeedMode(bool enabled) {
     _lineFeedMode = enabled;
   }
@@ -1824,6 +1837,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _ansiModeState(int mode) {
     return switch (mode) {
+      2 => _reportedState(_keyboardActionMode),
       4 => _reportedState(_insertMode),
       20 => _reportedState(_lineFeedMode),
       _ => 0,
