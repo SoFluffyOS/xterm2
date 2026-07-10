@@ -274,6 +274,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _bracketedPasteMode = false;
 
+  bool _inBandSizeReportMode = false;
+
   bool _graphemeClusterMode = true;
 
   bool _leftRightMarginMode = false;
@@ -362,6 +364,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get bracketedPasteMode => _bracketedPasteMode;
+
+  @override
+  bool get inBandSizeReportMode => _inBandSizeReportMode;
 
   @override
   bool get graphemeClusterMode => _graphemeClusterMode;
@@ -716,6 +721,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _mainBuffer.resetVerticalMargins();
 
     if (wasSynchronizedUpdateMode) notifyListeners();
+    if (_inBandSizeReportMode) _sendInBandSizeReport();
   }
 
   @override
@@ -854,6 +860,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _inBandSizeReportMode = false;
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
@@ -897,6 +904,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
+    _inBandSizeReportMode = false;
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
@@ -1559,6 +1567,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call('\x1b[6;$_cellPixelHeight;${_cellPixelWidth}t');
   }
 
+  void _sendInBandSizeReport() {
+    final pixelWidth = viewWidth * _cellPixelWidth;
+    final pixelHeight = viewHeight * _cellPixelHeight;
+    onOutput?.call('\x1b[48;$viewHeight;$viewWidth;$pixelHeight;$pixelWidth'
+        't');
+  }
+
   @override
   void unknownCSI(int finalByte) {
     // no-op
@@ -1725,6 +1740,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setInBandSizeReportMode(bool enabled) {
+    _inBandSizeReportMode = enabled;
+    if (!enabled) return;
+
+    _sendInBandSizeReport();
+  }
+
+  @override
   void setSynchronizedUpdateMode(bool enabled) {
     _synchronizedUpdateTimer?.cancel();
     _synchronizedUpdateMode = enabled;
@@ -1791,6 +1814,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       2004 => _reportedState(_bracketedPasteMode),
       2026 => _reportedState(_synchronizedUpdateMode),
       2027 => _reportedState(_graphemeClusterMode),
+      2048 => _reportedState(_inBandSizeReportMode),
       _ => 0,
     };
   }
@@ -1845,6 +1869,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       2004 => _bracketedPasteMode,
       2026 => _synchronizedUpdateMode,
       2027 => _graphemeClusterMode,
+      2048 => _inBandSizeReportMode,
       _ => null,
     };
   }
@@ -1932,6 +1957,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         return setSynchronizedUpdateMode(enabled);
       case 2027:
         return setGraphemeClusterMode(enabled);
+      case 2048:
+        return setInBandSizeReportMode(enabled);
     }
   }
 

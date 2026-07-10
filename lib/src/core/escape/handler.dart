@@ -203,6 +203,8 @@ abstract class EscapeHandler {
 
   void setBracketedPasteMode(bool enabled);
 
+  void setInBandSizeReportMode(bool enabled);
+
   void setSynchronizedUpdateMode(bool enabled);
 
   void setGraphemeClusterMode(bool enabled);

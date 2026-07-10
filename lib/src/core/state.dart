@@ -50,6 +50,8 @@ abstract class TerminalState {
 
   bool get bracketedPasteMode;
 
+  bool get inBandSizeReportMode;
+
   bool get graphemeClusterMode;
 
   int get kittyKeyboardMode;

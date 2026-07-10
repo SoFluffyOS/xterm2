@@ -739,6 +739,14 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setInBandSizeReportMode(bool? enabled) => super.noSuchMethod(
+        Invocation.method(
+          #setInBandSizeReportMode,
+          [enabled],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void saveDecMode(int? mode) => super.noSuchMethod(
         Invocation.method(
           #saveDecMode,

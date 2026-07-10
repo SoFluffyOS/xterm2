@@ -1824,6 +1824,8 @@ class EscapeParser {
         return handler.setSynchronizedUpdateMode(enabled);
       case 2027:
         return handler.setGraphemeClusterMode(enabled);
+      case 2048:
+        return handler.setInBandSizeReportMode(enabled);
       default:
         return handler.setUnknownDecMode(mode, enabled);
     }

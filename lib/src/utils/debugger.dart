@@ -595,6 +595,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setInBandSizeReportMode(bool enabled) {
+    onCommand('setInBandSizeReportMode($enabled)');
+  }
+
+  @override
   void setSynchronizedUpdateMode(bool enabled) {
     onCommand('setSynchronizedUpdateMode($enabled)');
   }
