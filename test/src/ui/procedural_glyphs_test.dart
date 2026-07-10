@@ -245,8 +245,8 @@ void main() {
       fail('Expected braille image bytes');
     }
 
-    for (final x in [5, 15]) {
-      for (final y in [5, 15, 25, 35]) {
+    for (final x in [6, 14]) {
+      for (final y in [6, 15, 24, 33]) {
         expect(_alphaNear(bytes, 20, 40, x, y), greaterThan(0));
       }
     }
