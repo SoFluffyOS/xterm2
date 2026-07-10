@@ -111,4 +111,30 @@ class TerminalStyle {
       fontFamilyFallback: fontFamilyFallback ?? this.fontFamilyFallback,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! TerminalStyle) return false;
+    if (fontSize != other.fontSize ||
+        height != other.height ||
+        fontFamily != other.fontFamily ||
+        fontFamilyFallback.length != other.fontFamilyFallback.length) {
+      return false;
+    }
+    for (var index = 0; index < fontFamilyFallback.length; index++) {
+      if (fontFamilyFallback[index] != other.fontFamilyFallback[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        fontSize,
+        height,
+        fontFamily,
+        Object.hashAll(fontFamilyFallback),
+      );
 }

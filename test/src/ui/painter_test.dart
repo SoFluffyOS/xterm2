@@ -438,6 +438,26 @@ void main() {
     expect(style.decorationStyle, TextDecorationStyle.double);
   });
 
+  test('TerminalStyle compares values deeply', () {
+    const style = TerminalStyle(
+      fontSize: 14,
+      height: 1.1,
+      fontFamily: 'Mono',
+      fontFamilyFallback: ['A', 'B'],
+    );
+
+    expect(
+      style,
+      const TerminalStyle(
+        fontSize: 14,
+        height: 1.1,
+        fontFamily: 'Mono',
+        fontFamilyFallback: ['A', 'B'],
+      ),
+    );
+    expect(style.copyWith(fontFamilyFallback: ['A', 'C']), isNot(style));
+  });
+
   test('paintLine strikes through procedural glyphs', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
