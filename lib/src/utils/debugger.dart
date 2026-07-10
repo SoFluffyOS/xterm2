@@ -889,6 +889,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void reportTitle() {
+    onCommand('reportTitle');
+  }
+
+  @override
   void pushTitle() {
     onCommand('pushTitle');
   }

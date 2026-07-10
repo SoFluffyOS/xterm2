@@ -2356,6 +2356,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void reportTitle() {
+    onOutput?.call('\x1b]l${_title ?? ''}\x1b\\');
+  }
+
+  @override
   void pushTitle() {
     if (_titleStack.length >= _maxTitleStackDepth) {
       _titleStack.removeAt(0);

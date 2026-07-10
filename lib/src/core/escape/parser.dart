@@ -1429,7 +1429,9 @@ class EscapeParser {
       case 19: // Report Screen Size (in characters)
       // Disabled as these can a security risk.
       case 20: // Get Icon Title
+        return;
       case 21: // Get Terminal Title
+        handler.reportTitle();
         return;
       case 22: // Push Terminal Title
         if (_csi.params.length > 3) return;

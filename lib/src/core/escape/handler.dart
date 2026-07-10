@@ -331,6 +331,8 @@ abstract class EscapeHandler {
 
   void setIconName(String name);
 
+  void reportTitle();
+
   void pushTitle();
 
   void popTitle();
