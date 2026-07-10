@@ -274,7 +274,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _updateCursorBlinking({bool force = false}) {
     final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
-    if (!force && enabled == _cursorBlinkWasEnabled) return;
+    final blinkTimerActive = _cursorBlinkTimer != null;
+    if (!force &&
+        enabled == _cursorBlinkWasEnabled &&
+        (!enabled || blinkTimerActive)) {
+      return;
+    }
 
     _stopCursorBlinking();
     _cursorBlinkWasEnabled = enabled;

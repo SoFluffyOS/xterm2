@@ -281,6 +281,13 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
 
+    terminal.write('x');
+    await tester.pump();
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(state.renderTerminal.isCursorBlinkVisible, isFalse);
+
     await tester.pumpWidget(const SizedBox());
     focusNode.dispose();
   });
