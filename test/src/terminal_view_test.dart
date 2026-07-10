@@ -242,7 +242,7 @@ void main() {
       otherFocus.requestFocus();
       await tester.pump();
 
-      expect(output, ['\x1b[I', '\x1b[O']);
+      expect(output, ['\x1b[I', '\x1b[I', '\x1b[O']);
       await tester.pumpWidget(const SizedBox());
       terminalFocus.dispose();
       otherFocus.dispose();

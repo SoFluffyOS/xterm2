@@ -1139,17 +1139,17 @@ void main() {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
 
-    terminal.focusInput(true);
+    terminal.focusInput(false);
     expect(output, isEmpty);
 
     terminal.write('\x1b[?1004h');
     terminal.focusInput(true);
     terminal.focusInput(false);
-    expect(output, ['\x1b[I', '\x1b[O']);
+    expect(output, ['\x1b[O', '\x1b[I', '\x1b[O']);
 
     terminal.write('\x1b[?1004l');
     terminal.focusInput(true);
-    expect(output, hasLength(2));
+    expect(output, hasLength(3));
   });
 
   test('Terminal reports ANSI and DEC private mode state', () {

@@ -280,6 +280,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _reportFocusMode = false;
 
+  bool _focused = true;
+
   bool _mouseShiftCaptureMode = false;
 
   bool _altBufferMouseScrollMode = false;
@@ -668,6 +670,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   /// Reports a terminal viewport focus change to the underlying application.
   void focusInput(bool focused) {
+    _focused = focused;
     if (_isDisposed) return;
     if (!_reportFocusMode) return;
     onOutput?.call(switch (focused) {
@@ -1809,6 +1812,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setReportFocusMode(bool enabled) {
     _reportFocusMode = enabled;
+    if (!enabled) return;
+
+    focusInput(_focused);
   }
 
   @override
