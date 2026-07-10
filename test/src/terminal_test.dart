@@ -2106,6 +2106,26 @@ void main() {
 
     expect(terminal.hyperlinkAt(overflowPosition), isNull);
   });
+
+  test('Terminal prunes erased OSC 8 hyperlinks before rejecting new ones', () {
+    final terminal = Terminal()..resize(2, 1);
+
+    for (var index = 0; index < 4096; index++) {
+      terminal.write(
+        '\x1b]8;;https://example.com/$index\x1b\\x\x1b]8;;\x1b\\'
+        '\r\x1b[2K',
+      );
+    }
+
+    terminal.write(
+      '\x1b]8;;https://example.com/after-prune\x1b\\x\x1b]8;;\x1b\\',
+    );
+
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com/after-prune',
+    );
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

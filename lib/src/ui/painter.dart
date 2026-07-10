@@ -318,6 +318,7 @@ class TerminalPainter {
     Offset offset,
     BufferLine line, {
     bool blinkVisible = true,
+    int? activeHyperlinkId,
     int? cursorColumn,
     Color? cursorForeground,
   }) {
@@ -339,6 +340,7 @@ class TerminalPainter {
         cellData,
         combiningCharacters: line.getCombiningCharacters(i),
         blinkVisible: blinkVisible,
+        activeHyperlinkId: activeHyperlinkId,
         foregroundOverride: switch (i == cursorColumn) {
           true => cursorForeground,
           false => null,
@@ -367,6 +369,7 @@ class TerminalPainter {
     CellData cellData, {
     String? combiningCharacters,
     bool blinkVisible = true,
+    int? activeHyperlinkId,
     Color? foregroundOverride,
   }) {
     final charCode = cellData.content & CellContent.codepointMask;
@@ -376,7 +379,8 @@ class TerminalPainter {
     if (cellFlags & CellFlags.invisible != 0) return;
     if (cellFlags & CellFlags.blink != 0 && !blinkVisible) return;
 
-    final isHyperlink = cellData.hyperlinkId != 0;
+    final isActiveHyperlink =
+        cellData.hyperlinkId != 0 && cellData.hyperlinkId == activeHyperlinkId;
     final color = resolveCellForegroundColor(
       cellData,
       foregroundOverride: foregroundOverride,
@@ -395,7 +399,7 @@ class TerminalPainter {
           charCode,
           _foregroundPaint,
         )) {
-      if (isHyperlink ||
+      if (isActiveHyperlink ||
           cellFlags &
                   (CellFlags.underline |
                       CellAttr.undercurl |
@@ -407,7 +411,7 @@ class TerminalPainter {
           offset,
           decorationColor,
           cellFlags,
-          isHyperlink: isHyperlink,
+          isHyperlink: isActiveHyperlink,
         );
       }
       if (cellFlags & CellAttr.doubleUnderline != 0) {
@@ -441,7 +445,7 @@ class TerminalPainter {
     }
 
     final visualFlags = cellData.flags & CellAttr.visualMask;
-    final hyperlinkFlag = switch (isHyperlink) {
+    final hyperlinkFlag = switch (isActiveHyperlink) {
       true => CellAttr.hyperlinkMarker,
       false => 0,
     };
@@ -461,7 +465,7 @@ class TerminalPainter {
         decorationColor: decorationColor,
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
-        underline: _hasUnderline(cellFlags) || isHyperlink,
+        underline: _hasUnderline(cellFlags) || isActiveHyperlink,
         doubleUnderline: cellFlags & CellAttr.doubleUnderline != 0,
         decorationStyle: _decorationStyle(cellFlags),
         strikethrough: cellFlags & CellAttr.strikethrough != 0,
@@ -478,7 +482,7 @@ class TerminalPainter {
       if (charCode == 0x2800) {
         char = String.fromCharCode(0xA0);
       }
-      if ((_hasUnderline(cellFlags) || isHyperlink) && charCode == 0x20) {
+      if ((_hasUnderline(cellFlags) || isActiveHyperlink) && charCode == 0x20) {
         char = String.fromCharCode(0xA0);
       }
       if (combiningCharacters != null) {

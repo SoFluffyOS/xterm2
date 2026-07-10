@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -167,6 +168,10 @@ class TerminalViewState extends State<TerminalView> {
   final _viewportKey = GlobalKey();
 
   String? _composingText;
+
+  int? _hoveredHyperlinkId;
+
+  var _hyperlinkModifierPressed = false;
 
   late TerminalController _controller;
 
@@ -354,6 +359,7 @@ class TerminalViewState extends State<TerminalView> {
           focusNode: _focusNode,
           cursorType: widget.cursorType,
           alwaysShowCursor: widget.alwaysShowCursor,
+          activeHyperlinkId: _activeHyperlinkId,
           onEditableRect: _onEditableRect,
           composingText: _composingText,
         );
@@ -431,7 +437,12 @@ class TerminalViewState extends State<TerminalView> {
     );
 
     child = MouseRegion(
-      cursor: widget.mouseCursor,
+      cursor: switch (_activeHyperlinkId) {
+        null => widget.mouseCursor,
+        _ => SystemMouseCursors.click,
+      },
+      onHover: _onPointerHover,
+      onExit: (_) => _setHoveredHyperlinkId(null),
       child: child,
     );
 
@@ -464,9 +475,40 @@ class TerminalViewState extends State<TerminalView> {
 
   void _onTapUp(TapUpDetails details) {
     final offset = renderTerminal.getCellOffset(details.localPosition);
-    final hyperlink = widget.terminal.hyperlinkAt(offset);
+    final hyperlink = switch (_hyperlinkModifierPressed) {
+      true => widget.terminal.hyperlinkAt(offset),
+      false => null,
+    };
     if (hyperlink != null) widget.onHyperlinkTap?.call(hyperlink);
     widget.onTapUp?.call(details, offset);
+  }
+
+  int? get _activeHyperlinkId {
+    if (!_hyperlinkModifierPressed) return null;
+    return _hoveredHyperlinkId;
+  }
+
+  void _onPointerHover(PointerHoverEvent event) {
+    final offset = renderTerminal.getCellOffset(event.localPosition);
+    final hyperlinkId = widget.terminal.hyperlinkIdAt(offset);
+    _setHoveredHyperlinkId(switch (hyperlinkId) {
+      0 => null,
+      _ => hyperlinkId,
+    });
+  }
+
+  void _setHoveredHyperlinkId(int? hyperlinkId) {
+    if (_hoveredHyperlinkId == hyperlinkId) return;
+    setState(() => _hoveredHyperlinkId = hyperlinkId);
+  }
+
+  void _updateHyperlinkModifierState() {
+    final pressed = switch (defaultTargetPlatform) {
+      TargetPlatform.macOS => HardwareKeyboard.instance.isMetaPressed,
+      _ => HardwareKeyboard.instance.isControlPressed,
+    };
+    if (_hyperlinkModifierPressed == pressed) return;
+    setState(() => _hyperlinkModifierPressed = pressed);
   }
 
   void _onTapDown(_) {
@@ -524,6 +566,8 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   KeyEventResult _handleKeyEvent(FocusNode focusNode, KeyEvent event) {
+    _updateHyperlinkModifierState();
+
     final resultOverride = widget.onKeyEvent?.call(focusNode, event);
     if (resultOverride != null && resultOverride != KeyEventResult.ignored) {
       return resultOverride;
@@ -614,6 +658,7 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.focusNode,
     required this.cursorType,
     required this.alwaysShowCursor,
+    this.activeHyperlinkId,
     this.onEditableRect,
     this.composingText,
   });
@@ -642,6 +687,8 @@ class _TerminalView extends LeafRenderObjectWidget {
 
   final bool alwaysShowCursor;
 
+  final int? activeHyperlinkId;
+
   final EditableRectCallback? onEditableRect;
 
   final String? composingText;
@@ -661,6 +708,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       focusNode: focusNode,
       cursorType: cursorType,
       alwaysShowCursor: alwaysShowCursor,
+      activeHyperlinkId: activeHyperlinkId,
       onEditableRect: onEditableRect,
       composingText: composingText,
     );
@@ -681,6 +729,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..focusNode = focusNode
       ..cursorType = cursorType
       ..alwaysShowCursor = alwaysShowCursor
+      ..activeHyperlinkId = activeHyperlinkId
       ..onEditableRect = onEditableRect
       ..composingText = composingText;
   }

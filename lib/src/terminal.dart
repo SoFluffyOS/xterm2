@@ -34,6 +34,8 @@ enum _ProtectionMode { off, iso, dec }
 /// understand.
 class Terminal with Observable implements TerminalState, EscapeHandler {
   static const _maxHyperlinks = 4096;
+  static const _maxHyperlinkId =
+      CellAttr.hyperlinkMask >> CellAttr.hyperlinkShift;
   static const _maxKittyKeyboardModeStackDepth = 4096;
   static const _maxTitleStackDepth = 4096;
   static const _kittyKeyboardModeMask = 0x1f;
@@ -341,11 +343,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   IndexAwareCircularBuffer<BufferLine> get lines => _buffer.lines;
 
   String? hyperlinkAt(CellOffset position) {
-    if (position.y < 0 || position.y >= _buffer.lines.length) return null;
-    final line = _buffer.lines[position.y];
-    if (position.x < 0 || position.x >= line.length) return null;
+    final hyperlinkId = hyperlinkIdAt(position);
+    if (hyperlinkId == 0) return null;
+    return _hyperlinks[hyperlinkId];
+  }
 
-    return _hyperlinks[line.getHyperlinkId(position.x)];
+  int hyperlinkIdAt(CellOffset position) {
+    if (position.y < 0 || position.y >= _buffer.lines.length) return 0;
+    final line = _buffer.lines[position.y];
+    if (position.x < 0 || position.x >= line.length) return 0;
+    return line.getHyperlinkId(position.x);
   }
 
   /// Whether the terminal performs reflow when the viewport size changes or
@@ -1863,14 +1870,67 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       return;
     }
     if (_hyperlinks.length >= _maxHyperlinks) {
+      _pruneUnusedHyperlinks();
+      if (_hyperlinks.length >= _maxHyperlinks) {
+        _cursorStyle.hyperlinkId = 0;
+        return;
+      }
+    }
+
+    final hyperlinkId = _allocateHyperlinkId();
+    if (hyperlinkId == null) {
       _cursorStyle.hyperlinkId = 0;
       return;
     }
 
-    final hyperlinkId = _nextHyperlinkId++;
     _hyperlinks[hyperlinkId] = uri;
     if (key != null) _explicitHyperlinkIds[key] = hyperlinkId;
     _cursorStyle.hyperlinkId = hyperlinkId;
+  }
+
+  int? _allocateHyperlinkId() {
+    for (var attempts = 0; attempts < _maxHyperlinkId; attempts++) {
+      final hyperlinkId = _nextHyperlinkId;
+      _nextHyperlinkId++;
+      if (_nextHyperlinkId > _maxHyperlinkId) {
+        _nextHyperlinkId = 1;
+      }
+      if (!_hyperlinks.containsKey(hyperlinkId)) {
+        return hyperlinkId;
+      }
+    }
+    return null;
+  }
+
+  void _pruneUnusedHyperlinks() {
+    final usedIds = <int>{};
+    if (_cursorStyle.hyperlinkId != 0) {
+      usedIds.add(_cursorStyle.hyperlinkId);
+    }
+
+    void collectBuffer(Buffer buffer) {
+      buffer.lines.forEach((line) {
+        for (var column = 0; column < line.length; column++) {
+          final hyperlinkId = line.getHyperlinkId(column);
+          if (hyperlinkId != 0) usedIds.add(hyperlinkId);
+        }
+      });
+    }
+
+    collectBuffer(_mainBuffer);
+    collectBuffer(_altBuffer);
+
+    for (final hyperlinkId in _hyperlinks.keys.toList()) {
+      if (!usedIds.contains(hyperlinkId)) {
+        _hyperlinks.remove(hyperlinkId);
+      }
+    }
+
+    for (final entry in _explicitHyperlinkIds.entries.toList()) {
+      if (!_hyperlinks.containsKey(entry.value)) {
+        _explicitHyperlinkIds.remove(entry.key);
+      }
+    }
   }
 
   @override

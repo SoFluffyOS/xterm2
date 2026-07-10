@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -284,7 +285,9 @@ void main() {
     focusNode.dispose();
   });
 
-  testWidgets('TerminalView activates OSC 8 hyperlinks', (tester) async {
+  testWidgets('TerminalView activates OSC 8 hyperlinks with modifier', (
+    tester,
+  ) async {
     final terminal = Terminal()
       ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');
     String? activatedUri;
@@ -299,12 +302,31 @@ void main() {
     );
 
     final state = tester.state<TerminalViewState>(find.byType(TerminalView));
-    await tester.tapAt(
-      state.renderTerminal.localToGlobal(const Offset(2, 2)),
-    );
+    final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+
+    await tester.tapAt(position);
+    await tester.pump();
+
+    expect(activatedUri, isNull);
+    expect(state.renderTerminal.activeHyperlinkId, isNull);
+
+    final modifierKey = switch (defaultTargetPlatform == TargetPlatform.macOS) {
+      true => LogicalKeyboardKey.metaLeft,
+      false => LogicalKeyboardKey.controlLeft,
+    };
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.hover(position));
+    await tester.sendKeyDownEvent(modifierKey);
+    await tester.pump();
+
+    expect(state.renderTerminal.activeHyperlinkId, isNotNull);
+
+    await tester.tapAt(position);
     await tester.pump();
 
     expect(activatedUri, 'https://example.com');
+
+    await tester.sendKeyUpEvent(modifierKey);
   });
 
   group('TerminalController.pointerInputs', () {

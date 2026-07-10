@@ -36,6 +36,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required FocusNode focusNode,
     required TerminalCursorType cursorType,
     required bool alwaysShowCursor,
+    int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
     String? composingText,
   })  : _terminal = terminal,
@@ -47,6 +48,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _focusNode = focusNode,
         _cursorType = cursorType,
         _alwaysShowCursor = alwaysShowCursor,
+        _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
         _composingText = composingText,
         _painter = TerminalPainter(
@@ -143,6 +145,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   set alwaysShowCursor(bool value) {
     if (value == _alwaysShowCursor) return;
     _alwaysShowCursor = value;
+    markNeedsPaint();
+  }
+
+  int? get activeHyperlinkId => _activeHyperlinkId;
+  int? _activeHyperlinkId;
+  set activeHyperlinkId(int? value) {
+    if (value == _activeHyperlinkId) return;
+    _activeHyperlinkId = value;
     markNeedsPaint();
   }
 
@@ -693,6 +703,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
             ),
             lines[i],
             blinkVisible: _textBlinkVisible,
+            activeHyperlinkId: _activeHyperlinkId,
             cursorColumn: switch (shouldPaintBlockCursor &&
                 _focusNode.hasFocus &&
                 i == _terminal.buffer.absoluteCursorY) {
