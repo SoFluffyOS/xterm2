@@ -1335,13 +1335,27 @@ void main() {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24);
 
-    terminal.write('\x1bP+q544E;436F;524742;6C696E6573;626164\x1b\\');
+    terminal.write(
+      '\x1bP+q'
+      '544E;436F;524742;6C696E6573;'
+      '4245;5053;53796E63;584D;456E6D67;626164'
+      '\x1b\\',
+    );
 
     expect(output, [
       '\x1bP1+r544E=787465726D2D323536636F6C6F72\x1b\\',
       '\x1bP1+r436F=323536\x1b\\',
       '\x1bP1+r524742=38\x1b\\',
       '\x1bP1+r6C696E6573=3234\x1b\\',
+      '\x1bP1+r4245=1B5B3F3230303468\x1b\\',
+      '\x1bP1+r5053=1B5B3230307E\x1b\\',
+      '\x1bP1+r53796E63='
+          '1B5B3F32303236253F257031257B317D252D25746C256568253B'
+          '\x1b\\',
+      '\x1bP1+r584D='
+          '1B5B3F313030363B31303030253F257031257B317D253D25746825656C253B'
+          '\x1b\\',
+      '\x1bP1+r456E6D67=1B5B3F363968\x1b\\',
     ]);
   });
 
