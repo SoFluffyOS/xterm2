@@ -16,6 +16,7 @@ import 'package:xterm/src/ui/gesture/gesture_handler.dart';
 import 'package:xterm/src/ui/input_map.dart';
 import 'package:xterm/src/ui/keyboard_listener.dart';
 import 'package:xterm/src/ui/keyboard_visibility.dart';
+import 'package:xterm/src/ui/kitty_modifier_key_filter.dart';
 import 'package:xterm/src/ui/palette_builder.dart';
 import 'package:xterm/src/ui/render.dart';
 import 'package:xterm/src/ui/scroll_handler.dart';
@@ -24,11 +25,6 @@ import 'package:xterm/src/ui/shortcut/shortcuts.dart';
 import 'package:xterm/src/ui/terminal_text_style.dart';
 import 'package:xterm/src/ui/terminal_theme.dart';
 import 'package:xterm/src/ui/themes.dart';
-
-// PUA code unit range for modifier keys defined by the Kitty keyboard protocol.
-// Flutter's Windows embedder uses this range for raw modifier key events.
-const _minModifierPUACodeUnit = 57441; // Shift Left
-const _maxModifierPUACodeUnit = 57450; // Meta Right
 
 class TerminalView extends StatefulWidget {
   const TerminalView(
@@ -500,8 +496,7 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onInsert(String text) {
-    if (text.codeUnits.any((code) =>
-        code >= _minModifierPUACodeUnit && code <= _maxModifierPUACodeUnit)) {
+    if (isKittyModifierKeyCharacter(text)) {
       return;
     }
     final mappedKey = charToTerminalKey(text);
@@ -551,10 +546,7 @@ class TerminalViewState extends State<TerminalView> {
 
     final key = keyToTerminalKey(event.logicalKey);
     var text = event.character;
-    if (text != null &&
-        text.codeUnits.any((code) =>
-            code >= _minModifierPUACodeUnit &&
-            code <= _maxModifierPUACodeUnit)) {
+    if (text != null && isKittyModifierKeyCharacter(text)) {
       text = null;
     }
     if (key == null && text == null) {
