@@ -243,7 +243,7 @@ class TerminalPainter {
     Color? backgroundRunColor;
 
     for (var i = 0; i < line.length; i++) {
-      line.getCellData(i, cellData);
+      line.getCellData(i, cellData, includeUnderlineColor: false);
 
       final charWidth = cellData.content >> CellContent.widthShift;
       final cellSpan = switch (charWidth == 2) {

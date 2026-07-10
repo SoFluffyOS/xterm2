@@ -105,11 +105,18 @@ class BufferLine with IndexedItem {
     _combiningCharacters[index] = existing + String.fromCharCode(codePoint);
   }
 
-  void getCellData(int index, CellData cellData) {
+  void getCellData(
+    int index,
+    CellData cellData, {
+    bool includeUnderlineColor = true,
+  }) {
     final offset = index * _cellSize;
     cellData.foreground = _data[offset + _cellForeground];
     cellData.background = _data[offset + _cellBackground];
-    cellData.underlineColor = _underlineColors[index] ?? 0;
+    cellData.underlineColor = switch (includeUnderlineColor) {
+      true => _underlineColors[index] ?? 0,
+      false => 0,
+    };
     cellData.flags = _data[offset + _cellAttributes];
     cellData.content = _data[offset + _cellContent];
   }
