@@ -636,11 +636,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final firstLineOffset = _scrollOffset;
     final lastLineOffset = _scrollOffset + _viewportHeight;
 
-    final firstLine = firstLineOffset ~/ charHeight;
-    final lastLine = lastLineOffset ~/ charHeight;
-
-    final effectFirstLine = firstLine.clamp(0, lines.length - 1);
-    final effectLastLine = lastLine.clamp(0, lines.length - 1);
+    final (effectFirstLine, effectLastLine) = _visibleLineRange(
+      lines.length,
+      firstLineOffset,
+      lastLineOffset,
+      charHeight,
+    );
 
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
       _painter.paintLineBackgrounds(
@@ -750,6 +751,35 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       _terminal.cursorColorOverride,
     );
     _painter.reverseDisplay = _terminal.reverseDisplayMode;
+  }
+
+  @visibleForTesting
+  (int, int) debugVisibleLineRange() {
+    return _visibleLineRange(
+      _terminal.buffer.lines.length,
+      _scrollOffset,
+      _scrollOffset + _viewportHeight,
+      _painter.cellSize.height,
+    );
+  }
+
+  (int, int) _visibleLineRange(
+    int lineCount,
+    double firstLineOffset,
+    double lastLineOffset,
+    double charHeight,
+  ) {
+    if (lineCount <= 0) return (0, -1);
+    final firstLine = firstLineOffset ~/ charHeight;
+    final hasVisibleHeight = lastLineOffset > firstLineOffset;
+    final lastLine = switch (hasVisibleHeight) {
+      true => ((lastLineOffset - 0.000001) ~/ charHeight),
+      false => firstLine,
+    };
+    return (
+      firstLine.clamp(0, lineCount - 1),
+      lastLine.clamp(0, lineCount - 1),
+    );
   }
 
   int _cursorRenderColumn() {

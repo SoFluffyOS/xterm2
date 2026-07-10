@@ -173,6 +173,28 @@ void main() {
 
     setup.focusNode.dispose();
   });
+
+  test('visible line range excludes fully clipped boundary row', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final cellSize = render.cellSize;
+
+    render.layout(BoxConstraints.tight(Size(
+      cellSize.width * 10,
+      cellSize.height,
+    )));
+
+    expect(render.debugVisibleLineRange(), (4, 4));
+
+    render.layout(BoxConstraints.tight(Size(
+      cellSize.width * 10,
+      cellSize.height * 1.5,
+    )));
+
+    expect(render.debugVisibleLineRange(), (3, 4));
+
+    setup.focusNode.dispose();
+  });
 }
 
 ({
