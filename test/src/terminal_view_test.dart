@@ -465,6 +465,39 @@ void main() {
         expect(terminal.buffer.getText(selection), 'abcd');
       }
     });
+
+    testWidgets('reports scroll at local terminal coordinates', (tester) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.only(left: 40, top: 30),
+              child: TerminalView(terminal),
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final position = state.renderTerminal.localToGlobal(
+        const Offset(2, 2),
+      );
+
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: position,
+          scrollDelta: Offset(0, state.renderTerminal.lineHeight),
+        ),
+      );
+      await tester.pump();
+
+      expect(output, isNotEmpty);
+      expect(output.last, '\x1b[<65;1;1M');
+    });
   });
 
   group('TerminalView.autofocus', () {
