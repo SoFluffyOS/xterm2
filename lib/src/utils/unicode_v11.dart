@@ -6,6 +6,7 @@ import 'dart:typed_data';
 // Emoji 16.0 presentation additions. The filename and public type retain their
 // historical names for compatibility.
 const BMP_COMBINING = [
+  [0x00AD, 0x00AD],
   [0x0300, 0x036F],
   [0x0483, 0x0489],
   [0x0591, 0x05BD],
@@ -324,7 +325,7 @@ const HIGH_COMBINING = [
   [0x11D95, 0x11D95],
   [0x11D97, 0x11D97],
   [0x11EF3, 0x11EF4],
-  [0x13430, 0x13438],
+  [0x13430, 0x13455],
   [0x16AF0, 0x16AF4],
   [0x16B30, 0x16B36],
   [0x16F4F, 0x16F4F],

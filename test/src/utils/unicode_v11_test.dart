@@ -15,4 +15,16 @@ void main() {
       expect(unicodeV11.wcwidth(codePoint), 2);
     }
   });
+
+  test('Unicode width table matches Ghostty default ignorable controls', () {
+    for (final codePoint in <int>[
+      0x00AD,
+      0x13439,
+      0x1343F,
+      0x13440,
+      0x13455,
+    ]) {
+      expect(unicodeV11.wcwidth(codePoint), 0);
+    }
+  });
 }
