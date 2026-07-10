@@ -159,6 +159,19 @@ void main() {
 
       expect(output, ['\x1b[97;1;97u', '\x1b[233;1;233u']);
     });
+
+    test('supports xterm modifyOtherKeys mode 2', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[>4;2m');
+      terminal.keyInput(TerminalKey.keyH, ctrl: true, shift: true, text: 'H');
+      terminal.keyInput(TerminalKey.digit8, alt: true, text: '8');
+      terminal.write('\x1b[>4;0m');
+      terminal.keyInput(TerminalKey.keyH, ctrl: true);
+
+      expect(output, ['\x1b[27;6;72~', '\x1b[27;3;56~', '\x08']);
+    });
   });
 
   group('KeytabInputHandler', () {

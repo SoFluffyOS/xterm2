@@ -49,4 +49,6 @@ abstract class TerminalState {
   bool get graphemeClusterMode;
 
   int get kittyKeyboardMode;
+
+  int get modifyOtherKeysMode;
 }

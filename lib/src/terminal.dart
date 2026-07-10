@@ -282,6 +282,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _kittyKeyboardMode = 0;
 
+  int _modifyOtherKeysMode = 0;
+
   final _kittyKeyboardModeStack = <int>[];
 
   String? _title;
@@ -356,6 +358,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   int get kittyKeyboardMode => _kittyKeyboardMode;
+
+  @override
+  int get modifyOtherKeysMode => _modifyOtherKeysMode;
 
   /// Current active buffer of the terminal. This is initially [mainBuffer] and
   /// can be switched back and forth from [altBuffer] to [mainBuffer] when
@@ -840,6 +845,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
+    _modifyOtherKeysMode = 0;
     _kittyKeyboardModeStack.clear();
     _title = null;
     _titleStack.clear();
@@ -880,6 +886,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
     _kittyKeyboardMode = 0;
+    _modifyOtherKeysMode = 0;
     _kittyKeyboardModeStack.clear();
     _tabStops.reset();
     _buffer.charset.reset();
@@ -1737,6 +1744,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _kittyKeyboardMode = switch (_kittyKeyboardModeStack.isEmpty) {
       true => 0,
       false => _kittyKeyboardModeStack.last,
+    };
+  }
+
+  @override
+  void setModifyOtherKeysMode(int resource, int mode) {
+    if (resource != 4) return;
+    _modifyOtherKeysMode = switch (mode) {
+      2 => 2,
+      _ => 0,
     };
   }
 

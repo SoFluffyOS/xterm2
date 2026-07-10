@@ -217,6 +217,8 @@ abstract class EscapeHandler {
 
   void popKittyKeyboardModes(int count);
 
+  void setModifyOtherKeysMode(int resource, int mode);
+
   void setUnknownDecMode(int mode, bool enabled);
 
   void resize(int cols, int rows);

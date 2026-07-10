@@ -925,6 +925,19 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sm/
   void _csiHandleSgr() {
+    if (_csi.prefix == Ascii.greaterThan && _csi.intermediates.isEmpty) {
+      final resource = switch (_csi.params) {
+        [final resource, ...] => resource,
+        _ => null,
+      };
+      final mode = switch (_csi.params) {
+        [_, final mode] => mode,
+        _ => 0,
+      };
+      if (resource == null) return;
+      return handler.setModifyOtherKeysMode(resource, mode);
+    }
+
     if (_csi.prefix != null || _csi.intermediates.isNotEmpty) return;
     final params = _csi.params;
 
