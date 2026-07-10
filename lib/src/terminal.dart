@@ -1454,6 +1454,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),
+      '>4m' => '>4;$_modifyOtherKeysMode' 'm',
       '|' => '$_transmitTerminationCharacter|',
       "'s" => "$_lineTransmitTerminationCharacter's",
       '}' => '$_protectedFieldsAttribute}',

@@ -1696,6 +1696,15 @@ void main() {
     ]);
   });
 
+  test('Terminal reports modifyOtherKeys status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[>4;2m\x1bP\$q>4m\x1b\\');
+
+    expect(output, ['\x1bP1\$r>4;2m\x1b\\']);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
