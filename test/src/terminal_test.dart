@@ -1017,10 +1017,12 @@ void main() {
     terminal.paste('a\nb\r\nc\x03');
     terminal.write('\x1b[?2004h');
     terminal.paste('safe\x1b[201~\x03\x00\x08\x7f');
+    terminal.paste('x\x1b]52;c;AAAA\x07y\x1bPignored\x1b\\z');
 
     expect(output, [
       'a\rb\r\rc ',
-      '\x1b[200~safe [201~    \x1b[201~',
+      '\x1b[200~safe    \x1b[201~',
+      '\x1b[200~xyz\x1b[201~',
     ]);
   });
 

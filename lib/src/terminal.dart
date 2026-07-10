@@ -508,10 +508,17 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   };
 
   String _sanitizePasteText(String text) {
+    final codePoints = text.runes.toList(growable: false);
     var sanitized = StringBuffer();
     var changed = false;
 
-    for (final codePoint in text.runes) {
+    for (var i = 0; i < codePoints.length; i++) {
+      final codePoint = codePoints[i];
+      if (codePoint == 0x1b) {
+        i = _skipPastedEscapeSequence(codePoints, i);
+        changed = true;
+        continue;
+      }
       if (_pasteControlReplacements.contains(codePoint)) {
         sanitized.writeCharCode(0x20);
         changed = true;
@@ -524,6 +531,56 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       true => sanitized.toString(),
       false => text,
     };
+  }
+
+  int _skipPastedEscapeSequence(List<int> codePoints, int escapeIndex) {
+    final nextIndex = escapeIndex + 1;
+    if (nextIndex >= codePoints.length) return escapeIndex;
+
+    final next = codePoints[nextIndex];
+    if (next == 0x5b) {
+      return _skipPastedCsiSequence(codePoints, nextIndex);
+    }
+    if (next == 0x5d) {
+      return _skipPastedOscSequence(codePoints, nextIndex);
+    }
+    if (next == 0x50 || next == 0x5e || next == 0x5f) {
+      return _skipPastedStringControl(codePoints, nextIndex);
+    }
+
+    return nextIndex;
+  }
+
+  int _skipPastedCsiSequence(List<int> codePoints, int csiIndex) {
+    for (var i = csiIndex + 1; i < codePoints.length; i++) {
+      final codePoint = codePoints[i];
+      if (codePoint >= 0x40 && codePoint <= 0x7e) return i;
+    }
+    return codePoints.length - 1;
+  }
+
+  int _skipPastedOscSequence(List<int> codePoints, int oscIndex) {
+    for (var i = oscIndex + 1; i < codePoints.length; i++) {
+      final codePoint = codePoints[i];
+      if (codePoint == 0x07) return i;
+      if (codePoint == 0x1b &&
+          i + 1 < codePoints.length &&
+          codePoints[i + 1] == 0x5c) {
+        return i + 1;
+      }
+    }
+    return codePoints.length - 1;
+  }
+
+  int _skipPastedStringControl(List<int> codePoints, int controlIndex) {
+    for (var i = controlIndex + 1; i < codePoints.length; i++) {
+      if (codePoints[i] == 0x1b &&
+          i + 1 < codePoints.length &&
+          codePoints[i + 1] == 0x5c) {
+        return i + 1;
+      }
+    }
+    return codePoints.length - 1;
   }
 
   /// Reports a terminal viewport focus change to the underlying application.
