@@ -1590,6 +1590,12 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_st/
   void _csiWindowManipulation() {
+    if (_csi.prefix == Ascii.greaterThan &&
+        _csi.intermediates.isEmpty &&
+        _csi.params.length == 1) {
+      return handler.setTitleMode(_csi.params[0], true);
+    }
+
     if (_csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.space) {
       if (_csi.prefix != null || _csi.params.length > 1) return;
@@ -1877,6 +1883,12 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_ct_1param/
   void _csiHandleScrollDown() {
+    if (_csi.prefix == Ascii.greaterThan &&
+        _csi.intermediates.isEmpty &&
+        _csi.params.length == 1) {
+      return handler.setTitleMode(_csi.params[0], false);
+    }
+
     if (!_isPlainCsi()) return;
     final amount = _firstParamOrDefault(1);
     handler.scrollDown(amount);

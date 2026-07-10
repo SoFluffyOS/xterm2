@@ -241,6 +241,16 @@ void main() {
       verify(handler.setLineTransmitTerminationCharacter(10)).called(1);
     });
 
+    test('parses title mode sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[>2t\x1b[>2T');
+
+      verify(handler.setTitleMode(2, true)).called(1);
+      verify(handler.setTitleMode(2, false)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

@@ -202,6 +202,8 @@ abstract class EscapeHandler {
 
   void setLineTransmitTerminationCharacter(int character);
 
+  void setTitleMode(int mode, bool enabled);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);

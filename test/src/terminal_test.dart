@@ -1705,6 +1705,23 @@ void main() {
     expect(output, ['\x1bP1\$r>4;2m\x1b\\']);
   });
 
+  test('Terminal reports title mode status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[>2t'
+      '\x1bP\$q>2t\x1b\\'
+      '\x1b[>2T'
+      '\x1bP\$q>2t\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r>2;1t\x1b\\',
+      '\x1bP1\$r>2;0t\x1b\\',
+    ]);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

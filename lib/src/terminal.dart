@@ -322,6 +322,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _lineTransmitTerminationCharacter = 0;
 
+  final _titleModes = <int>{};
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1452,6 +1454,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   String? _statusString(String query) {
+    final titleModeStatus = _titleModeStatusString(query);
+    if (titleModeStatus != null) return titleModeStatus;
+
     return switch (query) {
       'm' => _sgrStatusString(),
       '>4m' => '>4;$_modifyOtherKeysMode' 'm',
@@ -1480,6 +1485,17 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       't' => '${_viewHeight}t',
       _ => null,
     };
+  }
+
+  String? _titleModeStatusString(String query) {
+    if (!query.startsWith('>') || !query.endsWith('t')) return null;
+    final mode = int.tryParse(query.substring(1, query.length - 1));
+    if (mode == null || mode < 0 || mode > 3) return null;
+    final enabled = switch (_titleModes.contains(mode)) {
+      true => 1,
+      false => 0,
+    };
+    return '>$mode;${enabled}t';
   }
 
   String? _leftRightMarginStatusString() {
@@ -1810,6 +1826,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setLineTransmitTerminationCharacter(int character) {
     _lineTransmitTerminationCharacter = character;
+  }
+
+  @override
+  void setTitleMode(int mode, bool enabled) {
+    if (mode < 0 || mode > 3) return;
+    if (enabled) {
+      _titleModes.add(mode);
+      return;
+    }
+    _titleModes.remove(mode);
   }
 
   @override

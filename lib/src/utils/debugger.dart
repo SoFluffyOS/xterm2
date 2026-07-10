@@ -572,6 +572,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setTitleMode(int mode, bool enabled) {
+    onCommand('setTitleMode($mode, $enabled)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }
