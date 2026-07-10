@@ -193,6 +193,31 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter dims logical foreground before inverse swap', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()
+      ..foreground = CellColor.rgb | 0xC86432
+      ..background = CellColor.rgb | 0x102030
+      ..flags = CellFlags.faint | CellFlags.inverse;
+
+    final foreground = painter.resolveCellForegroundColor(cell);
+    final background = painter.resolveCellBackgroundColor(cell);
+
+    expect(foreground, const ui.Color(0xFF102030));
+    expect(background, isNotNull);
+    if (background case final color?) {
+      expect(color.a, 1);
+      expect(color.r, closeTo((0xC8 / 0xFF) * 0.66, 0.001));
+      expect(color.g, closeTo((0x64 / 0xFF) * 0.66, 0.001));
+      expect(color.b, closeTo((0x32 / 0xFF) * 0.66, 0.001));
+    }
+    painter.dispose();
+  });
+
   test('TerminalPainter invalidates colors when terminal changes', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

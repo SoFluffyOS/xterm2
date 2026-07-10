@@ -692,7 +692,7 @@ class TerminalPainter {
     final inverse =
         (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
     if (inverse) {
-      return resolveForegroundColor(cellData.foreground);
+      return _resolveLogicalForegroundColor(cellData);
     }
 
     if (colorType == CellColor.normal) return null;
@@ -708,12 +708,15 @@ class TerminalPainter {
         (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
     final color = foregroundOverride ??
         switch (inverse) {
-          false => resolveForegroundColor(cellData.foreground),
+          false => _resolveLogicalForegroundColor(cellData),
           true => resolveBackgroundColor(cellData.background),
         };
-    if (cellData.flags & CellFlags.faint == 0) {
-      return color;
-    }
+    return color;
+  }
+
+  Color _resolveLogicalForegroundColor(CellData cellData) {
+    final color = resolveForegroundColor(cellData.foreground);
+    if (cellData.flags & CellFlags.faint == 0) return color;
     return color.withValues(
       red: color.r * _dimColorFactor,
       green: color.g * _dimColorFactor,
@@ -728,10 +731,10 @@ class TerminalPainter {
         (cellData.flags & CellFlags.inverse != 0) != _reverseDisplay;
     final cellForeground = switch (inverse) {
       true => resolveBackgroundColor(cellData.background),
-      false => resolveForegroundColor(cellData.foreground),
+      false => _resolveLogicalForegroundColor(cellData),
     };
     final cellBackground = switch (inverse) {
-      true => resolveForegroundColor(cellData.foreground),
+      true => _resolveLogicalForegroundColor(cellData),
       false => resolveBackgroundColor(cellData.background),
     };
 
