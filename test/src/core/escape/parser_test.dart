@@ -88,6 +88,18 @@ void main() {
       verify(handler.setEnableColumnMode(false)).called(1);
     });
 
+    test('parses DEC slow scroll and autorepeat modes', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[?4h\x1b[?4l\x1b[?8h\x1b[?8l');
+
+      verify(handler.setSlowScrollMode(true)).called(1);
+      verify(handler.setSlowScrollMode(false)).called(1);
+      verify(handler.setAutoRepeatMode(true)).called(1);
+      verify(handler.setAutoRepeatMode(false)).called(1);
+    });
+
     test('parses XTSHIFTESCAPE mouse shift capture', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

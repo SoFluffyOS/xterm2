@@ -530,8 +530,18 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setSlowScrollMode(bool enabled) {
+    onCommand('setSlowScrollMode($enabled)');
+  }
+
+  @override
   void setAutoWrapMode(bool enabled) {
     onCommand('setAutoWrapMode($enabled)');
+  }
+
+  @override
+  void setAutoRepeatMode(bool enabled) {
+    onCommand('setAutoRepeatMode($enabled)');
   }
 
   @override

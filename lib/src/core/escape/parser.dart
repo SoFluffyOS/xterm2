@@ -1731,12 +1731,16 @@ class EscapeParser {
         return handler.setCursorKeysMode(enabled);
       case 3:
         return handler.setColumnMode(enabled);
+      case 4:
+        return handler.setSlowScrollMode(enabled);
       case 5:
         return handler.setReverseDisplayMode(enabled);
       case 6:
         return handler.setOriginMode(enabled);
       case 7:
         return handler.setAutoWrapMode(enabled);
+      case 8:
+        return handler.setAutoRepeatMode(enabled);
       case 9:
         return enabled
             ? handler.setMouseMode(MouseMode.clickOnly)

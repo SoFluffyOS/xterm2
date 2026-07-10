@@ -177,7 +177,11 @@ abstract class EscapeHandler {
 
   void setEnableColumnMode(bool enabled);
 
+  void setSlowScrollMode(bool enabled);
+
   void setAutoWrapMode(bool enabled);
+
+  void setAutoRepeatMode(bool enabled);
 
   void setReverseWrapMode(bool enabled);
 

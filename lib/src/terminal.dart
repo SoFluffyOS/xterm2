@@ -250,7 +250,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _enableColumnMode = false;
 
+  bool _slowScrollMode = false;
+
   bool _autoWrapMode = true;
+
+  bool _autoRepeatMode = false;
 
   bool _reverseWrapMode = false;
 
@@ -879,7 +883,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reverseDisplayMode = false;
     _originMode = false;
     _enableColumnMode = false;
+    _slowScrollMode = false;
     _autoWrapMode = true;
+    _autoRepeatMode = false;
     _reverseWrapMode = false;
     _reverseWrapExtendedMode = false;
     _mouseMode = MouseMode.none;
@@ -930,7 +936,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reverseDisplayMode = false;
     _originMode = false;
     _enableColumnMode = false;
+    _slowScrollMode = false;
     _autoWrapMode = true;
+    _autoRepeatMode = false;
     _reverseWrapMode = false;
     _reverseWrapExtendedMode = false;
     _mouseMode = MouseMode.none;
@@ -1721,8 +1729,18 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setSlowScrollMode(bool enabled) {
+    _slowScrollMode = enabled;
+  }
+
+  @override
   void setAutoWrapMode(bool enabled) {
     _autoWrapMode = enabled;
+  }
+
+  @override
+  void setAutoRepeatMode(bool enabled) {
+    _autoRepeatMode = enabled;
   }
 
   @override
@@ -1884,9 +1902,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     return switch (mode) {
       1 => _reportedState(_cursorKeysMode),
       3 => 0,
+      4 => _reportedState(_slowScrollMode),
       5 => _reportedState(_reverseDisplayMode),
       6 => _reportedState(_originMode),
       7 => _reportedState(_autoWrapMode),
+      8 => _reportedState(_autoRepeatMode),
       9 => _reportedState(_mouseMode == MouseMode.clickOnly),
       12 || 13 => _reportedState(_cursorBlinkMode),
       25 => _reportedState(_cursorVisibleMode),
@@ -1944,9 +1964,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   bool? _decModeEnabled(int mode) {
     return switch (mode) {
       1 => _cursorKeysMode,
+      4 => _slowScrollMode,
       5 => _reverseDisplayMode,
       6 => _originMode,
       7 => _autoWrapMode,
+      8 => _autoRepeatMode,
       9 => _mouseMode == MouseMode.clickOnly,
       12 || 13 => _cursorBlinkMode,
       25 => _cursorVisibleMode,
@@ -1982,12 +2004,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     switch (mode) {
       case 1:
         return setCursorKeysMode(enabled);
+      case 4:
+        return setSlowScrollMode(enabled);
       case 5:
         return setReverseDisplayMode(enabled);
       case 6:
         return setOriginMode(enabled);
       case 7:
         return setAutoWrapMode(enabled);
+      case 8:
+        return setAutoRepeatMode(enabled);
       case 9:
         return setMouseMode(switch (enabled) {
           true => MouseMode.clickOnly,
