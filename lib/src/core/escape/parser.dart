@@ -1362,6 +1362,16 @@ class EscapeParser {
       return handler.setLeftRightMargins(left, right);
     }
 
+    if (_csi.prefix == Ascii.greaterThan) {
+      final enabled = switch (_csi.params) {
+        [] || [0] => false,
+        [1] => true,
+        _ => null,
+      };
+      if (enabled == null) return;
+      return handler.setMouseShiftCaptureMode(enabled);
+    }
+
     if (_csi.prefix != Ascii.questionMark) return;
 
     for (final mode in _csi.params) {

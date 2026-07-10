@@ -58,6 +58,17 @@ void main() {
       verify(handler.restoreDecMode(25)).called(1);
     });
 
+    test('parses XTSHIFTESCAPE mouse shift capture', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[>1s\x1b[>0s\x1b[>s\x1b[>2s');
+
+      verify(handler.setMouseShiftCaptureMode(true)).called(1);
+      verify(handler.setMouseShiftCaptureMode(false)).called(2);
+      verifyNever(handler.setMouseShiftCaptureMode(null));
+    });
+
     test('parses DEC left and right margin mode', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

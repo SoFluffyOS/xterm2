@@ -473,6 +473,46 @@ void main() {
       }
     });
 
+    testWidgets('XTSHIFTESCAPE captures shift mouse reporting', (
+      tester,
+    ) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add)..write('abcdef');
+      terminal.write('\x1b[?1002h\x1b[?1006h\x1b[>1s');
+
+      final controller = TerminalController(
+        pointerInputs: PointerInputs.all(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cellSize = state.renderTerminal.cellSize;
+      final position = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 0.5, cellSize.height * 0.5),
+      );
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendEventToBinding(pointer.down(position));
+      await tester.pump();
+      await tester.sendEventToBinding(pointer.up());
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(output, contains('\x1b[<4;1;1M'));
+      expect(controller.selection, isNull);
+    });
+
     testWidgets('reports scroll at local terminal coordinates', (tester) async {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

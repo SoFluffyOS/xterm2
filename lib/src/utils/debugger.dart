@@ -570,6 +570,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setMouseShiftCaptureMode(bool enabled) {
+    onCommand('setMouseShiftCaptureMode($enabled)');
+  }
+
+  @override
   void setMouseReportMode(MouseReportMode mode) {
     onCommand('setMouseReportMode($mode)');
   }
@@ -627,6 +632,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void popKittyKeyboardModes(int count) {
     onCommand('popKittyKeyboardModes($count)');
+  }
+
+  @override
+  void setModifyOtherKeysMode(int resource, int mode) {
+    onCommand('setModifyOtherKeysMode($resource, $mode)');
   }
 
   @override

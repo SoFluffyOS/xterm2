@@ -193,6 +193,8 @@ abstract class EscapeHandler {
 
   void setReportFocusMode(bool enabled);
 
+  void setMouseShiftCaptureMode(bool enabled);
+
   void setMouseReportMode(MouseReportMode mode);
 
   void setAltBufferMouseScrollMode(bool enabled);

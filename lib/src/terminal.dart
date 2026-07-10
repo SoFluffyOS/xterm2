@@ -266,6 +266,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _reportFocusMode = false;
 
+  bool _mouseShiftCaptureMode = false;
+
   bool _altBufferMouseScrollMode = false;
 
   bool _bracketedPasteMode = false;
@@ -346,6 +348,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   bool get reportFocusMode => _reportFocusMode;
+
+  @override
+  bool get mouseShiftCaptureMode => _mouseShiftCaptureMode;
 
   @override
   bool get altBufferMouseScrollMode => _altBufferMouseScrollMode;
@@ -840,6 +845,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _applicationCursorType = null;
     _appKeypadMode = false;
     _reportFocusMode = false;
+    _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _graphemeClusterMode = true;
@@ -881,6 +887,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _applicationCursorType = null;
     _appKeypadMode = false;
     _reportFocusMode = false;
+    _mouseShiftCaptureMode = false;
     _altBufferMouseScrollMode = false;
     _bracketedPasteMode = false;
     _graphemeClusterMode = true;
@@ -1683,6 +1690,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setReportFocusMode(bool enabled) {
     _reportFocusMode = enabled;
+  }
+
+  @override
+  void setMouseShiftCaptureMode(bool enabled) {
+    _mouseShiftCaptureMode = enabled;
   }
 
   @override

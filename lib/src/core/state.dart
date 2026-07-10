@@ -42,6 +42,8 @@ abstract class TerminalState {
 
   bool get reportFocusMode;
 
+  bool get mouseShiftCaptureMode;
+
   bool get altBufferMouseScrollMode;
 
   bool get bracketedPasteMode;
