@@ -327,6 +327,9 @@ void main() {
     expect(activatedUri, 'https://example.com');
 
     await tester.sendKeyUpEvent(modifierKey);
+    await tester.pump();
+
+    expect(state.renderTerminal.activeHyperlinkId, isNull);
   });
 
   group('TerminalController.pointerInputs', () {
