@@ -2207,6 +2207,46 @@ void main() {
     expect(terminal.hyperlinkAt(const CellOffset(2, 0)), 'https://example.com');
     expect(terminal.hyperlinkAt(const CellOffset(3, 0)), isNull);
   });
+
+  test('Terminal scroll up clears stale hyperlink cells', () {
+    final terminal = Terminal()..resize(5, 5);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC\x1b]8;;\x1b\\');
+    terminal.write('\r\nDEF\r\nGHI');
+    terminal.write('\x1b[2;2H\x1b[S');
+
+    expect(terminal.buffer.lines[0].getText(0, 3), 'DEF');
+    expect(terminal.buffer.lines[1].getText(0, 3), 'GHI');
+    for (var column = 0; column < 3; column++) {
+      expect(terminal.hyperlinkAt(CellOffset(column, 0)), isNull);
+      expect(terminal.hyperlinkAt(CellOffset(column, 1)), isNull);
+    }
+  });
+
+  test('Terminal screen switching clears active OSC 8 hyperlink state', () {
+    final terminal = Terminal()..resize(5, 2);
+
+    terminal.write('\x1b]8;;https://example.com/main\x1b\\A');
+    terminal.write('\x1b[?1049hB');
+
+    expect(terminal.isUsingAltBuffer, isTrue);
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+
+    terminal.write('\x1b]8;;https://example.com/alt\x1b\\C');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(1, 0)),
+      'https://example.com/alt',
+    );
+
+    terminal.write('\x1b[?1049lD');
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com/main',
+    );
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
+  });
 }
 
 class _TestInputHandler implements TerminalInputHandler {

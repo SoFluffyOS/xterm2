@@ -1408,12 +1408,20 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void useAltBuffer() {
+    _endScreenHyperlinkState();
     _buffer = _altBuffer;
   }
 
   @override
   void useMainBuffer() {
+    _endScreenHyperlinkState();
     _buffer = _mainBuffer;
+  }
+
+  void _endScreenHyperlinkState() {
+    _cursorStyle.hyperlinkId = 0;
+    _mainBuffer.clearSavedCursorHyperlink();
+    _altBuffer.clearSavedCursorHyperlink();
   }
 
   @override

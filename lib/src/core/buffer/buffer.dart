@@ -802,6 +802,10 @@ class Buffer {
     charset.save();
   }
 
+  void clearSavedCursorHyperlink() {
+    _savedCursorStyle.hyperlinkId = 0;
+  }
+
   /// Restore cursor position, charmap and text attributes.
   bool restoreCursor() {
     _cursorX = _savedCursorX;
