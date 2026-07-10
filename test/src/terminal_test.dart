@@ -788,6 +788,27 @@ void main() {
     expect(currentDirectory, 'file://localhost/tmp/my%20project');
   });
 
+  test('Terminal tracks OSC 133 semantic prompt state', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]133;A\x1b\\');
+    terminal.write('\x1b]133;B\x1b\\');
+    terminal.write('\x1b]133;C\x1b\\');
+    terminal.write('\x1b]133;D;2\x1b\\');
+
+    expect(
+      states.map((state) => state.content),
+      [
+        TerminalSemanticPromptContent.prompt,
+        TerminalSemanticPromptContent.input,
+        TerminalSemanticPromptContent.output,
+        TerminalSemanticPromptContent.output,
+      ],
+    );
+    expect(terminal.semanticPromptState.lastCommandExitCode, 2);
+  });
+
   test('Terminal pushes and restores window titles', () {
     final titles = <String>[];
     final terminal = Terminal(onTitleChange: titles.add);

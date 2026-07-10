@@ -27,6 +27,23 @@ import 'package:xterm/src/utils/circular_buffer.dart';
 
 enum _ProtectionMode { off, iso, dec }
 
+enum TerminalSemanticPromptContent {
+  output,
+  prompt,
+  input,
+}
+
+final class TerminalSemanticPromptState {
+  const TerminalSemanticPromptState({
+    required this.content,
+    this.lastCommandExitCode,
+  });
+
+  final TerminalSemanticPromptContent content;
+
+  final int? lastCommandExitCode;
+}
+
 /// [Terminal] is an interface to interact with command line applications. It
 /// translates escape sequences from the application into updates to the
 /// [buffer] and events such as [onTitleChange] or [onBell], as well as
@@ -58,6 +75,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   /// Called when the application reports its current directory using OSC 7.
   void Function(String uri)? onCurrentDirectoryChange;
+
+  /// Called when the application reports shell-integration prompt state using
+  /// OSC 133.
+  void Function(TerminalSemanticPromptState state)? onSemanticPrompt;
 
   /// Resolves the currently displayed color for OSC color queries. [code] is
   /// 4 for an indexed color or 10–12 for dynamic colors; [index] is provided
@@ -121,6 +142,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onTitleChange,
     this.onIconChange,
     this.onCurrentDirectoryChange,
+    this.onSemanticPrompt,
     this.onColorQuery,
     this.onColorSchemeQuery,
     this.onXtVersionQuery,
@@ -155,9 +177,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _colorRevision = 0;
 
+  TerminalSemanticPromptState _semanticPromptState =
+      const TerminalSemanticPromptState(
+    content: TerminalSemanticPromptContent.output,
+  );
+
   int _nextHyperlinkId = 1;
 
   int get colorRevision => _colorRevision;
+
+  TerminalSemanticPromptState get semanticPromptState => _semanticPromptState;
 
   Iterable<MapEntry<int, int>> get indexedColorOverrides {
     return _indexedColorOverrides.entries;
@@ -2145,8 +2174,39 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void unknownOSC(String ps, List<String> pt) {
+    _handleSemanticPromptOsc(ps, pt);
     onPrivateOSC?.call(ps, pt);
   }
+
+  void _handleSemanticPromptOsc(String ps, List<String> pt) {
+    if (ps != '133' || pt.isEmpty) return;
+    final action = pt.first;
+    if (action.isEmpty) return;
+
+    final content = switch (action.codeUnitAt(0)) {
+      0x41 || 0x50 => TerminalSemanticPromptContent.prompt,
+      0x42 || 0x49 => TerminalSemanticPromptContent.input,
+      0x43 || 0x44 => TerminalSemanticPromptContent.output,
+      _ => null,
+    };
+    if (content == null) return;
+
+    final exitCode = switch (action.codeUnitAt(0)) {
+      0x44 => _parseSemanticPromptExitCode(pt),
+      _ => _semanticPromptState.lastCommandExitCode,
+    };
+    final state = TerminalSemanticPromptState(
+      content: content,
+      lastCommandExitCode: exitCode,
+    );
+    _semanticPromptState = state;
+    onSemanticPrompt?.call(state);
+  }
+}
+
+int? _parseSemanticPromptExitCode(List<String> pt) {
+  if (pt.length < 2) return null;
+  return int.tryParse(pt[1]);
 }
 
 String? _resolveClipboardSelector(String selector) {
