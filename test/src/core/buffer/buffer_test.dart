@@ -335,6 +335,32 @@ void main() {
       expect(boundary?.end, const CellOffset(4, 0));
       expect(terminal.buffer.getText(boundary), '你好');
     });
+
+    test('selects words across soft-wrapped lines', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('helloworld');
+
+      final boundary = terminal.buffer.getWordBoundary(
+        const CellOffset(1, 1),
+      );
+
+      expect(boundary?.begin, const CellOffset(0, 0));
+      expect(boundary?.end, const CellOffset(5, 1));
+      expect(terminal.buffer.getText(boundary), 'helloworld');
+    });
+
+    test('stops at separators across soft-wrapped lines', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('hello-world');
+
+      final boundary = terminal.buffer.getWordBoundary(
+        const CellOffset(1, 1),
+      );
+
+      expect(boundary?.begin, const CellOffset(1, 1));
+      expect(boundary?.end, const CellOffset(1, 2));
+      expect(terminal.buffer.getText(boundary), 'world');
+    });
   });
 
   test('does not delete lines beyond the scroll region', () {

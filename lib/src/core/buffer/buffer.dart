@@ -1156,14 +1156,18 @@ class Buffer {
       return null;
     }
 
-    var line = lines[position.y];
+    var startLine = position.y;
     var start = position.x;
+    var endLine = position.y;
     var end = position.x;
 
     do {
       if (start == 0) {
-        break;
+        if (!_lineContinuesFromPrevious(startLine)) break;
+        startLine--;
+        start = viewWidth;
       }
+      final line = lines[startLine];
       var previous = start - 1;
       if (previous > 0 &&
           line.getWidth(previous) == 0 &&
@@ -1179,8 +1183,11 @@ class Buffer {
 
     do {
       if (end >= viewWidth) {
-        break;
+        if (!_lineContinuesToNext(endLine)) break;
+        endLine++;
+        end = 0;
       }
+      final line = lines[endLine];
       final width = line.getWidth(end);
       if (width == 0 && end > 0 && line.getWidth(end - 1) == 2) {
         end++;
@@ -1196,14 +1203,23 @@ class Buffer {
       };
     } while (true);
 
-    if (start == end) {
+    if (start == end && startLine == endLine) {
       return null;
     }
 
     return BufferRangeLine(
-      CellOffset(start, position.y),
-      CellOffset(end, position.y),
+      CellOffset(start, startLine),
+      CellOffset(end, endLine),
     );
+  }
+
+  bool _lineContinuesFromPrevious(int lineIndex) {
+    return lineIndex > 0 && lines[lineIndex].isWrapped;
+  }
+
+  bool _lineContinuesToNext(int lineIndex) {
+    final nextLine = lineIndex + 1;
+    return nextLine < lines.length && lines[nextLine].isWrapped;
   }
 
   /// Get the plain text content of the buffer including the scrollback.
