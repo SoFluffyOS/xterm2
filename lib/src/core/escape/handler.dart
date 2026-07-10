@@ -155,6 +155,22 @@ abstract class EscapeHandler {
 
   void fillRect(int char, int top, int left, int bottom, int right);
 
+  void changeRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  );
+
+  void reverseRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  );
+
   void copyRect(
     int sourceTop,
     int sourceLeft,
@@ -167,6 +183,8 @@ abstract class EscapeHandler {
   );
 
   void selectiveEraseRect(int top, int left, int bottom, int right);
+
+  void setAttributeChangeExtent(bool rectangular);
 
   void insertBlankChars(int amount);
 

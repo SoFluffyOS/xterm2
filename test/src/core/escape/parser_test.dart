@@ -177,6 +177,21 @@ void main() {
       verify(handler.copyRect(2, 3, 4, 5, 1, 6, 7, 1)).called(1);
     });
 
+    test('parses rectangular attribute sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write(
+        '\x1b[2*x'
+        '\x1b[2;3;4;5;7\$r'
+        '\x1b[2;3;4;5;7\$t',
+      );
+
+      verify(handler.setAttributeChangeExtent(true)).called(1);
+      verify(handler.changeRectAttributes(2, 3, 4, 5, 7)).called(1);
+      verify(handler.reverseRectAttributes(2, 3, 4, 5, 7)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

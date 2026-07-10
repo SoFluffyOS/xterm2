@@ -615,6 +615,101 @@ class Buffer {
     }
   }
 
+  void changeRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute, {
+    required bool rectangular,
+  }) {
+    _applyAttributeRect(
+      top,
+      left,
+      bottom,
+      right,
+      (attrs) => _changeAttributes(attrs, attribute),
+      rectangular: rectangular,
+    );
+  }
+
+  void reverseRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute, {
+    required bool rectangular,
+  }) {
+    _applyAttributeRect(
+      top,
+      left,
+      bottom,
+      right,
+      (attrs) => attrs ^ _attributeMask(attribute),
+      rectangular: rectangular,
+    );
+  }
+
+  void _applyAttributeRect(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int Function(int attrs) transform, {
+    required bool rectangular,
+  }) {
+    final rect = _normalizeRect(top, left, bottom, right);
+    if (rect == null) return;
+
+    for (var row = rect.top; row <= rect.bottom; row++) {
+      final line = lines[row + scrollBack];
+      final rowStart = switch (rectangular || row == rect.top) {
+        true => rect.left,
+        false => _attributeRegionLeft,
+      };
+      final rowEnd = switch (rectangular || row == rect.bottom) {
+        true => rect.right,
+        false => _attributeRegionRight,
+      };
+
+      for (var col = rowStart; col <= rowEnd; col++) {
+        line.setAttributes(col, transform(line.getAttributes(col)));
+      }
+    }
+  }
+
+  int _changeAttributes(int attrs, int attribute) {
+    if (attribute == 0) return attrs & ~CellAttr.visualMask;
+    return attrs | _attributeMask(attribute);
+  }
+
+  int _attributeMask(int attribute) {
+    return switch (attribute) {
+      1 => CellAttr.bold,
+      4 => CellAttr.underline,
+      5 => CellAttr.blink,
+      7 => CellAttr.inverse,
+      8 => CellAttr.invisible,
+      9 => CellAttr.strikethrough,
+      _ => 0,
+    };
+  }
+
+  int get _attributeRegionLeft {
+    return switch (terminal.originMode) {
+      true => marginLeft,
+      false => 0,
+    };
+  }
+
+  int get _attributeRegionRight {
+    return switch (terminal.originMode) {
+      true => marginRight,
+      false => viewWidth - 1,
+    };
+  }
+
   ({int top, int left, int bottom, int right})? _normalizeRect(
     int top,
     int left,

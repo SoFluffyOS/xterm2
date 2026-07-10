@@ -1566,6 +1566,64 @@ void main() {
     expect(terminal.buffer.lines[1].getText(0, 6), 'ghhijl');
   });
 
+  test('Terminal changes and reverses rectangular attributes', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[2*x\x1b[1;2;2;4;7\$r');
+
+    expect(terminal.buffer.lines[0].getAttributes(0) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(1) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(3) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[1].getAttributes(4) & CellAttr.inverse, 0);
+
+    terminal.write('\x1b[1;3;2;3;7\$t');
+
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.inverse, 0);
+    expect(terminal.buffer.lines[1].getAttributes(2) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(1) & CellAttr.inverse,
+      isNot(0),
+    );
+  });
+
+  test('Terminal supports stream attribute change extent', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[0*x\x1b[1;2;2;4;7\$r');
+
+    expect(terminal.buffer.lines[0].getAttributes(0) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(5) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(0) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(3) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[1].getAttributes(4) & CellAttr.inverse, 0);
+  });
+
+  test('Terminal reports DECSACE status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[2*x\x1bP\$q*x\x1b\\');
+
+    expect(output, ['\x1bP1\$r2*x\x1b\\']);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

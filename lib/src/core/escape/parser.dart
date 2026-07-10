@@ -721,6 +721,14 @@ class EscapeParser {
 
   /// `ESC [ Pch; Pt; Pl; Pb; Pr $ x` Fill Rectangular Area (DECFRA).
   void _csiHandleFillRect() {
+    if (_isAsteriskCsi(maxParams: 1)) {
+      final rectangular = switch (_firstParamOrDefault(0)) {
+        2 => true,
+        _ => false,
+      };
+      return handler.setAttributeChangeExtent(rectangular);
+    }
+
     if (!_isDollarCsi(paramCount: 5)) return;
     handler.fillRect(_csi.params[0], _csi.params[1], _csi.params[2],
         _csi.params[3], _csi.params[4]);
@@ -739,6 +747,32 @@ class EscapeParser {
       _csi.params[5],
       _csi.params[6],
       _csi.params[7],
+    );
+  }
+
+  /// `ESC [ Pt; Pl; Pb; Pr; Ps $ r`
+  /// Change Attributes in Rectangular Area (DECCARA).
+  void _csiHandleChangeRectAttributes() {
+    if (!_isDollarCsi(paramCount: 5)) return;
+    handler.changeRectAttributes(
+      _csi.params[0],
+      _csi.params[1],
+      _csi.params[2],
+      _csi.params[3],
+      _csi.params[4],
+    );
+  }
+
+  /// `ESC [ Pt; Pl; Pb; Pr; Ps $ t`
+  /// Reverse Attributes in Rectangular Area (DECRARA).
+  void _csiHandleReverseRectAttributes() {
+    if (!_isDollarCsi(paramCount: 5)) return;
+    handler.reverseRectAttributes(
+      _csi.params[0],
+      _csi.params[1],
+      _csi.params[2],
+      _csi.params[3],
+      _csi.params[4],
     );
   }
 
@@ -761,6 +795,13 @@ class EscapeParser {
         _csi.intermediates.length == 1 &&
         _csi.intermediates.single == Ascii.dollarSign &&
         _csi.params.length == paramCount;
+  }
+
+  bool _isAsteriskCsi({required int maxParams}) {
+    return _csi.prefix == null &&
+        _csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.asterisk &&
+        _csi.params.length <= maxParams;
   }
 
   /// `ESC [ Ps $ |` Set Columns Per Page (DECSCPP).
@@ -1404,6 +1445,11 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.dollarSign) {
+      return _csiHandleChangeRectAttributes();
+    }
+
     if (_csi.intermediates.isNotEmpty) return;
     if (_csi.prefix == Ascii.questionMark) {
       for (final mode in _csi.params) {
@@ -1495,6 +1541,11 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_st/
   void _csiWindowManipulation() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.dollarSign) {
+      return _csiHandleReverseRectAttributes();
+    }
+
     if (_csi.prefix != null || _csi.intermediates.isNotEmpty) return;
     // The sequence needs at least one parameter.
     if (_csi.params.isEmpty) {

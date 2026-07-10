@@ -300,6 +300,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _leftRightMarginMode = false;
 
+  bool _attributeChangeExtentRectangular = false;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1428,6 +1430,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
           false => 0,
         }}"q',
       r'$|' => '$_viewWidth\$|',
+      '*x' => '${switch (_attributeChangeExtentRectangular) {
+          true => 2,
+          false => 0,
+        }}*x',
       '*|' => '$_viewHeight*|',
       ' q' => '${_cursorShapeStatus()} q',
       'r' => '${_buffer.marginTop + 1};${_buffer.marginBottom + 1}r',
@@ -1659,6 +1665,42 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void changeRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  ) {
+    _buffer.changeRectAttributes(
+      top,
+      left,
+      bottom,
+      right,
+      attribute,
+      rectangular: _attributeChangeExtentRectangular,
+    );
+  }
+
+  @override
+  void reverseRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  ) {
+    _buffer.reverseRectAttributes(
+      top,
+      left,
+      bottom,
+      right,
+      attribute,
+      rectangular: _attributeChangeExtentRectangular,
+    );
+  }
+
+  @override
   void copyRect(
     int sourceTop,
     int sourceLeft,
@@ -1684,6 +1726,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void selectiveEraseRect(int top, int left, int bottom, int right) {
     _buffer.eraseRect(top, left, bottom, right, respectProtected: true);
+  }
+
+  @override
+  void setAttributeChangeExtent(bool rectangular) {
+    _attributeChangeExtentRectangular = rectangular;
   }
 
   @override

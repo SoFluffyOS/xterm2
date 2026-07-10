@@ -481,6 +481,30 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void changeRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  ) {
+    onCommand('changeRectAttributes($top, $left, $bottom, $right, '
+        '$attribute)');
+  }
+
+  @override
+  void reverseRectAttributes(
+    int top,
+    int left,
+    int bottom,
+    int right,
+    int attribute,
+  ) {
+    onCommand('reverseRectAttributes($top, $left, $bottom, $right, '
+        '$attribute)');
+  }
+
+  @override
   void copyRect(
     int sourceTop,
     int sourceLeft,
@@ -500,6 +524,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void selectiveEraseRect(int top, int left, int bottom, int right) {
     onCommand('selectiveEraseRect($top, $left, $bottom, $right)');
+  }
+
+  @override
+  void setAttributeChangeExtent(bool rectangular) {
+    onCommand('setAttributeChangeExtent($rectangular)');
   }
 
   @override
