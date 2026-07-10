@@ -188,6 +188,19 @@ void main() {
         startsWith('llo\nce '),
       );
     });
+
+    test('preserves wrapped rows in block ranges', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcdefghi');
+
+      expect(
+        terminal.buffer.getText(
+          BufferRangeBlock(const CellOffset(1, 0), const CellOffset(3, 1)),
+        ),
+        'bc\ngh',
+      );
+    });
   });
 
   group('Buffer.resize()', () {
