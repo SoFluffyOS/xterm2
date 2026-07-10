@@ -129,6 +129,47 @@ void main() {
       verify(handler.useCharset(3)).called(1);
     });
 
+    test('executes controls while waiting for charset final byte', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b(\x07\x7f0');
+
+      verify(handler.bell()).called(1);
+      verify(handler.designateCharset(0, 0x30)).called(1);
+    });
+
+    test('preserves split charset sequence across controls', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b(');
+      parser.write('\x0e0');
+
+      verify(handler.shiftOut()).called(1);
+      verify(handler.designateCharset(0, 0x30)).called(1);
+    });
+
+    test('restarts escape while waiting for charset final byte', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b(\x1b[5 q');
+
+      verifyNever(handler.designateCharset(any, any));
+      verify(handler.setCursorShape(5)).called(1);
+    });
+
+    test('executes controls while waiting for hash final byte', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b#\x078');
+
+      verify(handler.bell()).called(1);
+      verify(handler.screenAlignmentTest()).called(1);
+    });
+
     test('rejects malformed plain CSI commands', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

@@ -23,6 +23,10 @@ class EscapeParser {
 
   static const _maxDcsRawLength = 256;
 
+  static const _escFinalIncomplete = -1;
+
+  static const _escFinalCancelled = -2;
+
   final EscapeHandler handler;
 
   EscapeParser(this.handler);
@@ -179,6 +183,34 @@ class EscapeParser {
 
   bool _pendingEscape = false;
 
+  int _consumeEscFinalByte() {
+    while (_queue.isNotEmpty) {
+      final char = _queue.consume();
+      if (char == Ascii.ESC) {
+        _pendingEscape = true;
+        return _escFinalCancelled;
+      }
+      if (char == 0x18 || char == 0x1a) {
+        return _escFinalCancelled;
+      }
+      if (char >= 0x80 && char <= 0x9f) {
+        _queue.rollback(1);
+        return _escFinalCancelled;
+      }
+      if (char < Ascii.space) {
+        if (char <= 0x0f) {
+          _sbcHandlers[char]?.call();
+        }
+        continue;
+      }
+      if (char == Ascii.DEL) continue;
+
+      return char;
+    }
+
+    return _escFinalIncomplete;
+  }
+
   bool _processPendingEscape() {
     if (_queue.isEmpty) return false;
 
@@ -317,8 +349,9 @@ class EscapeParser {
 
   /// `ESC # 8` DEC Screen Alignment Test (DECALN).
   bool _escHandleHash() {
-    if (_queue.isEmpty) return false;
-    final command = _queue.consume();
+    final command = _consumeEscFinalByte();
+    if (command == _escFinalIncomplete) return false;
+    if (command == _escFinalCancelled) return true;
     if (command == '8'.charCode) {
       handler.screenAlignmentTest();
       return true;
@@ -336,29 +369,33 @@ class EscapeParser {
   }
 
   bool _escHandleDesignateCharset0() {
-    if (_queue.isEmpty) return false;
-    int name = _queue.consume();
+    final name = _consumeEscFinalByte();
+    if (name == _escFinalIncomplete) return false;
+    if (name == _escFinalCancelled) return true;
     handler.designateCharset(0, name);
     return true;
   }
 
   bool _escHandleDesignateCharset1() {
-    if (_queue.isEmpty) return false;
-    int name = _queue.consume();
+    final name = _consumeEscFinalByte();
+    if (name == _escFinalIncomplete) return false;
+    if (name == _escFinalCancelled) return true;
     handler.designateCharset(1, name);
     return true;
   }
 
   bool _escHandleDesignateCharset2() {
-    if (_queue.isEmpty) return false;
-    final name = _queue.consume();
+    final name = _consumeEscFinalByte();
+    if (name == _escFinalIncomplete) return false;
+    if (name == _escFinalCancelled) return true;
     handler.designateCharset(2, name);
     return true;
   }
 
   bool _escHandleDesignateCharset3() {
-    if (_queue.isEmpty) return false;
-    final name = _queue.consume();
+    final name = _consumeEscFinalByte();
+    if (name == _escFinalIncomplete) return false;
+    if (name == _escFinalCancelled) return true;
     handler.designateCharset(3, name);
     return true;
   }
