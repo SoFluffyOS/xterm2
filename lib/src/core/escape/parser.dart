@@ -706,6 +706,10 @@ class EscapeParser {
       return handler.setActiveStatusDisplay(_csi.params[0]);
     }
 
+    if (_isPlainCsi()) {
+      return handler.setProtectedFieldsAttribute(_firstParamOrDefault(0));
+    }
+
     if (!_isSingleQuoteCsi()) return;
     handler.insertColumns(_firstParamOrDefault(1));
   }

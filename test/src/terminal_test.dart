@@ -1670,6 +1670,15 @@ void main() {
     expect(output, ['\x1bP1\$r65;1"p\x1b\\']);
   });
 
+  test('Terminal reports protected fields status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[1}\x1bP\$q}\x1b\\');
+
+    expect(output, ['\x1bP1\$r1}\x1b\\']);
+  });
+
   test('Terminal handles split DECRQSS payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

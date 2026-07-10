@@ -557,6 +557,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setProtectedFieldsAttribute(int attribute) {
+    onCommand('setProtectedFieldsAttribute($attribute)');
+  }
+
+  @override
   void insertBlankChars(int amount) {
     onCommand('insertBlankChars($amount)');
   }

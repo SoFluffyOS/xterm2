@@ -222,6 +222,15 @@ void main() {
       verify(handler.setConformanceLevel(65, 1)).called(1);
     });
 
+    test('parses protected fields attribute sequence', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1}');
+
+      verify(handler.setProtectedFieldsAttribute(1)).called(1);
+    });
+
     test('parses protected mode and selective erase', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

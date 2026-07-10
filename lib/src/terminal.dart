@@ -316,6 +316,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _conformanceControls = 1;
 
+  int _protectedFieldsAttribute = 0;
+
   bool _synchronizedUpdateMode = false;
 
   Timer? _synchronizedUpdateTimer;
@@ -1448,6 +1450,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   String? _statusString(String query) {
     return switch (query) {
       'm' => _sgrStatusString(),
+      '}' => '$_protectedFieldsAttribute}',
       '"p' => '$_conformanceLevel;$_conformanceControls"p',
       '"q' => '${switch (_cursorStyle.isProtected) {
           true => 1,
@@ -1785,6 +1788,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setStatusLineType(int type) {
     _statusLineType = type.clamp(0, 2);
+  }
+
+  @override
+  void setProtectedFieldsAttribute(int attribute) {
+    _protectedFieldsAttribute = attribute;
   }
 
   @override

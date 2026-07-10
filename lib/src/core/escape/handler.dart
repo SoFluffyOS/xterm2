@@ -196,6 +196,8 @@ abstract class EscapeHandler {
 
   void setStatusLineType(int type);
 
+  void setProtectedFieldsAttribute(int attribute);
+
   void insertBlankChars(int amount);
 
   void unknownCSI(int finalByte);
