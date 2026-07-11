@@ -282,6 +282,7 @@ void main() {
     final canvas = Canvas(recorder);
     final paint = Paint()..color = const Color(0xffffffff);
     const codePoints = [
+      0x00b0,
       0x2014,
       0x2190,
       0x2191,
@@ -293,6 +294,11 @@ void main() {
       0x25b6,
       0x25bc,
       0x25c0,
+      0x25c9,
+      0x25cb,
+      0x25cf,
+      0x25e6,
+      0x25ef,
       0x2713,
       0x279c,
     ];

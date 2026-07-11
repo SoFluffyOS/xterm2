@@ -403,6 +403,27 @@ bool _paintProceduralGlyph(
     canvas.drawLine(start, end, symbolStrokePaint);
   }
 
+  void circle(double diameterScale, {bool filled = false}) {
+    final diameter = min(width, height) * diameterScale;
+    final circleRect = Rect.fromCenter(
+      center: Offset(centerX, centerY),
+      width: diameter,
+      height: diameter,
+    );
+    if (filled) {
+      canvas.drawOval(circleRect, paint);
+      return;
+    }
+    canvas.drawOval(
+      circleRect,
+      Paint()
+        ..color = paint.color
+        ..strokeWidth = max(1.0, diameter * 0.12)
+        ..style = PaintingStyle.stroke
+        ..isAntiAlias = true,
+    );
+  }
+
   void horizontal(double start, double end, double thickness) {
     fill(Rect.fromLTRB(
         start, centerY - thickness / 2, end, centerY + thickness / 2));
@@ -524,6 +545,9 @@ bool _paintProceduralGlyph(
   }
 
   switch (codePoint) {
+    case 0x00b0:
+      circle(0.42);
+      return true;
     case 0x2014:
       line(
         Offset(x + width * 0.12, centerY),
@@ -628,12 +652,23 @@ bool _paintProceduralGlyph(
         Offset(x + width * 0.78, y + height * 0.28),
       ], close: true);
       return true;
+    case 0x25c9:
+    case 0x25cf:
+      circle(0.58, filled: true);
+      return true;
     case 0x25c0:
       path([
         Offset(x + width * 0.2, centerY),
         Offset(x + width * 0.72, y + height * 0.22),
         Offset(x + width * 0.72, y + height * 0.78),
       ], close: true);
+      return true;
+    case 0x25cb:
+    case 0x25ef:
+      circle(0.88);
+      return true;
+    case 0x25e6:
+      circle(0.4);
       return true;
     case 0x2713:
       strokePath([
@@ -814,6 +849,7 @@ bool _isProceduralGlyph(int codePoint) {
 
 bool _isTerminalSymbolGlyph(int codePoint) {
   return switch (codePoint) {
+    0x00b0 ||
     0x2014 ||
     0x2190 ||
     0x2191 ||
@@ -825,6 +861,11 @@ bool _isTerminalSymbolGlyph(int codePoint) {
     0x25b6 ||
     0x25bc ||
     0x25c0 ||
+    0x25c9 ||
+    0x25cb ||
+    0x25cf ||
+    0x25e6 ||
+    0x25ef ||
     0x2713 ||
     0x279c =>
       true,
