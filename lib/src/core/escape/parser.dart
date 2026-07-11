@@ -1539,7 +1539,7 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sn/
   void _csiHandleDeviceStatusReport() {
-    if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
+    if (_csi.intermediates.isNotEmpty) return;
     if (_csi.params.isEmpty) return;
 
     if (_csi.prefix == Ascii.questionMark) {
@@ -1547,6 +1547,10 @@ class EscapeParser {
         case 996:
           return handler.sendColorScheme();
       }
+      return handler.sendPrivateDeviceStatusReport(_csi.params);
+    }
+
+    if (_csi.params.length > 1) {
       return;
     }
 

@@ -321,6 +321,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void sendPrivateDeviceStatusReport(List<int> params) {
+    onCommand('sendPrivateDeviceStatusReport($params)');
+  }
+
+  @override
   void sendRectChecksum(
     int id,
     int page,

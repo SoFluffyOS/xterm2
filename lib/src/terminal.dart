@@ -1196,6 +1196,36 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void sendPrivateDeviceStatusReport(List<int> params) {
+    switch (params) {
+      case [6]:
+        onOutput?.call(
+          '\x1b[?${_buffer.cursorY + 1};${_buffer.cursorX + 1};1R',
+        );
+      case [15]:
+        onOutput?.call('\x1b[?13n');
+      case [25]:
+        onOutput?.call('\x1b[?23n');
+      case [26]:
+        onOutput?.call('\x1b[?27;1;0;1n');
+      case [55]:
+        onOutput?.call('\x1b[?53n');
+      case [56]:
+        onOutput?.call('\x1b[?57;0n');
+      case [62]:
+        onOutput?.call('\x1b[0*{');
+      case [63, final id]:
+        onOutput?.call('\x1bP$id!~0000\x1b\\');
+      case [75]:
+        onOutput?.call('\x1b[?70n');
+      case [85]:
+        onOutput?.call('\x1b[?83n');
+      case _:
+        return;
+    }
+  }
+
+  @override
   void sendRectChecksum(
     int id,
     int page,

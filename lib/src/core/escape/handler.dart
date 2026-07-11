@@ -91,6 +91,8 @@ abstract class EscapeHandler {
 
   void sendCursorPosition();
 
+  void sendPrivateDeviceStatusReport(List<int> params);
+
   void sendRectChecksum(
     int id,
     int page,

@@ -2112,6 +2112,38 @@ void main() {
     expect(output, ['\x1b[3;5R']);
   });
 
+  test('Terminal reports private device status', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[3;5H'
+      '\x1b[?6n'
+      '\x1b[?15n'
+      '\x1b[?25n'
+      '\x1b[?26n'
+      '\x1b[?55n'
+      '\x1b[?56n'
+      '\x1b[?62n'
+      '\x1b[?63;1n'
+      '\x1b[?75n'
+      '\x1b[?85n',
+    );
+
+    expect(output, [
+      '\x1b[?3;5;1R',
+      '\x1b[?13n',
+      '\x1b[?23n',
+      '\x1b[?27;1;0;1n',
+      '\x1b[?53n',
+      '\x1b[?57;0n',
+      '\x1b[0*{',
+      '\x1bP1!~0000\x1b\\',
+      '\x1b[?70n',
+      '\x1b[?83n',
+    ]);
+  });
+
   test('Terminal supports reverse wrap mode for cursor left', () {
     final terminal = Terminal()..resize(5, 3);
 
