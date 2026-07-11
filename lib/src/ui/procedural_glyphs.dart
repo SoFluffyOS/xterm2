@@ -327,6 +327,35 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0xe0b4 && codePoint <= 0xe0b7) {
+    final opensRight = codePoint == 0xe0b4 || codePoint == 0xe0b5;
+    final isFilled = codePoint == 0xe0b4 || codePoint == 0xe0b6;
+    final center = Offset(
+      switch (opensRight) {
+        true => x,
+        false => x + width,
+      },
+      y + height / 2,
+    );
+    final oval = Rect.fromCenter(
+      center: center,
+      width: width * 2,
+      height: height,
+    );
+    if (isFilled) {
+      canvas.drawOval(oval, paint);
+      return true;
+    }
+    canvas.drawOval(
+      oval,
+      Paint()
+        ..color = paint.color
+        ..strokeWidth = max(1.0, width * 0.12)
+        ..style = PaintingStyle.stroke,
+    );
+    return true;
+  }
+
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
     final sextants = _sextantMasks[codePoint - 0x1fb00];
     final halfWidth = width / 2;
@@ -838,7 +867,7 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x2800 && codePoint <= 0x28ff) {
     return true;
   }
-  if (codePoint >= 0xe0b0 && codePoint <= 0xe0b3) {
+  if (codePoint >= 0xe0b0 && codePoint <= 0xe0b7) {
     return true;
   }
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {

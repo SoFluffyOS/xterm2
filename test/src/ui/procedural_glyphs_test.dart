@@ -260,7 +260,7 @@ void main() {
     final canvas = Canvas(recorder);
     final paint = Paint()..color = const Color(0xffffffff);
 
-    for (var codePoint = 0xe0b0; codePoint <= 0xe0b3; codePoint++) {
+    for (var codePoint = 0xe0b0; codePoint <= 0xe0b7; codePoint++) {
       expect(
         paintProceduralGlyph(
           canvas,
