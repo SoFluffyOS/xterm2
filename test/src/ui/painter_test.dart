@@ -667,6 +667,10 @@ void main() {
       isTrue,
     );
     expect(
+      _hasAlphaInRow(byteData, image.width, expectedY - 1),
+      isTrue,
+    );
+    expect(
       _hasAlphaInRow(
           byteData, image.width, painter.cellSize.height.round() - 1),
       isFalse,
@@ -697,6 +701,11 @@ void main() {
     final expectedX = offset.dx.round();
     expect(
       _hasAlphaInColumn(byteData, image.width, expectedX, offset.dy.round()),
+      isTrue,
+    );
+    expect(
+      _hasAlphaInColumn(
+          byteData, image.width, expectedX + 1, offset.dy.round()),
       isTrue,
     );
     expect(

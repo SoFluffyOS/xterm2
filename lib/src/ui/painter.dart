@@ -185,15 +185,20 @@ class TerminalPainter {
         canvas.drawRect(offset & cursorSize, paint);
         return;
       case TerminalCursorType.underline:
-        return canvas.drawLine(
-          offset.translate(0, _cellSize.height - 1),
-          offset.translate(cursorSize.width, _cellSize.height - 1),
+        final underlineHeight = max(2.0, _cellSize.height * 0.12);
+        return canvas.drawRect(
+          Rect.fromLTWH(
+            offset.dx,
+            offset.dy + _cellSize.height - underlineHeight,
+            cursorSize.width,
+            underlineHeight,
+          ),
           paint,
         );
       case TerminalCursorType.verticalBar:
-        return canvas.drawLine(
-          offset,
-          offset.translate(0, _cellSize.height),
+        final barWidth = max(2.0, _cellSize.width * 0.2);
+        return canvas.drawRect(
+          Rect.fromLTWH(offset.dx, offset.dy, barWidth, _cellSize.height),
           paint,
         );
     }
