@@ -26,6 +26,13 @@ const _kDefaultFontFamilyFallback = [
   'sans-serif',
 ];
 
+const _kTerminalFontFeatures = [
+  FontFeature.disable('calt'),
+  FontFeature.disable('clig'),
+  FontFeature.disable('kern'),
+  FontFeature.disable('liga'),
+];
+
 class TerminalStyle {
   const TerminalStyle({
     this.fontSize = _kDefaultFontSize,
@@ -98,6 +105,7 @@ class TerminalStyle {
       decoration: decoration,
       decorationStyle: effectiveDecorationStyle,
       decorationColor: decorationColor,
+      fontFeatures: _kTerminalFontFeatures,
     );
   }
 

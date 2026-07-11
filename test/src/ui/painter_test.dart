@@ -471,6 +471,19 @@ void main() {
     );
   });
 
+  test('TerminalStyle disables ligatures and kerning by default', () {
+    final style = const TerminalStyle().toTextStyle();
+    final features = style.fontFeatures;
+    if (features == null) {
+      fail('Expected terminal font features');
+    }
+
+    expect(
+      features.map((feature) => feature.feature).toSet(),
+      containsAll(['calt', 'clig', 'kern', 'liga']),
+    );
+  });
+
   test('TerminalStyle compares values deeply', () {
     const style = TerminalStyle(
       fontSize: 14,
