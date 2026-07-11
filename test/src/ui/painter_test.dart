@@ -560,6 +560,7 @@ void main() {
     final terminal = Terminal()..write('\u2800');
 
     expect(terminal.buffer.cursorX, 1);
+    expect(painter.paragraphCacheLength, 0);
 
     final image = await _paintLine(painter, terminal.buffer.lines[0]);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
@@ -569,6 +570,7 @@ void main() {
     }
 
     expect(_hasAnyAlpha(byteData, image.width, image.height), isFalse);
+    expect(painter.paragraphCacheLength, 0);
 
     image.dispose();
     painter.dispose();

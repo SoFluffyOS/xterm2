@@ -392,8 +392,9 @@ class TerminalPainter {
 
     final isActiveHyperlink =
         cellData.hyperlinkId != 0 && cellData.hyperlinkId == activeHyperlinkId;
+    final isBlankBraille = charCode == 0x2800;
     if (combiningCharacters == null &&
-        charCode == 0x20 &&
+        (charCode == 0x20 || isBlankBraille) &&
         !isActiveHyperlink &&
         !_hasVisibleSpaceDecoration(cellFlags)) {
       return;
@@ -496,10 +497,8 @@ class TerminalPainter {
       // the CodePoint 0xA0. This is a non breaking space and a underline can be
       // drawn below it.
       var char = String.fromCharCode(charCode);
-      if (charCode == 0x2800) {
-        char = String.fromCharCode(0xA0);
-      }
-      if ((_hasUnderline(cellFlags) || isActiveHyperlink) && charCode == 0x20) {
+      if ((_hasUnderline(cellFlags) || isActiveHyperlink) &&
+          (charCode == 0x20 || isBlankBraille)) {
         char = String.fromCharCode(0xA0);
       }
       if (combiningCharacters != null) {
