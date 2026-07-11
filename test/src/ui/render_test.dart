@@ -7,7 +7,7 @@ import 'package:xterm/xterm.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('bottom-follow scrollback growth repaints without relayout', () {
+  test('bottom-follow scrollback growth schedules layout', () {
     final offset = _TestViewportOffset();
     final setup = _createRenderTerminal(offset: offset);
     final render = setup.render;
@@ -21,10 +21,9 @@ void main() {
 
     expect(render.debugNeedsLayout, isFalse);
 
-    setup.terminal.write('a\nb\nc\n');
+    setup.terminal.write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n');
 
-    expect(render.debugNeedsLayout, isFalse);
-    expect(offset.pixels, offset.maxScrollExtent);
+    expect(render.debugNeedsLayout, isTrue);
 
     render.detach();
     setup.focusNode.dispose();

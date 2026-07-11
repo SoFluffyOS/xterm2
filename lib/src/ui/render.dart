@@ -216,25 +216,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
-    final oldLineCount = _lastTerminalLineCount;
     final needsLayout =
         _terminal.buffer.lines.length != _lastTerminalLineCount ||
             _terminal.viewWidth != _lastTerminalWidth ||
             _terminal.viewHeight != _lastTerminalHeight;
-    final onlyLineCountChanged =
-        _terminal.buffer.lines.length != _lastTerminalLineCount &&
-            _terminal.viewWidth == _lastTerminalWidth &&
-            _terminal.viewHeight == _lastTerminalHeight;
     _recordTerminalLayoutState();
-    if (onlyLineCountChanged && _stickToBottom && hasSize) {
-      final oldMaxScrollExtent = _maxScrollExtentForLineCount(oldLineCount);
-      final newMaxScrollExtent = _maxScrollExtent;
-      _offset.applyContentDimensions(0, newMaxScrollExtent);
-      _offset.correctBy(newMaxScrollExtent - oldMaxScrollExtent);
-      markNeedsPaint();
-      _notifyEditableRect();
-      return;
-    }
     if (needsLayout) {
       markNeedsLayout();
     } else {
@@ -584,10 +570,6 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   double get _maxScrollExtent {
     return max(_terminalHeight - _viewportHeight, 0.0);
-  }
-
-  double _maxScrollExtentForLineCount(int lineCount) {
-    return max(lineCount * _painter.cellSize.height - _viewportHeight, 0.0);
   }
 
   double get _lineOffset {
