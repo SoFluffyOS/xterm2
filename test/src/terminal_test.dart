@@ -2057,6 +2057,18 @@ void main() {
     ]);
   });
 
+  test('Terminal reports cursor and tab presentation state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(24, 5);
+
+    terminal.write('\x1b[1;4;5;7m\x1b[3;5H\x1b[1\$w\x1b[2\$w');
+
+    expect(output, [
+      '\x1bP1\$u3;5;1;O;@;@;0;1;@BBBB\x1b\\',
+      '\x1bP2\$u9/17\x1b\\',
+    ]);
+  });
+
   test('Terminal assigns and reports user-preferred supplemental set', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);

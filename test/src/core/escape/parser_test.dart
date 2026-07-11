@@ -197,6 +197,16 @@ void main() {
       verify(handler.sendTerminalStateReport(1)).called(1);
     });
 
+    test('parses presentation state report sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[1\$w\x1b[2\$w');
+
+      verify(handler.sendPresentationStateReport(1)).called(1);
+      verify(handler.sendPresentationStateReport(2)).called(1);
+    });
+
     test('parses user-preferred supplemental set sequences', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

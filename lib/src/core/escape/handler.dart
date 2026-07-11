@@ -347,6 +347,8 @@ abstract class EscapeHandler {
 
   void sendUserPreferredSupplementalSet();
 
+  void sendPresentationStateReport(int request);
+
   /* Select Graphic Rendition (SGR) */
 
   void resetCursorStyle();

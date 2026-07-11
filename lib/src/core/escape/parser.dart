@@ -675,6 +675,7 @@ class EscapeParser {
     'z'.codeUnitAt(0): _csiHandleEraseRect,
     't'.codeUnitAt(0): _csiWindowManipulation,
     'v'.codeUnitAt(0): _csiHandleCopyRect,
+    'w'.codeUnitAt(0): _csiHandlePresentationStateReport,
     '~'.codeUnitAt(0): _csiHandleDeleteColumns,
     '|'.codeUnitAt(0): _csiHandlePageSize,
     '{'.codeUnitAt(0): _csiHandleSelectiveEraseRect,
@@ -737,6 +738,12 @@ class EscapeParser {
 
     if (!_isSingleQuoteCsi()) return;
     handler.deleteColumns(_firstParamOrDefault(1));
+  }
+
+  /// `ESC [ Ps $ w` Request Presentation State Report (DECRQPSR).
+  void _csiHandlePresentationStateReport() {
+    if (!_isDollarCsi(paramCount: 1)) return;
+    handler.sendPresentationStateReport(_csi.params[0]);
   }
 
   /// `ESC [ Pt; Pl; Pb; Pr $ z` Erase Rectangular Area (DECERA).

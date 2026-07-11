@@ -2121,6 +2121,51 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call('\x1bP$size!u$_preferredSupplementalSetFinal\x1b\\');
   }
 
+  @override
+  void sendPresentationStateReport(int request) {
+    switch (request) {
+      case 1:
+        return _sendCursorInformationReport();
+      case 2:
+        return _sendTabStopReport();
+    }
+  }
+
+  void _sendCursorInformationReport() {
+    final row = _buffer.cursorY + 1;
+    final column = _buffer.cursorX + 1;
+    final rendition = _presentationRendition();
+    final attributes = switch (_cursorStyle.isProtected) {
+      true => 'A',
+      false => '@',
+    };
+    final flags = switch (_originMode) {
+      true => 'A',
+      false => '@',
+    };
+    onOutput?.call(
+      '\x1bP1\$u$row;$column;1;$rendition;$attributes;$flags;0;1;@BBBB\x1b\\',
+    );
+  }
+
+  String _presentationRendition() {
+    var rendition = 0x40;
+    if (_cursorStyle.isInverse) rendition |= 0x08;
+    if (_cursorStyle.isBlink) rendition |= 0x04;
+    if (_cursorStyle.isUnderline) rendition |= 0x02;
+    if (_cursorStyle.isBold) rendition |= 0x01;
+    return String.fromCharCode(rendition);
+  }
+
+  void _sendTabStopReport() {
+    final stops = <String>[];
+    for (var column = 1; column < viewWidth; column++) {
+      if (!_tabStops.isSetAt(column)) continue;
+      stops.add('${column + 1}');
+    }
+    onOutput?.call('\x1bP2\$u${stops.join('/')}\x1b\\');
+  }
+
   void _sendInBandSizeReport() {
     final pixelWidth = viewWidth * _cellPixelWidth;
     final pixelHeight = viewHeight * _cellPixelHeight;
