@@ -456,6 +456,21 @@ void main() {
     expect(style.decorationStyle, TextDecorationStyle.double);
   });
 
+  test('TerminalStyle defaults include symbol and Nerd Font fallbacks', () {
+    const style = TerminalStyle();
+
+    expect(
+      style.fontFamilyFallback,
+      containsAllInOrder([
+        'Noto Color Emoji',
+        'Symbols Nerd Font Mono',
+        'Symbols Nerd Font',
+        'Noto Sans Symbols 2',
+        'Noto Sans Symbols',
+      ]),
+    );
+  });
+
   test('TerminalStyle compares values deeply', () {
     const style = TerminalStyle(
       fontSize: 14,
