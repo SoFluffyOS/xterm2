@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:xterm/src/utils/unicode_v11.dart';
+import 'package:xterm2/src/utils/unicode_v11.dart';
 
 void main() {
   test('Unicode width table includes Emoji 16 presentation additions', () {

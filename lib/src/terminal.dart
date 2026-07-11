@@ -2,28 +2,28 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' show max, min;
 
-import 'package:xterm/src/base/observable.dart';
-import 'package:xterm/src/core/buffer/buffer.dart';
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/line.dart';
-import 'package:xterm/src/core/cell.dart';
-import 'package:xterm/src/core/color_scheme.dart';
-import 'package:xterm/src/core/cursor.dart';
-import 'package:xterm/src/core/escape/emitter.dart';
-import 'package:xterm/src/core/escape/handler.dart';
-import 'package:xterm/src/core/escape/parser.dart';
-import 'package:xterm/src/core/input/handler.dart';
-import 'package:xterm/src/core/input/keys.dart';
-import 'package:xterm/src/core/mouse/button.dart';
-import 'package:xterm/src/core/mouse/button_state.dart';
-import 'package:xterm/src/core/mouse/handler.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
-import 'package:xterm/src/core/mouse/modifiers.dart';
-import 'package:xterm/src/core/platform.dart';
-import 'package:xterm/src/core/state.dart';
-import 'package:xterm/src/core/tabs.dart';
-import 'package:xterm/src/utils/ascii.dart';
-import 'package:xterm/src/utils/circular_buffer.dart';
+import 'package:xterm2/src/base/observable.dart';
+import 'package:xterm2/src/core/buffer/buffer.dart';
+import 'package:xterm2/src/core/buffer/cell_offset.dart';
+import 'package:xterm2/src/core/buffer/line.dart';
+import 'package:xterm2/src/core/cell.dart';
+import 'package:xterm2/src/core/color_scheme.dart';
+import 'package:xterm2/src/core/cursor.dart';
+import 'package:xterm2/src/core/escape/emitter.dart';
+import 'package:xterm2/src/core/escape/handler.dart';
+import 'package:xterm2/src/core/escape/parser.dart';
+import 'package:xterm2/src/core/input/handler.dart';
+import 'package:xterm2/src/core/input/keys.dart';
+import 'package:xterm2/src/core/mouse/button.dart';
+import 'package:xterm2/src/core/mouse/button_state.dart';
+import 'package:xterm2/src/core/mouse/handler.dart';
+import 'package:xterm2/src/core/mouse/mode.dart';
+import 'package:xterm2/src/core/mouse/modifiers.dart';
+import 'package:xterm2/src/core/platform.dart';
+import 'package:xterm2/src/core/state.dart';
+import 'package:xterm2/src/core/tabs.dart';
+import 'package:xterm2/src/utils/ascii.dart';
+import 'package:xterm2/src/utils/circular_buffer.dart';
 
 enum _ProtectionMode { off, iso, dec }
 
@@ -90,7 +90,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   TerminalColorScheme? Function()? onColorSchemeQuery;
 
   /// Resolves the terminal version string for XTVERSION (CSI > q) queries.
-  /// Return null or an empty string to use the default xterm.dart version.
+  /// Return null or an empty string to use the default xterm2 version.
   String? Function()? onXtVersionQuery;
 
   /// Called when the application sends ENQ (0x05). Return null or an empty

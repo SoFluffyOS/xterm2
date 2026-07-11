@@ -7,8 +7,8 @@ import 'package:example/src/suggestion_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pty/flutter_pty.dart';
-import 'package:xterm/xterm.dart';
-import 'package:xterm/suggestion.dart';
+import 'package:xterm2/xterm.dart';
+import 'package:xterm2/suggestion.dart';
 
 final engine = SuggestionEngine();
 
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'xterm.dart demo',
+      title: 'xterm2 demo',
       debugShowCheckedModeBanner: false,
       home: AppPlatformMenu(child: Home()),
     );

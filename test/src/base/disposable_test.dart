@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:xterm/src/base/disposable.dart';
-import 'package:xterm/src/base/event.dart';
+import 'package:xterm2/src/base/disposable.dart';
+import 'package:xterm2/src/base/event.dart';
 
 void main() {
   test('Disposable invokes registered callbacks once', () {

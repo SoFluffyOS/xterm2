@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm/src/utils/circular_buffer.dart';
+import 'package:xterm2/src/utils/circular_buffer.dart';
 
 class IndexedValue<T> with IndexedItem {
   T value;

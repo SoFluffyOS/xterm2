@@ -1,4 +1,4 @@
-import 'package:xterm/src/base/disposable.dart';
+import 'package:xterm2/src/base/disposable.dart';
 
 typedef EventListener<T> = void Function(T event);
 

@@ -1,10 +1,10 @@
-import 'package:xterm/src/core/color_scheme.dart';
+import 'package:xterm2/src/core/color_scheme.dart';
 
 class EscapeEmitter {
   const EscapeEmitter();
 
-  static const _packageVersion = '4.0.1';
-  static const _defaultXtVersion = 'xterm.dart $_packageVersion';
+  static const _packageVersion = '5.0.0';
+  static const _defaultXtVersion = 'xterm2 $_packageVersion';
   static const _maxXtVersionLength = 256;
 
   String primaryDeviceAttributes() {

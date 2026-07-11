@@ -2,10 +2,10 @@ import 'dart:math' show max, min;
 import 'dart:ui';
 import 'package:flutter/painting.dart';
 
-import 'package:xterm/src/ui/palette_builder.dart';
-import 'package:xterm/src/ui/paragraph_cache.dart';
-import 'package:xterm/src/ui/procedural_glyphs.dart';
-import 'package:xterm/xterm.dart';
+import 'package:xterm2/src/ui/palette_builder.dart';
+import 'package:xterm2/src/ui/paragraph_cache.dart';
+import 'package:xterm2/src/ui/procedural_glyphs.dart';
+import 'package:xterm2/xterm.dart';
 
 const _dimColorFactor = 0.66;
 

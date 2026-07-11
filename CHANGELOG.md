@@ -1,5 +1,6 @@
-## Unreleased
+## [5.0.0] - 2026-07-11
 
+* Rename package to `xterm2` for the maintained fork.
 * Support DEC synchronized updates with Alacritty-compatible timeout recovery.
 * Report terminal view focus changes for DEC focus tracking mode.
 * Render application-selected DECSCUSR cursor shapes.
@@ -11,6 +12,7 @@
 * Render common block and box-drawing glyphs procedurally without font seams.
 * Reuse cell paints to reduce per-frame rendering allocations.
 * Keep the full viewport available when `maxLines` is smaller than its height.
+* Improve terminal glyph rendering, prompt symbols, OSC hyperlinks, cursor visibility, and scroll behavior.
 
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].

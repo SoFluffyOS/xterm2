@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:xterm/core.dart';
+import 'package:xterm2/core.dart';
 
 void main() {
   test('Terminal sets a horizontal tab stop at the cursor', () {
@@ -1301,7 +1301,7 @@ void main() {
 
     expect(output, [
       '\x1b[?6c',
-      '\x1b[>0;40001;1c',
+      '\x1b[>0;50000;1c',
     ]);
   });
 
@@ -1362,7 +1362,7 @@ void main() {
     terminal.write('\x1b[>0q');
 
     expect(output, [
-      '\x1bP>|xterm.dart 4.0.1\x1b\\',
+      '\x1bP>|xterm2 5.0.0\x1b\\',
       '\x1bP>|lumide-term 1.0\x1b\\',
     ]);
   });

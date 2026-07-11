@@ -1,15 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/src/core/mouse/button.dart';
-import 'package:xterm/src/core/mouse/button_state.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
-import 'package:xterm/src/core/mouse/modifiers.dart';
-import 'package:xterm/src/terminal_view.dart';
-import 'package:xterm/src/ui/controller.dart';
-import 'package:xterm/src/ui/gesture/gesture_detector.dart';
-import 'package:xterm/src/ui/pointer_input.dart';
-import 'package:xterm/src/ui/render.dart';
+import 'package:xterm2/src/core/mouse/button.dart';
+import 'package:xterm2/src/core/mouse/button_state.dart';
+import 'package:xterm2/src/core/mouse/mode.dart';
+import 'package:xterm2/src/core/mouse/modifiers.dart';
+import 'package:xterm2/src/terminal_view.dart';
+import 'package:xterm2/src/ui/controller.dart';
+import 'package:xterm2/src/ui/gesture/gesture_detector.dart';
+import 'package:xterm2/src/ui/pointer_input.dart';
+import 'package:xterm2/src/ui/render.dart';
 
 class TerminalGestureHandler extends StatefulWidget {
   const TerminalGestureHandler({

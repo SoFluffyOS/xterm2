@@ -1,5 +1,5 @@
-import 'package:xterm/src/core/cursor.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
+import 'package:xterm2/src/core/cursor.dart';
+import 'package:xterm2/src/core/mouse/mode.dart';
 
 abstract class TerminalState {
   int get viewWidth;

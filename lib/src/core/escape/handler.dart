@@ -1,4 +1,4 @@
-import 'package:xterm/src/core/mouse/mode.dart';
+import 'package:xterm2/src/core/mouse/mode.dart';
 
 abstract class EscapeHandler {
   void writeChar(int char);

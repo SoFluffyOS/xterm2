@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm/src/ui/kitty_modifier_key_filter.dart';
+import 'package:xterm2/src/ui/kitty_modifier_key_filter.dart';
 
 void main() {
   group('isKittyModifierKeyCharacter', () {

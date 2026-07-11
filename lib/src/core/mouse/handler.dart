@@ -1,11 +1,11 @@
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/mouse/button_state.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
-import 'package:xterm/src/core/mouse/button.dart';
-import 'package:xterm/src/core/mouse/modifiers.dart';
-import 'package:xterm/src/core/mouse/reporter.dart';
-import 'package:xterm/src/core/platform.dart';
-import 'package:xterm/src/core/state.dart';
+import 'package:xterm2/src/core/buffer/cell_offset.dart';
+import 'package:xterm2/src/core/mouse/button_state.dart';
+import 'package:xterm2/src/core/mouse/mode.dart';
+import 'package:xterm2/src/core/mouse/button.dart';
+import 'package:xterm2/src/core/mouse/modifiers.dart';
+import 'package:xterm2/src/core/mouse/reporter.dart';
+import 'package:xterm2/src/core/platform.dart';
+import 'package:xterm2/src/core/state.dart';
 
 class TerminalMouseEvent {
   /// The button that is pressed or released.

@@ -1,13 +1,13 @@
 // import 'package:flutter_test/flutter_test.dart';
 // import 'package:mockito/annotations.dart';
 // import 'package:mockito/mockito.dart';
-// import 'package:xterm/buffer/buffer.dart';
-// import 'package:xterm/buffer/line/line.dart';
-// import 'package:xterm/terminal/cursor.dart';
-// import 'package:xterm/terminal/terminal_search.dart';
-// import 'package:xterm/terminal/terminal_search_interaction.dart';
-// import 'package:xterm/util/circular_list.dart';
-// import 'package:xterm/util/unicode_v11.dart';
+// import 'package:xterm2/buffer/buffer.dart';
+// import 'package:xterm2/buffer/line/line.dart';
+// import 'package:xterm2/terminal/cursor.dart';
+// import 'package:xterm2/terminal/terminal_search.dart';
+// import 'package:xterm2/terminal/terminal_search_interaction.dart';
+// import 'package:xterm2/util/circular_list.dart';
+// import 'package:xterm2/util/unicode_v11.dart';
 
 // import 'terminal_search_test.mocks.dart';
 

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm/src/ui/procedural_glyphs.dart';
+import 'package:xterm2/src/ui/procedural_glyphs.dart';
 
 void main() {
   test('procedural box lines join without transparent seams', () async {

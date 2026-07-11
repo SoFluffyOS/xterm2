@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/core.dart';
-import 'package:xterm/src/ui/controller.dart';
-import 'package:xterm/src/ui/infinite_scroll_view.dart';
-import 'package:xterm/src/ui/pointer_input.dart';
+import 'package:xterm2/core.dart';
+import 'package:xterm2/src/ui/controller.dart';
+import 'package:xterm2/src/ui/infinite_scroll_view.dart';
+import 'package:xterm2/src/ui/pointer_input.dart';
 
 /// Handles scrolling gestures in the alternate screen buffer. In alternate
 /// screen buffer, the terminal don't have a scrollback buffer, instead, the

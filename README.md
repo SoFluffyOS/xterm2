@@ -1,40 +1,39 @@
 
-## xterm.dart
+## xterm2
 
 <p>
-    <a href="https://github.com/TerminalStudio/xterm.dart/actions/workflows/ci.yml">
-      <img alt="Actions" src="https://github.com/TerminalStudio/xterm.dart/actions/workflows/ci.yml/badge.svg">
+    <a href="https://pub.dev/packages/xterm2">
+      <img alt="Package version" src="https://img.shields.io/pub/v/xterm2?color=blue&include_prereleases">
     </a>
-    <a href="https://pub.dev/packages/xterm">
-      <img alt="Package version" src="https://img.shields.io/pub/v/xterm?color=blue&include_prereleases">
-    </a>
-    <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/TerminalStudio/xterm.dart">
-    <img alt="GitHub issues" src="https://img.shields.io/github/issues-raw/TerminalStudio/xterm.dart">
-    <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/TerminalStudio/xterm.dart">
 </p>
 
+`xterm2` is a maintained fork of the original
+[`xterm`](https://pub.dev/packages/xterm) package from
+[`TerminalStudio/xterm.dart`](https://github.com/TerminalStudio/xterm.dart).
+The original package is no longer maintained, so this fork continues the package
+under a new pub package name.
 
-**xterm.dart** is a fast and fully-featured terminal emulator for Flutter applications, with support for mobile and desktop platforms.
+**xterm2** is a fast and fully-featured terminal emulator for Flutter applications, with support for mobile and desktop platforms.
 
-> This package requires Flutter version >=3.0.0
+> This package requires Flutter version >=3.19.0
 
 ## Screenshots
 
 <table>
   <tr>
     <td>
-		<img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-shell.png">
+		<img width="200px" src="https://raw.githubusercontent.com/SoFluffyOS/xterm2/master/media/demo-shell.png">
     </td>
     <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-vim.png">
+       <img width="200px" src="https://raw.githubusercontent.com/SoFluffyOS/xterm2/master/media/demo-vim.png">
     </td>
   <tr>
   </tr>
     <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-htop.png">
+       <img width="200px" src="https://raw.githubusercontent.com/SoFluffyOS/xterm2/master/media/demo-htop.png">
     </td>
     <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-dialog.png">
+       <img width="200px" src="https://raw.githubusercontent.com/SoFluffyOS/xterm2/master/media/demo-dialog.png">
     </td>
   </tr>
 </table>
@@ -62,13 +61,13 @@
 ```yml
 dependencies:
   ...
-  xterm: ^3.2.6
+  xterm2: ^1.0.0
 ```
 
 **2.** Create the terminal:
 
 ```dart
-import 'package:xterm/xterm.dart';
+import 'package:xterm2/xterm.dart';
 ...
 terminal = Terminal();
 ```
@@ -86,7 +85,7 @@ terminal.onOutput = (output) {
 **3.** Create the view, attach the terminal to the view:
 
 ```dart
-import 'package:xterm/flutter.dart';
+import 'package:xterm2/flutter.dart';
 ...
 child: TerminalView(terminal),
 ```
@@ -102,18 +101,18 @@ terminal.write('Hello, world!');
 ## More examples
 
 - Write a simple terminal in ~100 lines of code:
-  https://github.com/TerminalStudio/xterm.dart/blob/master/example/lib/main.dart
+  https://github.com/SoFluffyOS/xterm2/blob/master/example/lib/main.dart
 
 - Write a SSH client in ~100 lines of code with [dartssh2]:
-  https://github.com/TerminalStudio/xterm.dart/blob/master/example/lib/ssh.dart
+  https://github.com/SoFluffyOS/xterm2/blob/master/example/lib/ssh.dart
   
-  <img width="400px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/example-ssh.png">
+  <img width="400px" src="https://raw.githubusercontent.com/SoFluffyOS/xterm2/master/media/example-ssh.png">
 
-For a complete project built with xterm.dart, check out [TerminalStudio].
+For the original package history, see [TerminalStudio/xterm.dart].
 
 ## Features and bugs
 
-Please file feature requests and bugs at the [issue tracker](https://github.com/TerminalStudio/xterm.dart/issues).
+Please file feature requests and bugs at the [issue tracker](https://github.com/SoFluffyOS/xterm2/issues).
 
 Contributions are always welcome!
 
@@ -122,4 +121,4 @@ Contributions are always welcome!
 This project is licensed under an MIT license.
 
 [dartssh2]: https://pub.dev/packages/dartssh2
-[TerminalStudio]: https://github.com/TerminalStudio/studio
+[TerminalStudio/xterm.dart]: https://github.com/TerminalStudio/xterm.dart

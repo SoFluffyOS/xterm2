@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:xterm/src/base/observable.dart';
+import 'package:xterm2/src/base/observable.dart';
 
 void main() {
   test('Observable allows listeners to unsubscribe during notification', () {

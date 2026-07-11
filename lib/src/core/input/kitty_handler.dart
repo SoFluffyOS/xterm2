@@ -1,5 +1,5 @@
-import 'package:xterm/src/core/input/event.dart';
-import 'package:xterm/src/core/input/keys.dart';
+import 'package:xterm2/src/core/input/event.dart';
+import 'package:xterm2/src/core/input/keys.dart';
 
 /// Translates key presses using Kitty's progressive keyboard protocol.
 ///

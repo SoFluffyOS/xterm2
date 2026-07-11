@@ -1,1 +1,1 @@
-export 'package:xterm/src/core/cursor.dart' show TerminalCursorType;
+export 'package:xterm2/src/core/cursor.dart' show TerminalCursorType;

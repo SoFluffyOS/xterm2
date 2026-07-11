@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/src/terminal.dart';
-import 'package:xterm/src/ui/controller.dart';
-import 'package:xterm/src/ui/selection_mode.dart';
+import 'package:xterm2/src/terminal.dart';
+import 'package:xterm2/src/ui/controller.dart';
+import 'package:xterm2/src/ui/selection_mode.dart';
 
 class TerminalActions extends StatelessWidget {
   const TerminalActions({

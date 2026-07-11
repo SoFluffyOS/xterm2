@@ -1,4 +1,4 @@
-import 'package:xterm/src/core/input/keys.dart';
+import 'package:xterm2/src/core/input/keys.dart';
 
 /// See: https://doc.qt.io/qt-5/qt.html#Key-enum
 const qtKeynameMap = <String, TerminalKey>{
