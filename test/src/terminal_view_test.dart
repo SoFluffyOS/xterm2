@@ -402,6 +402,38 @@ void main() {
     expect(state.renderTerminal.activeHyperlinkId, isNull);
   });
 
+  testWidgets('TerminalView reports hovered cell offsets', (tester) async {
+    final terminal = Terminal()..write('abcdef');
+    CellOffset? hoveredOffset;
+    var exited = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          onHover: (_, offset) => hoveredOffset = offset,
+          onExit: (_) => exited = true,
+        ),
+      ),
+    );
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    final position = state.renderTerminal.localToGlobal(
+      Offset(state.renderTerminal.cellSize.width * 2.5, 2),
+    );
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+
+    await tester.sendEventToBinding(pointer.hover(position));
+    await tester.pump();
+
+    expect(hoveredOffset, const CellOffset(2, 0));
+
+    await tester.sendEventToBinding(pointer.hover(const Offset(-10, -10)));
+    await tester.pump();
+
+    expect(exited, isTrue);
+  });
+
   group('TerminalController.pointerInputs', () {
     testWidgets('reports pointer motion requested by the application', (
       tester,

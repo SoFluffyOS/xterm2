@@ -38,6 +38,9 @@ class TerminalController with ChangeNotifier {
   List<TerminalHighlight> get highlights => _highlights;
   final _highlights = <TerminalHighlight>[];
 
+  List<TerminalUnderline> get underlines => _underlines;
+  final _underlines = <TerminalUnderline>[];
+
   BufferRange? get selection {
     final base = _selectionBase;
     final extent = _selectionExtent;
@@ -149,6 +152,31 @@ class TerminalController with ChangeNotifier {
     return highlight;
   }
 
+  /// Creates a temporary underline from [p1] to [p2] with the given [color].
+  /// The underline will be removed when the returned object is disposed.
+  TerminalUnderline underline({
+    required CellAnchor p1,
+    required CellAnchor p2,
+    required Color color,
+  }) {
+    final underline = TerminalUnderline(
+      this,
+      p1: p1,
+      p2: p2,
+      color: color,
+    );
+
+    _underlines.add(underline);
+    notifyListeners();
+
+    underline.registerCallback(() {
+      _underlines.remove(underline);
+      notifyListeners();
+    });
+
+    return underline;
+  }
+
   @override
   void dispose() {
     _selectionBase?.dispose();
@@ -159,6 +187,11 @@ class TerminalController with ChangeNotifier {
     final highlights = List<TerminalHighlight>.of(_highlights);
     for (final highlight in highlights) {
       highlight.dispose();
+    }
+
+    final underlines = List<TerminalUnderline>.of(_underlines);
+    for (final underline in underlines) {
+      underline.dispose();
     }
 
     super.dispose();
@@ -186,6 +219,35 @@ class TerminalHighlight with Disposable {
 
   /// Returns the range of the highlight. May be null if the anchors that
   /// define the highlight are not attached to the terminal.
+  BufferRange? get range {
+    if (!p1.attached || !p2.attached) {
+      return null;
+    }
+    return BufferRangeLine(p1.offset, p2.offset);
+  }
+}
+
+class TerminalUnderline with Disposable {
+  final TerminalController owner;
+
+  final CellAnchor p1;
+
+  final CellAnchor p2;
+
+  final Color color;
+
+  TerminalUnderline(
+    this.owner, {
+    required this.p1,
+    required this.p2,
+    required this.color,
+  }) {
+    registerCallback(p1.dispose);
+    registerCallback(p2.dispose);
+  }
+
+  /// Returns the range of the underline. May be null if the anchors that
+  /// define the underline are not attached to the terminal.
   BufferRange? get range {
     if (!p1.attached || !p2.attached) {
       return null;

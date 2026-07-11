@@ -115,6 +115,27 @@ void main() {
     setup.focusNode.dispose();
   });
 
+  test('terminal underlines dispose with controller', () {
+    final setup = _createRenderTerminal();
+    final controller = setup.controller;
+    final terminal = setup.terminal;
+    terminal.write('https://example.com');
+
+    final underline = controller.underline(
+      p1: terminal.buffer.createAnchor(0, 0),
+      p2: terminal.buffer.createAnchor(19, 0),
+      color: const Color(0xffffffff),
+    );
+
+    expect(controller.underlines, contains(underline));
+
+    underline.dispose();
+
+    expect(controller.underlines, isEmpty);
+
+    setup.focusNode.dispose();
+  });
+
   test('cursor offset uses wide glyph origin when cursor is on spacer', () {
     final setup = _createRenderTerminal();
     final render = setup.render;

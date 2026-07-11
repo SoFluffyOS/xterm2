@@ -725,6 +725,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
     _updateTextBlinking(hasBlinkingText);
 
+    _paintUnderlines(
+      canvas,
+      offset,
+      _controller.underlines,
+      effectFirstLine,
+      effectLastLine,
+    );
+
     if (shouldPaintCursor) {
       if (_isComposingText) {
         _paintComposingText(canvas, offset + cursorOffset);
@@ -922,6 +930,57 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _paintSegment(canvas, offset, segment, highlight.color);
       }
     }
+  }
+
+  void _paintUnderlines(
+    Canvas canvas,
+    Offset offset,
+    List<TerminalUnderline> underlines,
+    int firstLine,
+    int lastLine,
+  ) {
+    for (final underline in underlines) {
+      final range = underline.range?.normalized;
+
+      if (range == null ||
+          range.begin.y > lastLine ||
+          range.end.y < firstLine) {
+        continue;
+      }
+
+      for (final segment in range.toSegments()) {
+        if (segment.line < firstLine) {
+          continue;
+        }
+
+        if (segment.line > lastLine) {
+          break;
+        }
+
+        _paintUnderline(canvas, offset, segment, underline.color);
+      }
+    }
+  }
+
+  @pragma('vm:prefer-inline')
+  void _paintUnderline(
+    Canvas canvas,
+    Offset offset,
+    BufferSegment segment,
+    Color color,
+  ) {
+    final start = segment.start ?? 0;
+    final end = segment.end ?? _terminal.viewWidth;
+    final startOffset = getSegmentOffset(segment, offset);
+    final y = startOffset.dy + _painter.cellSize.height - 1;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset(startOffset.dx, y),
+      Offset(startOffset.dx + (end - start) * _painter.cellSize.width, y),
+      paint,
+    );
   }
 
   @pragma('vm:prefer-inline')

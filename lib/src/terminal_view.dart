@@ -42,6 +42,8 @@ class TerminalView extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.onTapUp,
+    this.onHover,
+    this.onExit,
     this.onHyperlinkTap,
     this.onSecondaryTapDown,
     this.onSecondaryTapUp,
@@ -94,6 +96,12 @@ class TerminalView extends StatefulWidget {
 
   /// Callback for when the user taps on the terminal.
   final void Function(TapUpDetails, CellOffset)? onTapUp;
+
+  /// Callback for when a mouse pointer hovers over the terminal.
+  final void Function(PointerHoverEvent, CellOffset)? onHover;
+
+  /// Callback for when a mouse pointer exits the terminal.
+  final void Function(PointerExitEvent)? onExit;
 
   /// Called when a cell containing an OSC 8 hyperlink is tapped.
   final void Function(String uri)? onHyperlinkTap;
@@ -447,7 +455,7 @@ class TerminalViewState extends State<TerminalView> {
         _ => SystemMouseCursors.click,
       },
       onHover: _onPointerHover,
-      onExit: (_) => _setHoveredHyperlinkId(null),
+      onExit: _onPointerExit,
       child: child,
     );
 
@@ -500,6 +508,12 @@ class TerminalViewState extends State<TerminalView> {
       0 => null,
       _ => hyperlinkId,
     });
+    widget.onHover?.call(event, offset);
+  }
+
+  void _onPointerExit(PointerExitEvent event) {
+    _setHoveredHyperlinkId(null);
+    widget.onExit?.call(event);
   }
 
   void _setHoveredHyperlinkId(int? hyperlinkId) {
