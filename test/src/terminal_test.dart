@@ -2057,6 +2057,18 @@ void main() {
     ]);
   });
 
+  test('Terminal assigns and reports user-preferred supplemental set', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[&u\x1bP1!uB\x1b\\\x1b[&u');
+
+    expect(output, [
+      '\x1bP0!u%5\x1b\\',
+      '\x1bP1!uB\x1b\\',
+    ]);
+  });
+
   test('Terminal emits in-band size reports when mode 2048 is enabled', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);

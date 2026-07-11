@@ -197,6 +197,16 @@ void main() {
       verify(handler.sendTerminalStateReport(1)).called(1);
     });
 
+    test('parses user-preferred supplemental set sequences', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[&u\x1bP1!uB\x1b\\');
+
+      verify(handler.sendUserPreferredSupplementalSet()).called(1);
+      verify(handler.assignUserPreferredSupplementalSet(96, 'B')).called(1);
+    });
+
     test('parses rectangular checksum sequences', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

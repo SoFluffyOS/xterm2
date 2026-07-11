@@ -330,6 +330,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   final _alternateTextColors = <int, ({int foreground, int background})>{};
 
+  int _preferredSupplementalSetSize = 94;
+
+  String _preferredSupplementalSetFinal = '%5';
+
   final _titleModes = <int>{};
 
   bool _synchronizedUpdateMode = false;
@@ -2066,6 +2070,25 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void sendTerminalStateReport(int request) {
     if (request != 1) return;
     onOutput?.call('\x1bP1\$s\x1b\\');
+  }
+
+  @override
+  void assignUserPreferredSupplementalSet(int size, String charsetFinal) {
+    if (size != 94 && size != 96) return;
+    if (charsetFinal.isEmpty) return;
+    if (charsetFinal.length > 2) return;
+
+    _preferredSupplementalSetSize = size;
+    _preferredSupplementalSetFinal = charsetFinal;
+  }
+
+  @override
+  void sendUserPreferredSupplementalSet() {
+    final size = switch (_preferredSupplementalSetSize) {
+      96 => 1,
+      _ => 0,
+    };
+    onOutput?.call('\x1bP$size!u$_preferredSupplementalSetFinal\x1b\\');
   }
 
   void _sendInBandSizeReport() {

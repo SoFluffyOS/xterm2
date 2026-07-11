@@ -658,6 +658,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
     onCommand('sendTerminalStateReport($request)');
   }
 
+  @override
+  void assignUserPreferredSupplementalSet(int size, String charsetFinal) {
+    onCommand('assignUserPreferredSupplementalSet($size, $charsetFinal)');
+  }
+
+  @override
+  void sendUserPreferredSupplementalSet() {
+    onCommand('sendUserPreferredSupplementalSet');
+  }
+
   /* Modes */
 
   @override

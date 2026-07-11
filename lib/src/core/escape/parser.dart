@@ -960,6 +960,12 @@ class EscapeParser {
   }
 
   void _csiHandleKittyKeyboardMode() {
+    if (_csi.intermediates.length == 1 &&
+        _csi.intermediates.single == Ascii.ampersand) {
+      if (_csi.prefix != null || _csi.params.isNotEmpty) return;
+      return handler.sendUserPreferredSupplementalSet();
+    }
+
     if (_isDollarCsi(paramCount: 1)) {
       return handler.sendTerminalStateReport(_csi.params[0]);
     }
@@ -2502,11 +2508,30 @@ class EscapeParser {
       handler.sendStatusString(payload.substring(2));
       return;
     }
+    if (_handleAssignUserPreferredSupplementalSet(payload)) return;
     if (!payload.startsWith('+q')) return;
     for (final query in payload.substring(2).split(';')) {
       if (query.isEmpty) continue;
       handler.sendTerminfoCapability(query);
     }
+  }
+
+  bool _handleAssignUserPreferredSupplementalSet(String payload) {
+    if (payload.length < 4) return false;
+    if (payload.codeUnitAt(1) != Ascii.exclamationMark ||
+        payload.codeUnitAt(2) != 'u'.charCode) {
+      return false;
+    }
+
+    final size = switch (payload.codeUnitAt(0)) {
+      Ascii.num0 => 94,
+      Ascii.num1 => 96,
+      _ => null,
+    };
+    if (size == null) return false;
+
+    handler.assignUserPreferredSupplementalSet(size, payload.substring(3));
+    return true;
   }
 }
 

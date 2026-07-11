@@ -341,6 +341,10 @@ abstract class EscapeHandler {
 
   void sendTerminalStateReport(int request);
 
+  void assignUserPreferredSupplementalSet(int size, String charsetFinal);
+
+  void sendUserPreferredSupplementalSet();
+
   /* Select Graphic Rendition (SGR) */
 
   void resetCursorStyle();
