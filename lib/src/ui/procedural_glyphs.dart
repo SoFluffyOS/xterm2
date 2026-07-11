@@ -366,6 +366,42 @@ bool _paintProceduralGlyph(
   final heavy = max(2.0, width * 0.22);
   final centerX = x + width / 2;
   final centerY = y + height / 2;
+  final symbolStrokePaint = Paint()
+    ..color = paint.color
+    ..strokeWidth = max(1.0, min(width, height) * 0.12)
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..isAntiAlias = true;
+
+  void path(List<Offset> points, {bool close = false}) {
+    if (points.isEmpty) {
+      return;
+    }
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    if (close) {
+      path.close();
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  void strokePath(List<Offset> points) {
+    if (points.isEmpty) {
+      return;
+    }
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, symbolStrokePaint);
+  }
+
+  void line(Offset start, Offset end) {
+    canvas.drawLine(start, end, symbolStrokePaint);
+  }
 
   void horizontal(double start, double end, double thickness) {
     fill(Rect.fromLTRB(
@@ -488,6 +524,132 @@ bool _paintProceduralGlyph(
   }
 
   switch (codePoint) {
+    case 0x2014:
+      line(
+        Offset(x + width * 0.12, centerY),
+        Offset(x + width * 0.88, centerY),
+      );
+      return true;
+    case 0x2190:
+      line(
+        Offset(x + width * 0.82, centerY),
+        Offset(x + width * 0.22, centerY),
+      );
+      line(
+        Offset(x + width * 0.40, centerY - height * 0.18),
+        Offset(x + width * 0.22, centerY),
+      );
+      line(
+        Offset(x + width * 0.40, centerY + height * 0.18),
+        Offset(x + width * 0.22, centerY),
+      );
+      return true;
+    case 0x2191:
+      line(
+        Offset(centerX, y + height * 0.82),
+        Offset(centerX, y + height * 0.22),
+      );
+      line(
+        Offset(centerX - width * 0.18, y + height * 0.40),
+        Offset(centerX, y + height * 0.22),
+      );
+      line(
+        Offset(centerX + width * 0.18, y + height * 0.40),
+        Offset(centerX, y + height * 0.22),
+      );
+      return true;
+    case 0x2192:
+      line(
+        Offset(x + width * 0.18, centerY),
+        Offset(x + width * 0.78, centerY),
+      );
+      line(
+        Offset(x + width * 0.60, centerY - height * 0.18),
+        Offset(x + width * 0.78, centerY),
+      );
+      line(
+        Offset(x + width * 0.60, centerY + height * 0.18),
+        Offset(x + width * 0.78, centerY),
+      );
+      return true;
+    case 0x2193:
+      line(
+        Offset(centerX, y + height * 0.18),
+        Offset(centerX, y + height * 0.78),
+      );
+      line(
+        Offset(centerX - width * 0.18, y + height * 0.60),
+        Offset(centerX, y + height * 0.78),
+      );
+      line(
+        Offset(centerX + width * 0.18, y + height * 0.60),
+        Offset(centerX, y + height * 0.78),
+      );
+      return true;
+    case 0x21b5:
+      final hookX = x + width * 0.74;
+      final hookY = centerY + height * 0.18;
+      line(Offset(x + width * 0.16, centerY), Offset(hookX, centerY));
+      line(Offset(hookX, y + height * 0.22), Offset(hookX, hookY));
+      line(
+        Offset(hookX, hookY),
+        Offset(hookX - width * 0.18, hookY - height * 0.16),
+      );
+      line(
+        Offset(hookX, hookY),
+        Offset(hookX - width * 0.18, hookY + height * 0.16),
+      );
+      return true;
+    case 0x25a0:
+      canvas.drawRect(
+        Rect.fromLTWH(
+            x + width * 0.2, y + height * 0.2, width * 0.6, height * 0.6),
+        paint,
+      );
+      return true;
+    case 0x25b2:
+      path([
+        Offset(centerX, y + height * 0.2),
+        Offset(x + width * 0.22, y + height * 0.72),
+        Offset(x + width * 0.78, y + height * 0.72),
+      ], close: true);
+      return true;
+    case 0x25b6:
+      path([
+        Offset(x + width * 0.8, centerY),
+        Offset(x + width * 0.28, y + height * 0.22),
+        Offset(x + width * 0.28, y + height * 0.78),
+      ], close: true);
+      return true;
+    case 0x25bc:
+      path([
+        Offset(centerX, y + height * 0.8),
+        Offset(x + width * 0.22, y + height * 0.28),
+        Offset(x + width * 0.78, y + height * 0.28),
+      ], close: true);
+      return true;
+    case 0x25c0:
+      path([
+        Offset(x + width * 0.2, centerY),
+        Offset(x + width * 0.72, y + height * 0.22),
+        Offset(x + width * 0.72, y + height * 0.78),
+      ], close: true);
+      return true;
+    case 0x2713:
+      strokePath([
+        Offset(x + width * 0.18, y + height * 0.56),
+        Offset(x + width * 0.42, y + height * 0.78),
+        Offset(x + width * 0.84, y + height * 0.24),
+      ]);
+      return true;
+    case 0x279c:
+      path([
+        Offset(x + width * 0.82, centerY),
+        Offset(x + width * 0.28, y + height * 0.18),
+        Offset(x + width * 0.48, centerY),
+        Offset(x + width * 0.28, y + height * 0.82),
+      ], close: true);
+      return true;
     case 0x2500:
       horizontal(x, x + width, thin);
       return true;
@@ -632,6 +794,9 @@ bool _paintProceduralGlyph(
 
 @pragma('vm:prefer-inline')
 bool _isProceduralGlyph(int codePoint) {
+  if (_isTerminalSymbolGlyph(codePoint)) {
+    return true;
+  }
   if (codePoint >= 0x2500 && codePoint <= 0x259f) {
     return true;
   }
@@ -645,4 +810,24 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   return codePoint >= 0x1fb82 && codePoint <= 0x1fb8b;
+}
+
+bool _isTerminalSymbolGlyph(int codePoint) {
+  return switch (codePoint) {
+    0x2014 ||
+    0x2190 ||
+    0x2191 ||
+    0x2192 ||
+    0x2193 ||
+    0x21b5 ||
+    0x25a0 ||
+    0x25b2 ||
+    0x25b6 ||
+    0x25bc ||
+    0x25c0 ||
+    0x2713 ||
+    0x279c =>
+      true,
+    _ => false,
+  };
 }

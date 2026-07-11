@@ -277,6 +277,83 @@ void main() {
     recorder.endRecording().dispose();
   });
 
+  test('procedural glyph rendering covers prompt symbol glyphs', () {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    const codePoints = [
+      0x2014,
+      0x2190,
+      0x2191,
+      0x2192,
+      0x2193,
+      0x21b5,
+      0x25a0,
+      0x25b2,
+      0x25b6,
+      0x25bc,
+      0x25c0,
+      0x2713,
+      0x279c,
+    ];
+
+    for (final codePoint in codePoints) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(20, 40),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+    }
+
+    recorder.endRecording().dispose();
+  });
+
+  test('procedural prompt symbol glyphs paint visible pixels', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    expect(
+      paintProceduralGlyph(
+        canvas,
+        Offset.zero,
+        const Size(20, 40),
+        0x279c,
+        paint,
+      ),
+      isTrue,
+    );
+    expect(
+      paintProceduralGlyph(
+        canvas,
+        const Offset(20, 0),
+        const Size(20, 40),
+        0x2713,
+        paint,
+      ),
+      isTrue,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(40, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected prompt symbol image bytes');
+    }
+
+    expect(_hasAnyAlphaInCell(bytes, 40, 0, 0, 20, 40), isTrue);
+    expect(_hasAnyAlphaInCell(bytes, 40, 20, 0, 20, 40), isTrue);
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural glyph rendering covers legacy computing blocks', () {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);
@@ -310,6 +387,24 @@ bool _hasAnyAlpha(ByteData bytes, int width, int height) {
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
       if (bytes.getUint8((y * width + x) * 4 + 3) != 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool _hasAnyAlphaInCell(
+  ByteData bytes,
+  int imageWidth,
+  int left,
+  int top,
+  int width,
+  int height,
+) {
+  for (var y = top; y < top + height; y++) {
+    for (var x = left; x < left + width; x++) {
+      if (bytes.getUint8((y * imageWidth + x) * 4 + 3) != 0) {
         return true;
       }
     }
