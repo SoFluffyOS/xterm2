@@ -216,11 +216,25 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
+    final oldLineCount = _lastTerminalLineCount;
     final needsLayout =
         _terminal.buffer.lines.length != _lastTerminalLineCount ||
             _terminal.viewWidth != _lastTerminalWidth ||
             _terminal.viewHeight != _lastTerminalHeight;
+    final onlyLineCountChanged =
+        _terminal.buffer.lines.length != _lastTerminalLineCount &&
+            _terminal.viewWidth == _lastTerminalWidth &&
+            _terminal.viewHeight == _lastTerminalHeight;
     _recordTerminalLayoutState();
+    if (onlyLineCountChanged && _stickToBottom && hasSize) {
+      final oldMaxScrollExtent = _maxScrollExtentForLineCount(oldLineCount);
+      final newMaxScrollExtent = _maxScrollExtent;
+      _offset.applyContentDimensions(0, newMaxScrollExtent);
+      _offset.correctBy(newMaxScrollExtent - oldMaxScrollExtent);
+      markNeedsPaint();
+      _notifyEditableRect();
+      return;
+    }
     if (needsLayout) {
       markNeedsLayout();
     } else {
@@ -490,6 +504,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _notifyEditableRect() {
+    final onEditableRect = _onEditableRect;
+    if (onEditableRect == null) return;
+
     final cursor = localToGlobal(cursorOffset);
 
     final rect = Rect.fromLTRB(
@@ -501,7 +518,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
     final caretRect = cursor & cursorSize;
 
-    _onEditableRect?.call(rect, caretRect);
+    onEditableRect(rect, caretRect);
   }
 
   /// Update the viewport size in cells based on the current widget size in
@@ -567,6 +584,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   double get _maxScrollExtent {
     return max(_terminalHeight - _viewportHeight, 0.0);
+  }
+
+  double _maxScrollExtentForLineCount(int lineCount) {
+    return max(lineCount * _painter.cellSize.height - _viewportHeight, 0.0);
   }
 
   double get _lineOffset {

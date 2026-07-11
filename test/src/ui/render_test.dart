@@ -5,6 +5,31 @@ import 'package:xterm/src/ui/render.dart';
 import 'package:xterm/xterm.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('bottom-follow scrollback growth repaints without relayout', () {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+
+    expect(render.debugNeedsLayout, isFalse);
+
+    setup.terminal.write('a\nb\nc\n');
+
+    expect(render.debugNeedsLayout, isFalse);
+    expect(offset.pixels, offset.maxScrollExtent);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
   test('character selection expands forward endpoint across rows', () {
     final setup = _createRenderTerminal();
     final render = setup.render;
@@ -206,6 +231,7 @@ void main() {
   EdgeInsets padding = EdgeInsets.zero,
   bool autoResize = false,
   double backgroundOpacity = 1,
+  ViewportOffset? offset,
 }) {
   final terminal = Terminal()..resize(10, 5);
   final controller = TerminalController();
@@ -213,7 +239,7 @@ void main() {
   final render = RenderTerminal(
     terminal: terminal,
     controller: controller,
-    offset: ViewportOffset.fixed(0),
+    offset: offset ?? ViewportOffset.fixed(0),
     padding: padding,
     autoResize: autoResize,
     backgroundOpacity: backgroundOpacity,
@@ -230,4 +256,53 @@ void main() {
     controller: controller,
     focusNode: focusNode,
   );
+}
+
+class _TestViewportOffset extends ViewportOffset {
+  double _pixels = 0;
+
+  double maxScrollExtent = 0;
+
+  @override
+  bool get allowImplicitScrolling => false;
+
+  @override
+  bool get hasPixels => true;
+
+  @override
+  double get pixels => _pixels;
+
+  @override
+  ScrollDirection get userScrollDirection => ScrollDirection.idle;
+
+  @override
+  Future<void> animateTo(
+    double to, {
+    required Duration duration,
+    required Curve curve,
+  }) async {
+    jumpTo(to);
+  }
+
+  @override
+  bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
+    this.maxScrollExtent = maxScrollExtent;
+    return true;
+  }
+
+  @override
+  bool applyViewportDimension(double viewportDimension) {
+    return true;
+  }
+
+  @override
+  void correctBy(double correction) {
+    _pixels += correction;
+  }
+
+  @override
+  void jumpTo(double pixels) {
+    _pixels = pixels;
+    notifyListeners();
+  }
 }
