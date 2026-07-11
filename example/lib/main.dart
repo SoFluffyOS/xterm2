@@ -5,7 +5,7 @@ import 'package:example/src/platform_menu.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_pty/flutter_pty.dart';
+import 'package:flutter_pty2/flutter_pty.dart';
 import 'package:xterm2/xterm.dart';
 
 void main() {
