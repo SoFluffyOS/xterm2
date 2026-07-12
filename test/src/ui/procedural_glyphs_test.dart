@@ -260,7 +260,7 @@ void main() {
     final canvas = Canvas(recorder);
     final paint = Paint()..color = const Color(0xffffffff);
 
-    for (var codePoint = 0xe0b0; codePoint <= 0xe0b7; codePoint++) {
+    for (var codePoint = 0xe0b0; codePoint <= 0xe0bf; codePoint++) {
       expect(
         paintProceduralGlyph(
           canvas,
@@ -275,6 +275,45 @@ void main() {
     }
 
     recorder.endRecording().dispose();
+  });
+
+  test('procedural powerline triangle separators paint visible pixels',
+      () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    for (var index = 0; index < 8; index++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset(index * 10, 0),
+          const Size(10, 20),
+          0xe0b8 + index,
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${(0xe0b8 + index).toRadixString(16)}',
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(80, 20);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected powerline image bytes');
+    }
+
+    for (var index = 0; index < 8; index++) {
+      expect(
+        _hasAnyAlphaInCell(bytes, 80, index * 10, 0, 10, 20),
+        isTrue,
+        reason: 'U+${(0xe0b8 + index).toRadixString(16)}',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
   });
 
   test('procedural glyph rendering covers prompt symbol glyphs', () {
