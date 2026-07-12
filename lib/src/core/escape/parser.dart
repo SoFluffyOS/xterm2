@@ -2285,12 +2285,39 @@ class EscapeParser {
         if (_osc[1].toLowerCase() != 'notify') return true;
         handler.showNotification(_osc[2], _osc.sublist(3).join(';'));
         return true;
+      case '1337':
+        _handleITerm2Protocol();
+        return true;
     }
 
     // Private extensions
     handler.unknownOSC(_osc[0], _osc.sublist(1));
 
     return true;
+  }
+
+  void _handleITerm2Protocol() {
+    if (_osc.length < 2) return;
+
+    final payload = _osc.sublist(1).join(';');
+    final separator = payload.indexOf('=');
+    if (separator <= 0) return;
+
+    final key = payload.substring(0, separator).toLowerCase();
+    final value = payload.substring(separator + 1);
+    if (value.isEmpty) return;
+
+    switch (key) {
+      case 'currentdir':
+        handler.setCurrentDirectory(value);
+        return;
+      case 'copy':
+        if (!value.startsWith(':')) return;
+        final data = value.substring(1);
+        if (data.isEmpty || data == '?') return;
+        handler.storeClipboard('c', data);
+        return;
+    }
   }
 
   bool _handleConEmuProgress() {

@@ -799,6 +799,17 @@ void main() {
     expect(currentDirectory, 'file://localhost/tmp/my%20project');
   });
 
+  test('Terminal reports iTerm2 OSC 1337 current directory', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]1337;CurrentDir=/tmp/my project\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+  });
+
   test('Terminal reports OSC 9 and OSC 777 notifications', () {
     final notifications = <({String title, String body})>[];
     final terminal = Terminal(
@@ -1060,6 +1071,22 @@ void main() {
 
     expect(stores, [('c', 'copy me'), ('s', 'primary')]);
     expect(output, ['\x1b]52;c;cGFzdGUgbWU=\x1b\\']);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 clipboard copy', () {
+    final stores = <(String, String)>[];
+    final privateOsc = <String>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+      onPrivateOSC: (code, args) => privateOsc.add('$code;${args.join(';')}'),
+    );
+
+    terminal.write('\x1b]1337;Copy=:Y29weSBtZQ==\x1b\\');
+    terminal.write('\x1b]1337;Copy=:?\x1b\\');
+    terminal.write('\x1b]1337;Copy=Y29weSBtZQ==\x1b\\');
+
+    expect(stores, [('c', 'copy me')]);
+    expect(privateOsc, isEmpty);
   });
 
   test('Terminal ignores malformed OSC 52 payloads', () {
