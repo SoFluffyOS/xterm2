@@ -2212,6 +2212,9 @@ class EscapeParser {
           handler.setCurrentDirectory(pt);
           return true;
         case '9':
+          if (pt == '4' && _handleConEmuProgress()) {
+            return true;
+          }
           handler.showNotification('', _osc.sublist(1).join(';'));
           return true;
         case '8':
@@ -2288,6 +2291,51 @@ class EscapeParser {
     handler.unknownOSC(_osc[0], _osc.sublist(1));
 
     return true;
+  }
+
+  bool _handleConEmuProgress() {
+    if (_osc.length < 3) return false;
+
+    final state = switch (_osc[2]) {
+      '0' => TerminalProgressState.remove,
+      '1' => TerminalProgressState.set,
+      '2' => TerminalProgressState.error,
+      '3' => TerminalProgressState.indeterminate,
+      '4' => TerminalProgressState.pause,
+      _ => null,
+    };
+    if (state == null) return false;
+
+    handler.reportProgress(
+      TerminalProgressReport(
+        state: state,
+        progress: _progressValueForState(state),
+      ),
+    );
+    return true;
+  }
+
+  int? _progressValueForState(TerminalProgressState state) {
+    switch (state) {
+      case TerminalProgressState.remove:
+      case TerminalProgressState.indeterminate:
+        return null;
+      case TerminalProgressState.set:
+        if (_osc.length < 4) return 0;
+        return _parseProgressValue(_osc[3]);
+      case TerminalProgressState.error:
+      case TerminalProgressState.pause:
+        if (_osc.length < 4) return null;
+        return _parseProgressValue(_osc[3]);
+    }
+  }
+
+  int? _parseProgressValue(String value) {
+    final progress = int.tryParse(value);
+    if (progress == null) return null;
+    if (progress < 0) return 0;
+    if (progress > 100) return 100;
+    return progress;
   }
 
   void _handleKittyColorProtocol() {

@@ -828,6 +828,36 @@ void main() {
     expect(shapes, ['pointer', 'text']);
   });
 
+  test('Terminal reports OSC 9;4 progress updates', () {
+    final reports = <TerminalProgressReport>[];
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onProgressReport: reports.add,
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;4;1;42\x1b\\');
+    terminal.write('\x1b]9;4;1;900\x1b\\');
+    terminal.write('\x1b]9;4;3\x1b\\');
+    terminal.write('\x1b]9;4;4;7\x1b\\');
+    terminal.write('\x1b]9;4;0;100\x1b\\');
+    terminal.write('\x1b]9;4;5\x1b\\');
+
+    expect(
+      reports.map((report) => (report.state, report.progress)),
+      [
+        (TerminalProgressState.set, 42),
+        (TerminalProgressState.set, 100),
+        (TerminalProgressState.indeterminate, null),
+        (TerminalProgressState.pause, 7),
+        (TerminalProgressState.remove, null),
+      ],
+    );
+    expect(notifications, [(title: '', body: '4;5')]);
+  });
+
   test('Terminal tracks OSC 133 semantic prompt state', () {
     final states = <TerminalSemanticPromptState>[];
     final terminal = Terminal(onSemanticPrompt: states.add);

@@ -1122,6 +1122,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void reportProgress(TerminalProgressReport report) {
+    onCommand('reportProgress(${report.state}, ${report.progress})');
+  }
+
+  @override
   void setHyperlink(String params, String uri) {
     onCommand('setHyperlink($params, $uri)');
   }

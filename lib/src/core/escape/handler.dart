@@ -1,5 +1,24 @@
 import 'package:xterm2/src/core/mouse/mode.dart';
 
+enum TerminalProgressState {
+  remove,
+  set,
+  error,
+  indeterminate,
+  pause,
+}
+
+final class TerminalProgressReport {
+  const TerminalProgressReport({
+    required this.state,
+    this.progress,
+  });
+
+  final TerminalProgressState state;
+
+  final int? progress;
+}
+
 abstract class EscapeHandler {
   void writeChar(int char);
 
@@ -332,6 +351,8 @@ abstract class EscapeHandler {
   void setLinesPerPage(int rows);
 
   void setConformanceLevel(int level, int controls);
+
+  void reportProgress(TerminalProgressReport report);
 
   void sendSize();
 
