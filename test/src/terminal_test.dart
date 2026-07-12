@@ -818,6 +818,16 @@ void main() {
     ]);
   });
 
+  test('Terminal reports OSC 22 mouse shape changes', () {
+    final shapes = <String>[];
+    final terminal = Terminal(onMouseShapeChange: shapes.add);
+
+    terminal.write('\x1b]22;pointer\x1b\\');
+    terminal.write('\x1b]22;text\x1b\\');
+
+    expect(shapes, ['pointer', 'text']);
+  });
+
   test('Terminal tracks OSC 133 semantic prompt state', () {
     final states = <TerminalSemanticPromptState>[];
     final terminal = Terminal(onSemanticPrompt: states.add);

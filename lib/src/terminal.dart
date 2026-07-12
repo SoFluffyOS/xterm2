@@ -80,6 +80,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// OSC 9 or OSC 777.
   void Function(String title, String body)? onNotification;
 
+  /// Called when the application requests a mouse pointer shape using OSC 22.
+  void Function(String shape)? onMouseShapeChange;
+
   /// Called when the application reports shell-integration prompt state using
   /// OSC 133.
   void Function(TerminalSemanticPromptState state)? onSemanticPrompt;
@@ -147,6 +150,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onIconChange,
     this.onCurrentDirectoryChange,
     this.onNotification,
+    this.onMouseShapeChange,
     this.onSemanticPrompt,
     this.onColorQuery,
     this.onColorSchemeQuery,
@@ -2953,6 +2957,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void showNotification(String title, String body) {
     onNotification?.call(title, body);
+  }
+
+  @override
+  void setMouseShape(String shape) {
+    onMouseShapeChange?.call(shape);
   }
 
   @override

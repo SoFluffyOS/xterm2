@@ -2247,6 +2247,9 @@ class EscapeParser {
         case '21':
           _handleKittyColorProtocol();
           return true;
+        case '22':
+          handler.setMouseShape(pt);
+          return true;
         case '52':
           if (_osc.length < 3) return true;
           final data = _osc[2];

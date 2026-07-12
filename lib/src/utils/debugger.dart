@@ -1117,6 +1117,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setMouseShape(String shape) {
+    onCommand('setMouseShape($shape)');
+  }
+
+  @override
   void setHyperlink(String params, String uri) {
     onCommand('setHyperlink($params, $uri)');
   }
