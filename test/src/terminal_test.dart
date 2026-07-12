@@ -799,6 +799,25 @@ void main() {
     expect(currentDirectory, 'file://localhost/tmp/my%20project');
   });
 
+  test('Terminal reports OSC 9 and OSC 777 notifications', () {
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;Build finished\x1b\\');
+    terminal.write('\x1b]777;notify;Tests;All passed\x1b\\');
+    terminal.write('\x1b]777;notify;Title;Body;with;semicolons\x1b\\');
+
+    expect(notifications, [
+      (title: '', body: 'Build finished'),
+      (title: 'Tests', body: 'All passed'),
+      (title: 'Title', body: 'Body;with;semicolons'),
+    ]);
+  });
+
   test('Terminal tracks OSC 133 semantic prompt state', () {
     final states = <TerminalSemanticPromptState>[];
     final terminal = Terminal(onSemanticPrompt: states.add);

@@ -2211,6 +2211,9 @@ class EscapeParser {
         case '7':
           handler.setCurrentDirectory(pt);
           return true;
+        case '9':
+          handler.showNotification('', _osc.sublist(1).join(';'));
+          return true;
         case '8':
           if (_osc.length < 3) return true;
           handler.setHyperlink(pt, _osc.sublist(2).join(';'));
@@ -2267,6 +2270,11 @@ class EscapeParser {
       case '111':
       case '112':
         handler.resetDynamicColor(int.parse(ps) - 100);
+        return true;
+      case '777':
+        if (_osc.length < 4) return true;
+        if (_osc[1].toLowerCase() != 'notify') return true;
+        handler.showNotification(_osc[2], _osc.sublist(3).join(';'));
         return true;
     }
 

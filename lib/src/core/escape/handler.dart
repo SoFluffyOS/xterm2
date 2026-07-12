@@ -435,6 +435,8 @@ abstract class EscapeHandler {
 
   void setCurrentDirectory(String uri);
 
+  void showNotification(String title, String body);
+
   void setHyperlink(String params, String uri);
 
   void setIndexedColor(int index, String value);

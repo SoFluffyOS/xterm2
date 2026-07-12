@@ -76,6 +76,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports its current directory using OSC 7.
   void Function(String uri)? onCurrentDirectoryChange;
 
+  /// Called when the application requests a desktop notification using
+  /// OSC 9 or OSC 777.
+  void Function(String title, String body)? onNotification;
+
   /// Called when the application reports shell-integration prompt state using
   /// OSC 133.
   void Function(TerminalSemanticPromptState state)? onSemanticPrompt;
@@ -142,6 +146,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onTitleChange,
     this.onIconChange,
     this.onCurrentDirectoryChange,
+    this.onNotification,
     this.onSemanticPrompt,
     this.onColorQuery,
     this.onColorSchemeQuery,
@@ -2943,6 +2948,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setCurrentDirectory(String uri) {
     onCurrentDirectoryChange?.call(uri);
+  }
+
+  @override
+  void showNotification(String title, String body) {
+    onNotification?.call(title, body);
   }
 
   @override
