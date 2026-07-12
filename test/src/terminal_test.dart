@@ -967,6 +967,39 @@ void main() {
     );
   });
 
+  test('Terminal applies Kitty OSC 21 color protocol', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 4 && index == 3) return 0x112233;
+        if (code == 11) return 0x445566;
+        return null;
+      },
+    );
+
+    terminal.write(
+      '\x1b]21;foreground=#010203;background=?;cursor=#040506;3=?;2=#070809\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, 0x010203);
+    expect(terminal.cursorColorOverride, 0x040506);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {2: 0x070809},
+    );
+    expect(output, [
+      '\x1b]11;rgb:4444/5555/6666\x1b\\',
+      '\x1b]4;3;rgb:1111/2222/3333\x1b\\',
+    ]);
+
+    terminal.write('\x1b]21;foreground=;cursor=;2=\x1b\\');
+
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.cursorColorOverride, isNull);
+    expect(terminal.indexedColorOverrides, isEmpty);
+  });
+
   test('Terminal handles OSC 52 clipboard store and query', () async {
     final stores = <(String, String)>[];
     final output = <String>[];

@@ -2244,6 +2244,9 @@ class EscapeParser {
             handler.setDynamicColor(code, value);
           }
           return true;
+        case '21':
+          _handleKittyColorProtocol();
+          return true;
         case '52':
           if (_osc.length < 3) return true;
           final data = _osc[2];
@@ -2282,6 +2285,47 @@ class EscapeParser {
     handler.unknownOSC(_osc[0], _osc.sublist(1));
 
     return true;
+  }
+
+  void _handleKittyColorProtocol() {
+    for (var i = 1; i < _osc.length; i++) {
+      final item = _osc[i];
+      final separator = item.indexOf('=');
+      if (separator <= 0) continue;
+
+      final key = item.substring(0, separator).toLowerCase();
+      final value = item.substring(separator + 1);
+      final indexedColor = int.tryParse(key);
+      if (indexedColor != null) {
+        if (value == '?') {
+          handler.queryIndexedColor(indexedColor);
+          continue;
+        }
+        if (value.isEmpty) {
+          handler.resetIndexedColors([indexedColor]);
+          continue;
+        }
+        handler.setIndexedColor(indexedColor, value);
+        continue;
+      }
+
+      final dynamicColor = switch (key) {
+        'foreground' => 10,
+        'background' => 11,
+        'cursor' => 12,
+        _ => null,
+      };
+      if (dynamicColor == null) continue;
+      if (value == '?') {
+        handler.queryDynamicColor(dynamicColor);
+        continue;
+      }
+      if (value.isEmpty) {
+        handler.resetDynamicColor(dynamicColor);
+        continue;
+      }
+      handler.setDynamicColor(dynamicColor, value);
+    }
   }
 
   final _osc = <String>[];
