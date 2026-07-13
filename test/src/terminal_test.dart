@@ -538,6 +538,47 @@ void main() {
     expect(line.getCodePoint(3), 'y'.codeUnitAt(0));
   });
 
+  test('Terminal erase chars keeps only current background style', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('\x1b[31;41;1;4;9;58:2::1:2:3mabc\r\x1b[2X');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(0), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(0), 0);
+    expect(line.getUnderlineColor(0), CellColor.normal);
+    expect(line.getCodePoint(1), 0);
+    expect(line.getForeground(1), CellColor.normal);
+    expect(line.getBackground(1), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(1), 0);
+    expect(line.getUnderlineColor(1), CellColor.normal);
+    expect(line.getCodePoint(2), 'c'.codeUnitAt(0));
+  });
+
+  test('Terminal insert and delete blank cells reset text decorations', () {
+    final insertTerminal = Terminal()..resize(8, 1);
+    insertTerminal.write('\x1b[31;41;1;4;9mabc\r\x1b[2@');
+    final insertedLine = insertTerminal.buffer.lines[0];
+
+    expect(insertedLine.getCodePoint(0), 0);
+    expect(insertedLine.getForeground(0), CellColor.normal);
+    expect(insertedLine.getBackground(0), CellColor.named | NamedColor.red);
+    expect(insertedLine.getAttributes(0), 0);
+    expect(insertedLine.getText(2, 5), 'abc');
+
+    final deleteTerminal = Terminal()..resize(8, 1);
+    deleteTerminal.write('\x1b[31;41;1;4;9mabcde\r\x1b[2P');
+    final deletedLine = deleteTerminal.buffer.lines[0];
+
+    expect(deletedLine.getText(0, 3), 'cde');
+    expect(deletedLine.getCodePoint(6), 0);
+    expect(deletedLine.getForeground(6), CellColor.normal);
+    expect(deletedLine.getBackground(6), CellColor.named | NamedColor.red);
+    expect(deletedLine.getAttributes(6), 0);
+  });
+
   test('Terminal resets bold and faint intensity with SGR 22', () {
     final terminal = Terminal()..resize(20, 5);
 

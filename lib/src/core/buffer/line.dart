@@ -195,11 +195,11 @@ class BufferLine with IndexedItem {
 
   void eraseCell(int index, CursorStyle style) {
     final offset = index * _cellSize;
-    _data[offset + _cellForeground] = style.foreground;
+    _data[offset + _cellForeground] = CellColor.normal;
     _data[offset + _cellBackground] = style.background;
-    _data[offset + _cellAttributes] = style.attrs & ~CellAttr.protected;
+    _data[offset + _cellAttributes] = 0;
     _data[offset + _cellContent] = 0;
-    _setUnderlineColor(index, style.underlineColor);
+    _underlineColors.remove(index);
     _combiningCharacters.remove(index);
   }
 
