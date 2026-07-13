@@ -2295,14 +2295,20 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setCursorShape(int style) {
+    if (style == 0) {
+      _applicationCursorType = null;
+      _cursorBlinkMode = false;
+      return;
+    }
+
     _applicationCursorType = switch (style) {
-      0 || 1 || 2 => TerminalCursorType.block,
+      1 || 2 => TerminalCursorType.block,
       3 || 4 => TerminalCursorType.underline,
       5 || 6 => TerminalCursorType.verticalBar,
       _ => _applicationCursorType,
     };
-    if (style < 0 || style > 6) return;
-    _cursorBlinkMode = style == 0 || style.isOdd;
+    if (style < 1 || style > 6) return;
+    _cursorBlinkMode = style.isOdd;
   }
 
   @override

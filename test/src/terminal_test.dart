@@ -2831,6 +2831,10 @@ void main() {
     terminal.write('\x1b[2 q');
     expect(terminal.applicationCursorType, TerminalCursorType.block);
     expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b[0 q');
+    expect(terminal.applicationCursorType, isNull);
+    expect(terminal.cursorBlinkMode, isFalse);
   });
 
   test('Terminal bounds oversized OSC payloads across chunks', () {
