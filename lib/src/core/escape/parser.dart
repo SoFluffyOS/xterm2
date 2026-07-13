@@ -2365,6 +2365,9 @@ class EscapeParser {
       case 'remotehost':
         handler.setRemoteHost(value);
         return;
+      case 'reportvariable':
+        handler.reportITerm2Variable(value);
+        return;
       case 'setuservar':
         final variableSeparator = value.indexOf('=');
         if (variableSeparator <= 0) return;

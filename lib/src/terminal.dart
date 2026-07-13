@@ -120,6 +120,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports an iTerm2 user variable.
   void Function(String name, String value)? onUserVariableChange;
 
+  /// Resolves an iTerm2 session variable for OSC 1337 ReportVariable queries.
+  String? Function(String name)? onITerm2VariableQuery;
+
   /// Called when the application requests terminal focus.
   void Function()? onFocusRequest;
 
@@ -207,6 +210,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onCurrentDirectoryChange,
     this.onRemoteHostChange,
     this.onUserVariableChange,
+    this.onITerm2VariableQuery,
     this.onFocusRequest,
     this.onOpenUrl,
     this.onAttentionRequest,
@@ -420,6 +424,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   final _kittyKeyboardModeStack = <int>[];
 
   String? _title;
+
+  String? _iconTitle;
 
   final _titleStack = <String?>[];
 
@@ -1039,6 +1045,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _modifyOtherKeysMode = 0;
     _kittyKeyboardModeStack.clear();
     _title = null;
+    _iconTitle = null;
     _titleStack.clear();
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
@@ -2987,6 +2994,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setIconName(String name) {
+    _iconTitle = name;
     onIconChange?.call(name);
   }
 
@@ -3026,6 +3034,39 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call(
       '\x1b]1337;ReportCellSize=$_cellPixelHeight;$_cellPixelWidth\x1b\\',
     );
+  }
+
+  @override
+  void reportITerm2Variable(String data) {
+    String name;
+    try {
+      name = utf8.decode(base64.decode(data));
+    } on FormatException {
+      return;
+    }
+
+    if (name.isEmpty) return;
+
+    final value = _resolveITerm2Variable(name);
+    if (value == null) return;
+
+    final encoded = base64.encode(utf8.encode(value));
+    onOutput?.call('\x1b]1337;ReportVariable=$encoded\x1b\\');
+  }
+
+  String? _resolveITerm2Variable(String name) {
+    if (onITerm2VariableQuery?.call(name) case final value?) {
+      return value;
+    }
+
+    return switch (name) {
+      'columns' => viewWidth.toString(),
+      'rows' => viewHeight.toString(),
+      'terminalIconName' => _iconTitle ?? '',
+      'terminalWindowName' => _title ?? '',
+      'autoName' || 'name' || 'presentationName' => _title ?? '',
+      _ => null,
+    };
   }
 
   @override

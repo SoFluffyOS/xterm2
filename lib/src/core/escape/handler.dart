@@ -460,6 +460,8 @@ abstract class EscapeHandler {
 
   void reportITerm2CellSize();
 
+  void reportITerm2Variable(String data);
+
   void setUserVariable(String name, String data);
 
   void requestFocus();

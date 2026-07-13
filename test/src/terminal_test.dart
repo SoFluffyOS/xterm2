@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:xterm2/core.dart';
 
@@ -869,6 +871,34 @@ void main() {
     terminal.write('\x1b]1337;ReportCellSize\x1b\\');
 
     expect(output, ['\x1b]1337;ReportCellSize=18;9\x1b\\']);
+  });
+
+  test('Terminal answers iTerm2 OSC 1337 ReportVariable queries', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onITerm2VariableQuery: (name) {
+        return switch (name) {
+          'path' => '/tmp/project',
+          _ => null,
+        };
+      },
+    )..resize(80, 24);
+
+    final path = base64.encode(utf8.encode('path'));
+    final columns = base64.encode(utf8.encode('columns'));
+    final unknown = base64.encode(utf8.encode('unknown'));
+    terminal.write('\x1b]1337;ReportVariable=$path\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=$columns\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=$unknown\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=not base64\x1b\\');
+
+    final encodedPath = base64.encode(utf8.encode('/tmp/project'));
+    final encodedColumns = base64.encode(utf8.encode('80'));
+    expect(output, [
+      '\x1b]1337;ReportVariable=$encodedPath\x1b\\',
+      '\x1b]1337;ReportVariable=$encodedColumns\x1b\\',
+    ]);
   });
 
   test('Terminal decodes iTerm2 OSC 1337 user variables', () {
