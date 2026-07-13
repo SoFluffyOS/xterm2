@@ -2295,12 +2295,51 @@ class EscapeParser {
       case '1337':
         _handleITerm2Protocol();
         return true;
+      case '5522':
+        _handleKittyClipboardProtocol();
+        return true;
     }
 
     // Private extensions
     handler.unknownOSC(_osc[0], _osc.sublist(1));
 
     return true;
+  }
+
+  void _handleKittyClipboardProtocol() {
+    if (_osc.length < 3) return;
+
+    final metadata = _osc[1];
+    final type = _kittyClipboardOption(metadata, 'type')?.toLowerCase();
+    if (type != 'wdata' && type != 'write') return;
+
+    final status = _kittyClipboardOption(metadata, 'status');
+    if (status != null) return;
+
+    final selector = switch (_kittyClipboardOption(metadata, 'loc')) {
+      'primary' => 'p',
+      _ => 'c',
+    };
+    handler.storeClipboard(selector, _osc.sublist(2).join(';'));
+  }
+
+  String? _kittyClipboardOption(String metadata, String key) {
+    var offset = 0;
+    while (offset < metadata.length) {
+      final nextSeparator = metadata.indexOf(':', offset);
+      final end = switch (nextSeparator) {
+        -1 => metadata.length,
+        _ => nextSeparator,
+      };
+      final option = metadata.substring(offset, end).trim();
+      offset = end + 1;
+
+      final equals = option.indexOf('=');
+      if (equals <= 0) continue;
+      if (option.substring(0, equals).trim() != key) continue;
+      return option.substring(equals + 1).trim();
+    }
+    return null;
   }
 
   void _handleITerm2Protocol() {

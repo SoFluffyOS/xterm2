@@ -1418,6 +1418,20 @@ void main() {
     expect(output, ['\x1b]52;c;cGFzdGUgbWU=\x1b\\']);
   });
 
+  test('Terminal handles Kitty OSC 5522 clipboard writes', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write('\x1b]5522;type=wdata:mime=dGV4dC9wbGFpbg==;a2l0dHk=\x1b\\');
+    terminal.write('\x1b]5522;type=write:loc=primary;cHJpbWFyeQ==\x1b\\');
+    terminal.write('\x1b]5522;type=read;ignored\x1b\\');
+    terminal.write('\x1b]5522;type=wdata:status=DONE;ignored\x1b\\');
+
+    expect(stores, [('c', 'kitty'), ('s', 'primary')]);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 clipboard copy', () {
     final stores = <(String, String)>[];
     final privateOsc = <String>[];
