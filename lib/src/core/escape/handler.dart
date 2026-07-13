@@ -464,6 +464,8 @@ abstract class EscapeHandler {
 
   void requestFocus();
 
+  void openUrl(String url);
+
   void showNotification(String title, String body);
 
   void setMouseShape(String shape);

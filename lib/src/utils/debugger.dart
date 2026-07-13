@@ -1132,6 +1132,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void openUrl(String url) {
+    onCommand('openUrl($url)');
+  }
+
+  @override
   void showNotification(String title, String body) {
     onCommand('showNotification($title, $body)');
   }

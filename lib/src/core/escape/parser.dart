@@ -2352,6 +2352,9 @@ class EscapeParser {
       case 'currentdir':
         handler.setCurrentDirectory(value);
         return;
+      case 'openurl':
+        handler.openUrl(value);
+        return;
       case 'remotehost':
         handler.setRemoteHost(value);
         return;

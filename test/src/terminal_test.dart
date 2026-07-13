@@ -911,6 +911,15 @@ void main() {
     expect(focusRequests, 2);
   });
 
+  test('Terminal handles iTerm2 OSC 1337 open url requests', () {
+    final urls = <String>[];
+    final terminal = Terminal(onOpenUrl: urls.add);
+
+    terminal.write('\x1b]1337;OpenURL=https://lumide.dev/docs?a=1;b=2\x1b\\');
+
+    expect(urls, ['https://lumide.dev/docs?a=1;b=2']);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 
