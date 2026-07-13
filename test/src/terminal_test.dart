@@ -957,6 +957,25 @@ void main() {
     expect(versions, ['14;shell=zsh']);
   });
 
+  test('Terminal exposes iTerm2 OSC 1337 marks and profiles', () {
+    var marks = 0;
+    final profiles = <String>[];
+    final terminal = Terminal(
+      onITerm2Mark: () {
+        marks++;
+      },
+      onITerm2ProfileChange: profiles.add,
+    );
+
+    terminal.write('\x1b]1337;SetMark\x1b\\');
+    terminal.write('\x1b]1337;SetMark=ignored\x1b\\');
+    terminal.write('\x1b]1337;SetProfile=Build\x1b\\');
+    terminal.write('\x1b]1337;SetProfile=\x1b\\');
+
+    expect(marks, 2);
+    expect(profiles, ['Build']);
+  });
+
   test('Terminal decodes iTerm2 OSC 1337 user variables', () {
     final variables = <({String name, String value})>[];
     final terminal = Terminal(

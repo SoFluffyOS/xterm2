@@ -2318,6 +2318,9 @@ class EscapeParser {
         case 'requestattention':
           handler.requestAttention('');
           return;
+        case 'setmark':
+          handler.setITerm2Mark();
+          return;
         case 'stealfocus':
           handler.requestFocus();
           return;
@@ -2355,6 +2358,15 @@ class EscapeParser {
     }
     if (key == 'shellintegrationversion') {
       handler.setITerm2ShellIntegrationVersion(value);
+      return;
+    }
+    if (key == 'setmark') {
+      handler.setITerm2Mark();
+      return;
+    }
+    if (key == 'setprofile') {
+      if (value.isEmpty) return;
+      handler.setITerm2Profile(value);
       return;
     }
     if (key == 'copytoclipboard') {
