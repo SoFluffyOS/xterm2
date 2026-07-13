@@ -418,6 +418,47 @@ void main() {
     expect(terminal.buffer.cursorX, 2);
   });
 
+  test('Terminal erase chars clears split wide-character boundaries', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('😀a😀b😀');
+    terminal.write('\x1b[1;2H\x1b[3X');
+
+    final line = terminal.buffer.lines[0];
+    for (var column = 0; column < 5; column++) {
+      expect(
+        line.getCodePoint(column),
+        0,
+        reason: 'column $column should be blank',
+      );
+      expect(
+        line.getWidth(column),
+        isNot(2),
+        reason: 'column $column should not keep wide metadata',
+      );
+    }
+    expect(line.getCodePoint(5), 'b'.codeUnitAt(0));
+    expect(line.getCodePoint(6), 0x1f600);
+    expect(line.getWidth(6), 2);
+    expect(line.getWidth(7), 0);
+  });
+
+  test('Terminal erase chars clears wide grapheme cells', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('x\u2764\u200d\u{1F525}y');
+    terminal.write('\x1b[1;2H\x1b[1X');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'x'.codeUnitAt(0));
+    expect(line.getCodePoint(1), 0);
+    expect(line.getCombiningCharacters(1), isNull);
+    expect(line.getWidth(1), isNot(2));
+    expect(line.getCodePoint(2), 0);
+    expect(line.getWidth(2), isNot(2));
+    expect(line.getCodePoint(3), 'y'.codeUnitAt(0));
+  });
+
   test('Terminal resets bold and faint intensity with SGR 22', () {
     final terminal = Terminal()..resize(20, 5);
 
