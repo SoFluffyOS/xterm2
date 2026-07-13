@@ -230,6 +230,9 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (alternateCode == characterCode) {
       return null;
     }
+    if (_isControlCodepoint(alternateCode)) {
+      return null;
+    }
     return alternateCode;
   }
 
@@ -239,19 +242,23 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
         event.type == TerminalKeyEventType.release) {
       return null;
     }
+    if (event.ctrl || event.alt) {
+      return null;
+    }
     final text = event.text;
     if (text == null || text.isEmpty) {
       return null;
     }
     final codepoints = text.runes.toList(growable: false);
-    final hasControlCharacter = codepoints.any(
-      (codepoint) =>
-          codepoint < 0x20 || (codepoint >= 0x7f && codepoint <= 0x9f),
-    );
+    final hasControlCharacter = codepoints.any(_isControlCodepoint);
     if (hasControlCharacter) {
       return null;
     }
     return codepoints.join(':');
+  }
+
+  bool _isControlCodepoint(int codepoint) {
+    return codepoint < 0x20 || (codepoint >= 0x7f && codepoint <= 0x9f);
   }
 
   String? _functionalSequence(TerminalKeyboardEvent event, int mode) {

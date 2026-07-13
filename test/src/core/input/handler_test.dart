@@ -308,6 +308,28 @@ void main() {
       expect(output, ['\x1b[97;1;97u', '\x1b[233;1;233u']);
     });
 
+    test('omits Kitty associated text for modified keys', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=24u');
+      terminal.keyInput(TerminalKey.keyJ, ctrl: true, text: 'j');
+      terminal.keyInput(TerminalKey.keyJ, alt: true, text: 'j');
+      terminal.keyInput(TerminalKey.keyJ, shift: true, text: 'J');
+
+      expect(output, ['\x1b[106;5u', '\x1b[106;3u', '\x1b[106;2;74u']);
+    });
+
+    test('omits Kitty control-character alternates', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=12u');
+      terminal.keyInput(TerminalKey.keyA, text: '\x01');
+
+      expect(output, ['\x1b[97u']);
+    });
+
     test('supports xterm modifyOtherKeys mode 2', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
