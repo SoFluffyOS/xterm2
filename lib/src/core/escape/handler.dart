@@ -466,6 +466,10 @@ abstract class EscapeHandler {
 
   void setITerm2ShellIntegrationVersion(String value);
 
+  void startITerm2ClipboardCapture(String selector);
+
+  void endITerm2ClipboardCapture();
+
   void setUserVariable(String name, String data);
 
   void requestFocus();

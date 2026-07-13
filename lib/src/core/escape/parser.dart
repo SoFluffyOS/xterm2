@@ -2309,6 +2309,9 @@ class EscapeParser {
         case 'clearscrollback':
           handler.eraseScrollbackOnly();
           return;
+        case 'endcopy':
+          handler.endITerm2ClipboardCapture();
+          return;
         case 'reportcellsize':
           handler.reportITerm2CellSize();
           return;
@@ -2352,6 +2355,10 @@ class EscapeParser {
     }
     if (key == 'shellintegrationversion') {
       handler.setITerm2ShellIntegrationVersion(value);
+      return;
+    }
+    if (key == 'copytoclipboard') {
+      handler.startITerm2ClipboardCapture(value);
       return;
     }
 

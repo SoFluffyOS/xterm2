@@ -1402,6 +1402,30 @@ void main() {
     expect(privateOsc, isEmpty);
   });
 
+  test('Terminal handles iTerm2 OSC 1337 streaming clipboard copy', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write(
+      '\x1b]1337;CopyToClipboard=\x1b\\'
+      'hello\tworld\r\n'
+      '\x1b[31mred\x1b[0m'
+      '\x1b]1337;EndCopy\x1b\\',
+    );
+    terminal.write(
+      '\x1b]1337;CopyToClipboard=primary\x1b\\'
+      'selection'
+      '\x1b]1337;EndCopy\x1b\\',
+    );
+
+    expect(stores, [
+      ('c', 'hello\tworld\r\nred'),
+      ('s', 'selection'),
+    ]);
+  });
+
   test('Terminal ignores malformed OSC 52 payloads', () {
     final stores = <(String, String)>[];
     final terminal = Terminal(

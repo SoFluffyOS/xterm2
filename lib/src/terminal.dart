@@ -260,6 +260,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int _colorRevision = 0;
 
+  String? _clipboardCaptureSelector;
+  StringBuffer? _clipboardCaptureBuffer;
+
   TerminalSemanticPromptState _semanticPromptState =
       const TerminalSemanticPromptState(
     content: TerminalSemanticPromptContent.output,
@@ -579,6 +582,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _synchronizedUpdateTimer = null;
     _synchronizedUpdateMode = false;
     clearListeners();
+    _clipboardCaptureSelector = null;
+    _clipboardCaptureBuffer = null;
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
   }
@@ -910,6 +915,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void writeChar(int char) {
+    _captureITerm2ClipboardText(String.fromCharCode(char));
     _precedingCodepoint = char;
     _buffer.writeChar(char);
   }
@@ -935,6 +941,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void tab() {
+    _captureITerm2ClipboardText('\t');
     final rightLimit = _horizontalTabRightLimit();
     if (_buffer.cursorX >= rightLimit) return;
 
@@ -949,11 +956,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void lineFeed() {
+    _captureITerm2ClipboardText('\n');
     _buffer.lineFeed();
   }
 
   @override
   void carriageReturn() {
+    _captureITerm2ClipboardText('\r');
     _buffer.carriageReturn();
   }
 
@@ -1054,6 +1063,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _kittyKeyboardModeStack.clear();
     _title = null;
     _iconTitle = null;
+    _clipboardCaptureSelector = null;
+    _clipboardCaptureBuffer = null;
     _titleStack.clear();
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
@@ -3319,6 +3330,27 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void startITerm2ClipboardCapture(String selector) {
+    _clipboardCaptureSelector = _resolveITerm2ClipboardSelector(selector);
+    _clipboardCaptureBuffer = StringBuffer();
+  }
+
+  @override
+  void endITerm2ClipboardCapture() {
+    final selector = _clipboardCaptureSelector;
+    final buffer = _clipboardCaptureBuffer;
+    _clipboardCaptureSelector = null;
+    _clipboardCaptureBuffer = null;
+
+    if (selector == null || buffer == null) return;
+    onClipboardStore?.call(selector, buffer.toString());
+  }
+
+  void _captureITerm2ClipboardText(String text) {
+    _clipboardCaptureBuffer?.write(text);
+  }
+
+  @override
   void storeClipboard(String selector, String data) {
     final clipboardSelector = _resolveClipboardSelector(selector);
     if (clipboardSelector == null) return;
@@ -3583,6 +3615,15 @@ String? _resolveClipboardSelector(String selector) {
     }
   }
   return null;
+}
+
+String _resolveITerm2ClipboardSelector(String selector) {
+  final name = selector.toLowerCase();
+  return switch (name) {
+    '' || 'rule' || 'find' || 'font' => 'c',
+    'primary' || 'selection' => 's',
+    _ => 'c',
+  };
 }
 
 int? _parseOscColor(String value) {

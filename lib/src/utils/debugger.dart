@@ -1137,6 +1137,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void startITerm2ClipboardCapture(String selector) {
+    onCommand('startITerm2ClipboardCapture($selector)');
+  }
+
+  @override
+  void endITerm2ClipboardCapture() {
+    onCommand('endITerm2ClipboardCapture');
+  }
+
+  @override
   void setUserVariable(String name, String data) {
     onCommand('setUserVariable($name, $data)');
   }
