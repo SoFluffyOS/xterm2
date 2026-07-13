@@ -3203,7 +3203,6 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     }
 
     if (uri.isEmpty) {
-      if (explicitId != null) return;
       _cursorStyle.hyperlinkId = 0;
       return;
     }
