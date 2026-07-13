@@ -3020,6 +3020,36 @@ void main() {
     );
   });
 
+  test('Terminal preserves OSC 8 hyperlinks across resize reflow', () {
+    final terminal = Terminal()..resize(6, 4);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\abcdef\x1b]8;;\x1b\\');
+    terminal.resize(3, 4);
+
+    expect(terminal.buffer.lines[0].getText(0, 3), 'abc');
+    expect(terminal.buffer.lines[1].getText(0, 3), 'def');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+
+    terminal.resize(6, 4);
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abcdef');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(5, 0)),
+      'https://example.com',
+    );
+  });
+
   test('Terminal ignores empty OSC 8 URI with explicit id', () {
     final terminal = Terminal();
 
