@@ -2332,6 +2332,16 @@ class EscapeParser {
     if (value.isEmpty) return;
 
     switch (key) {
+      case 'cursorshape':
+        final shape = switch (int.tryParse(value)) {
+          0 => 2,
+          1 => 6,
+          2 => 4,
+          _ => null,
+        };
+        if (shape == null) return;
+        handler.setCursorShape(shape);
+        return;
       case 'currentdir':
         handler.setCurrentDirectory(value);
         return;

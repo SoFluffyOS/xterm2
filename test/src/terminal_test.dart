@@ -885,6 +885,20 @@ void main() {
     expect(variables, [(name: 'project', value: 'lumide')]);
   });
 
+  test('Terminal applies iTerm2 OSC 1337 cursor shapes', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]1337;CursorShape=1\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.verticalBar);
+    expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b]1337;CursorShape=2\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.underline);
+
+    terminal.write('\x1b]1337;CursorShape=0\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.block);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 
