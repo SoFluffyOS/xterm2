@@ -948,6 +948,26 @@ void main() {
     expect(terminal.semanticPromptState.lastCommandExitCode, 2);
   });
 
+  test('Terminal tracks OSC 133 semantic prompt options', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write(
+      '\x1b]133;A;aid=14;k=c;cl=line;redraw=last;special_key=1\x1b\\',
+    );
+    terminal.write('\x1b]133;N;click_events=2\x1b\\');
+
+    expect(states.first.aid, '14');
+    expect(states.first.promptKind, TerminalSemanticPromptKind.continuation);
+    expect(states.first.clickMode, TerminalSemanticPromptClickMode.line);
+    expect(states.first.redraw, TerminalSemanticPromptRedraw.last);
+    expect(states.first.specialKey, isTrue);
+    expect(
+      states.last.clickMode,
+      TerminalSemanticPromptClickMode.eventsRelative,
+    );
+  });
+
   test('Terminal pushes and restores window titles', () {
     final titles = <String>[];
     final terminal = Terminal(onTitleChange: titles.add);

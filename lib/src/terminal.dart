@@ -33,15 +33,50 @@ enum TerminalSemanticPromptContent {
   input,
 }
 
+enum TerminalSemanticPromptKind {
+  initial,
+  right,
+  continuation,
+  secondary,
+}
+
+enum TerminalSemanticPromptClickMode {
+  line,
+  multiple,
+  eventsAbsolute,
+  eventsRelative,
+}
+
+enum TerminalSemanticPromptRedraw {
+  disabled,
+  enabled,
+  last,
+}
+
 final class TerminalSemanticPromptState {
   const TerminalSemanticPromptState({
     required this.content,
     this.lastCommandExitCode,
+    this.aid,
+    this.promptKind,
+    this.clickMode,
+    this.redraw,
+    this.specialKey,
   });
 
   final TerminalSemanticPromptContent content;
 
   final int? lastCommandExitCode;
+
+  final String? aid;
+
+  final TerminalSemanticPromptKind? promptKind;
+
+  final TerminalSemanticPromptClickMode? clickMode;
+
+  final TerminalSemanticPromptRedraw? redraw;
+
+  final bool? specialKey;
 }
 
 /// [Terminal] is an interface to interact with command line applications. It
@@ -3191,9 +3226,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (ps != '133' || pt.isEmpty) return;
     final action = pt.first;
     if (action.isEmpty) return;
+    final options = _parseSemanticPromptOptions(pt);
 
     final content = switch (action.codeUnitAt(0)) {
-      0x41 || 0x50 => TerminalSemanticPromptContent.prompt,
+      0x41 || 0x4e || 0x50 => TerminalSemanticPromptContent.prompt,
       0x42 || 0x49 => TerminalSemanticPromptContent.input,
       0x43 || 0x44 => TerminalSemanticPromptContent.output,
       _ => null,
@@ -3207,15 +3243,78 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final state = TerminalSemanticPromptState(
       content: content,
       lastCommandExitCode: exitCode,
+      aid: options['aid'],
+      promptKind: _parseSemanticPromptKind(options['k']),
+      clickMode: _parseSemanticPromptClickMode(options),
+      redraw: _parseSemanticPromptRedraw(options['redraw']),
+      specialKey: _parseSemanticPromptBoolean(options['special_key']),
     );
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
   }
 }
 
+Map<String, String> _parseSemanticPromptOptions(List<String> pt) {
+  final options = <String, String>{};
+  for (var index = 1; index < pt.length; index++) {
+    final part = pt[index];
+    final separator = part.indexOf('=');
+    if (separator <= 0) continue;
+    final key = part.substring(0, separator);
+    final value = part.substring(separator + 1);
+    if (key.isEmpty) continue;
+    options[key] = value;
+  }
+  return options;
+}
+
 int? _parseSemanticPromptExitCode(List<String> pt) {
   if (pt.length < 2) return null;
   return int.tryParse(pt[1]);
+}
+
+TerminalSemanticPromptKind? _parseSemanticPromptKind(String? value) {
+  return switch (value) {
+    'i' => TerminalSemanticPromptKind.initial,
+    'r' => TerminalSemanticPromptKind.right,
+    'c' => TerminalSemanticPromptKind.continuation,
+    's' => TerminalSemanticPromptKind.secondary,
+    _ => null,
+  };
+}
+
+TerminalSemanticPromptClickMode? _parseSemanticPromptClickMode(
+  Map<String, String> options,
+) {
+  final clickEvents = switch (options['click_events']) {
+    '1' => TerminalSemanticPromptClickMode.eventsAbsolute,
+    '2' => TerminalSemanticPromptClickMode.eventsRelative,
+    _ => null,
+  };
+  if (clickEvents != null) return clickEvents;
+
+  return switch (options['cl']) {
+    'line' => TerminalSemanticPromptClickMode.line,
+    'm' => TerminalSemanticPromptClickMode.multiple,
+    _ => null,
+  };
+}
+
+TerminalSemanticPromptRedraw? _parseSemanticPromptRedraw(String? value) {
+  return switch (value) {
+    '0' => TerminalSemanticPromptRedraw.disabled,
+    '1' => TerminalSemanticPromptRedraw.enabled,
+    'last' => TerminalSemanticPromptRedraw.last,
+    _ => null,
+  };
+}
+
+bool? _parseSemanticPromptBoolean(String? value) {
+  return switch (value) {
+    '0' => false,
+    '1' => true,
+    _ => null,
+  };
 }
 
 String? _resolveClipboardSelector(String selector) {
