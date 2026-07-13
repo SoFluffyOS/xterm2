@@ -147,7 +147,8 @@ class Buffer {
       return;
     }
     if (terminal.graphemeClusterMode && _joinsPreviousGrapheme(codePoint)) {
-      if (cellWidth == 2 && !_setPreviousGraphemeWidth(2)) return;
+      final previousWidth = _joinedPreviousGraphemeWidth(codePoint, cellWidth);
+      if (previousWidth == 2 && !_setPreviousGraphemeWidth(2)) return;
       _addCombiningCharacter(codePoint);
       return;
     }
@@ -312,6 +313,67 @@ class Buffer {
     final previous = String.fromCharCode(base) + (combining ?? '');
     final candidate = previous + String.fromCharCode(codePoint);
     return candidate.characters.length == 1;
+  }
+
+  int _joinedPreviousGraphemeWidth(int codePoint, int cellWidth) {
+    if (cellWidth == 2) return 2;
+
+    final index = _previousCellIndex();
+    if (index == null) return 1;
+
+    final base = currentLine.getCodePoint(index);
+    final combining = currentLine.getCombiningCharacters(index);
+    if (_isWideIndicConjunct(base, combining, codePoint)) return 2;
+
+    return 1;
+  }
+
+  static bool _isWideIndicConjunct(
+    int base,
+    String? combining,
+    int codePoint,
+  ) {
+    if (!_isIndicCodePoint(base)) return false;
+    if (!_isIndicCodePoint(codePoint)) return false;
+    if (combining == null) return false;
+
+    var hasVirama = false;
+    var hasJoiner = false;
+    for (final rune in combining.runes) {
+      if (_isIndicVirama(rune)) {
+        hasVirama = true;
+        continue;
+      }
+      if (rune == 0x200D) {
+        hasJoiner = true;
+      }
+    }
+
+    return hasVirama && hasJoiner;
+  }
+
+  static bool _isIndicCodePoint(int codePoint) {
+    return switch (codePoint) {
+      >= 0x0900 && <= 0x097F => true,
+      >= 0x0980 && <= 0x09FF => true,
+      >= 0x0A00 && <= 0x0A7F => true,
+      >= 0x0A80 && <= 0x0AFF => true,
+      >= 0x0B00 && <= 0x0B7F => true,
+      >= 0x0B80 && <= 0x0BFF => true,
+      >= 0x0C00 && <= 0x0C7F => true,
+      >= 0x0C80 && <= 0x0CFF => true,
+      >= 0x0D00 && <= 0x0D7F => true,
+      _ => false,
+    };
+  }
+
+  static bool _isIndicVirama(int codePoint) {
+    return switch (codePoint) {
+      0x094D || 0x09CD || 0x0A4D || 0x0ACD => true,
+      0x0B4D || 0x0BCD || 0x0C4D || 0x0CCD => true,
+      0x0D4D => true,
+      _ => false,
+    };
   }
 
   static bool _isEmojiModifier(int codePoint) {

@@ -407,6 +407,34 @@ void main() {
     expect(terminal.buffer.cursorX, 1);
   });
 
+  test('Terminal renders explicit Indic ZWJ conjuncts as wide graphemes', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0915\u094d\u200d\u0937x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0915);
+    expect(line.getCombiningCharacters(0), '\u094d\u200d\u0937');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal wraps widening Indic ZWJ conjuncts at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u0915\u094d\u200d\u0937');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getText(), '\u0915\u094d\u200d\u0937');
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
   test('Terminal wraps a widening ZWJ grapheme at the right edge', () {
     final terminal = Terminal()..resize(3, 2);
 
