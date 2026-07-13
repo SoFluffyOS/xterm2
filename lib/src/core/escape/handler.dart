@@ -458,6 +458,8 @@ abstract class EscapeHandler {
 
   void setRemoteHost(String value);
 
+  void reportITerm2CellSize();
+
   void showNotification(String title, String body);
 
   void setMouseShape(String shape);

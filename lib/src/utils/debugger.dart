@@ -1117,6 +1117,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void reportITerm2CellSize() {
+    onCommand('reportITerm2CellSize');
+  }
+
+  @override
   void showNotification(String title, String body) {
     onCommand('showNotification($title, $body)');
   }

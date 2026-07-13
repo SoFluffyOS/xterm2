@@ -3006,6 +3006,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void reportITerm2CellSize() {
+    onOutput?.call(
+      '\x1b]1337;ReportCellSize=$_cellPixelHeight;$_cellPixelWidth\x1b\\',
+    );
+  }
+
+  @override
   void showNotification(String title, String body) {
     onNotification?.call(title, body);
   }

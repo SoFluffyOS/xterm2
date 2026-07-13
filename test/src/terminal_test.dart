@@ -862,6 +862,15 @@ void main() {
     expect(remoteHost, 'user@example.com');
   });
 
+  test('Terminal answers iTerm2 OSC 1337 ReportCellSize', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b]1337;ReportCellSize\x1b\\');
+
+    expect(output, ['\x1b]1337;ReportCellSize=18;9\x1b\\']);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 

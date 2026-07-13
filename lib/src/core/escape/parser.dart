@@ -2305,8 +2305,13 @@ class EscapeParser {
     final payload = _osc.sublist(1).join(';');
     final separator = payload.indexOf('=');
     if (separator < 0) {
-      if (payload.toLowerCase() == 'clearscrollback') {
-        handler.eraseScrollbackOnly();
+      switch (payload.toLowerCase()) {
+        case 'clearscrollback':
+          handler.eraseScrollbackOnly();
+          return;
+        case 'reportcellsize':
+          handler.reportITerm2CellSize();
+          return;
       }
       return;
     }
@@ -2317,6 +2322,10 @@ class EscapeParser {
     final value = payload.substring(separator + 1);
     if (key == 'clearscrollback') {
       handler.eraseScrollbackOnly();
+      return;
+    }
+    if (key == 'reportcellsize') {
+      handler.reportITerm2CellSize();
       return;
     }
 
