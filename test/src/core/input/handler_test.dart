@@ -196,6 +196,20 @@ void main() {
       expect(output, ['\x1b[127;2u', '\x1b[13;2u', '\x1b[9;2u']);
     });
 
+    test('keeps unmodified Kitty control keys legacy', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.enter);
+      terminal.keyInput(TerminalKey.backspace);
+      terminal.keyInput(TerminalKey.tab);
+      terminal.write('\x1b[?67h');
+      terminal.keyInput(TerminalKey.backspace);
+
+      expect(output, ['\r', '\x7f', '\t', '\x7f']);
+    });
+
     test('keeps unmodified Kitty control key releases silent', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

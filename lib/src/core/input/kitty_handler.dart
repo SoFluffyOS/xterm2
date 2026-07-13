@@ -43,8 +43,12 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       return functionalSequence;
     }
 
+    final controlCode = _controlKeyCode(event.key);
+    if (controlCode != null && _shouldUseLegacyControlCode(event, mode)) {
+      return String.fromCharCode(controlCode);
+    }
+
     if (_shouldEncodeControlKey(event, mode)) {
-      final controlCode = _controlKeyCode(event.key);
       if (controlCode != null) {
         return _sequence(controlCode, event);
       }
@@ -100,6 +104,22 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       return false;
     }
     return event.ctrl || event.alt;
+  }
+
+  bool _shouldUseLegacyControlCode(TerminalKeyboardEvent event, int mode) {
+    if (event.key == TerminalKey.escape) {
+      return false;
+    }
+    if (event.type == TerminalKeyEventType.release) {
+      return false;
+    }
+    if (mode & _reportAllKeysAsEscapeCodes != 0) {
+      return false;
+    }
+    if (event.ctrl || event.alt || event.shift) {
+      return false;
+    }
+    return true;
   }
 
   String _sequence(
