@@ -3406,6 +3406,21 @@ void main() {
       expect(terminal.buffer.lines[9].getWidth(39), 0);
     });
 
+    test('delete lines clears copied wide head at right margin', () {
+      final terminal = Terminal()..resize(8, 3);
+
+      terminal.write('........\r\n123456橋');
+      terminal.write('\x1b[?69h\x1b[2;7s\x1b[1;2H\x1b[M');
+
+      expect(terminal.buffer.lines[0].getText(), '.23456.');
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x36);
+      expect(terminal.buffer.lines[0].getWidth(5), 1);
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0);
+      expect(terminal.buffer.lines[0].getWidth(6), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(7), 0x2e);
+      expect(terminal.buffer.lines[0].getWidth(7), 1);
+    });
+
     test('scroll up shifts only horizontal margin cells', () {
       final terminal = Terminal()..resize(6, 4);
 

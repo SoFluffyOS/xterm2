@@ -502,6 +502,10 @@ class BufferLine with IndexedItem {
     if (requiredLength > _length) {
       resize(requiredLength);
     }
+    final dstEnd = dstCol + len;
+    final srcEnd = srcCol + len;
+    final leftBoundarySplitsWideCell = dstCol > 0 && srcCol > 0;
+    final rightBoundarySplitsWideCell = dstEnd < _length && srcEnd > 0;
     final copiedCombiningCharacters = <int, String>{};
     final copiedUnderlineColors = <int, int>{};
     for (final entry in src._combiningCharacters.entries) {
@@ -534,6 +538,13 @@ class BufferLine with IndexedItem {
       (index, _) => index >= dstCol && index < dstCol + len,
     );
     _underlineColors.addAll(copiedUnderlineColors);
+
+    if (leftBoundarySplitsWideCell && getWidth(dstCol) == 0) {
+      resetCell(dstCol);
+    }
+    if (rightBoundarySplitsWideCell && getWidth(dstEnd - 1) == 2) {
+      resetCell(dstEnd - 1);
+    }
   }
 
   static int _calcCapacity(int length) {
