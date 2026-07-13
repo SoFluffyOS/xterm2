@@ -1008,6 +1008,25 @@ void main() {
     expect(states[2].commandLine, isNull);
   });
 
+  test('Terminal tracks OSC 633 shell integration state', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]633;A\x1b\\');
+    terminal.write('\x1b]633;B\x1b\\');
+    terminal.write('\x1b]633;C\x1b\\');
+    terminal.write('\x1b]633;D;7\x1b\\');
+
+    expect(states.map((state) => state.content), [
+      TerminalSemanticPromptContent.prompt,
+      TerminalSemanticPromptContent.input,
+      TerminalSemanticPromptContent.output,
+      TerminalSemanticPromptContent.output,
+    ]);
+    expect(states.last.lastCommandExitCode, 7);
+    expect(terminal.semanticPromptState.lastCommandExitCode, 7);
+  });
+
   test('Terminal pushes and restores window titles', () {
     final titles = <String>[];
     final terminal = Terminal(onTitleChange: titles.add);

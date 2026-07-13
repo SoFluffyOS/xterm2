@@ -3222,6 +3222,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unknownOSC(String ps, List<String> pt) {
     _handleSemanticPromptOsc(ps, pt);
+    _handleVsCodeShellIntegrationOsc(ps, pt);
     _handleContextSignalOsc(ps, pt);
     onPrivateOSC?.call(ps, pt);
   }
@@ -3268,6 +3269,31 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       redraw: _parseSemanticPromptRedraw(options['redraw']),
       specialKey: _parseSemanticPromptBoolean(options['special_key']),
       commandLine: _parseSemanticPromptCommandLine(options),
+    );
+    _semanticPromptState = state;
+    onSemanticPrompt?.call(state);
+  }
+
+  void _handleVsCodeShellIntegrationOsc(String ps, List<String> pt) {
+    if (ps != '633' || pt.isEmpty) return;
+    final action = pt.first;
+    if (action.isEmpty) return;
+
+    final content = switch (action.codeUnitAt(0)) {
+      0x41 => TerminalSemanticPromptContent.prompt,
+      0x42 => TerminalSemanticPromptContent.input,
+      0x43 || 0x44 => TerminalSemanticPromptContent.output,
+      _ => null,
+    };
+    if (content == null) return;
+
+    final exitCode = switch (action.codeUnitAt(0)) {
+      0x44 => _parseSemanticPromptExitCode(pt),
+      _ => _semanticPromptState.lastCommandExitCode,
+    };
+    final state = TerminalSemanticPromptState(
+      content: content,
+      lastCommandExitCode: exitCode,
     );
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
