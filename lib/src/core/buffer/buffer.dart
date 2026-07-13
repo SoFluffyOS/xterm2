@@ -206,6 +206,7 @@ class Buffer {
     if (index > 0 && currentLine.getWidth(index) == 0) {
       index--;
     }
+    if (currentLine.getCodePoint(index) == 0) return;
     currentLine.addCombiningCharacter(index, codePoint);
   }
 

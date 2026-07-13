@@ -315,6 +315,27 @@ void main() {
     expect(terminal.buffer.cursorX, 4);
   });
 
+  test('Terminal ignores zero-width marks without a base cell', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[?2027l\u0332');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getCombiningCharacters(0), isNull);
+    expect(terminal.buffer.cursorX, 0);
+  });
+
+  test('Terminal attaches zero-width marks to pending wrap cells', () {
+    final terminal = Terminal()..resize(2, 2);
+
+    terminal.write('\x1b[?2027lxy\u0332');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(1), 0x79);
+    expect(line.getCombiningCharacters(1), '\u0332');
+  });
+
   test('Terminal wraps a VS16-expanded grapheme at the right edge', () {
     final terminal = Terminal()..resize(3, 2);
 
