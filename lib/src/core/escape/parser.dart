@@ -2338,6 +2338,13 @@ class EscapeParser {
       case 'remotehost':
         handler.setRemoteHost(value);
         return;
+      case 'setuservar':
+        final variableSeparator = value.indexOf('=');
+        if (variableSeparator <= 0) return;
+        final name = value.substring(0, variableSeparator);
+        final data = value.substring(variableSeparator + 1);
+        handler.setUserVariable(name, data);
+        return;
       case 'copy':
         if (!value.startsWith(':')) return;
         final data = value.substring(1);

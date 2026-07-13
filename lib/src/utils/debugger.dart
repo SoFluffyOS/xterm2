@@ -1122,6 +1122,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setUserVariable(String name, String data) {
+    onCommand('setUserVariable($name, $data)');
+  }
+
+  @override
   void showNotification(String title, String body) {
     onCommand('showNotification($title, $body)');
   }

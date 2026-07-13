@@ -460,6 +460,8 @@ abstract class EscapeHandler {
 
   void reportITerm2CellSize();
 
+  void setUserVariable(String name, String data);
+
   void showNotification(String title, String body);
 
   void setMouseShape(String shape);

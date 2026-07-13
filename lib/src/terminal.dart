@@ -117,6 +117,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports its remote user/host using OSC 1337.
   void Function(String value)? onRemoteHostChange;
 
+  /// Called when the application reports an iTerm2 user variable.
+  void Function(String name, String value)? onUserVariableChange;
+
   /// Called when the application requests a desktop notification using
   /// OSC 9 or OSC 777.
   void Function(String title, String body)? onNotification;
@@ -194,6 +197,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onIconChange,
     this.onCurrentDirectoryChange,
     this.onRemoteHostChange,
+    this.onUserVariableChange,
     this.onNotification,
     this.onMouseShapeChange,
     this.onProgressReport,
@@ -3010,6 +3014,18 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     onOutput?.call(
       '\x1b]1337;ReportCellSize=$_cellPixelHeight;$_cellPixelWidth\x1b\\',
     );
+  }
+
+  @override
+  void setUserVariable(String name, String data) {
+    if (name.isEmpty || data.isEmpty) return;
+
+    try {
+      final value = utf8.decode(base64.decode(data));
+      onUserVariableChange?.call(name, value);
+    } on FormatException {
+      return;
+    }
   }
 
   @override

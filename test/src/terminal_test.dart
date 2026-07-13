@@ -871,6 +871,20 @@ void main() {
     expect(output, ['\x1b]1337;ReportCellSize=18;9\x1b\\']);
   });
 
+  test('Terminal decodes iTerm2 OSC 1337 user variables', () {
+    final variables = <({String name, String value})>[];
+    final terminal = Terminal(
+      onUserVariableChange: (name, value) {
+        variables.add((name: name, value: value));
+      },
+    );
+
+    terminal.write('\x1b]1337;SetUserVar=project=bHVtaWRl\x1b\\');
+    terminal.write('\x1b]1337;SetUserVar=broken=not base64\x1b\\');
+
+    expect(variables, [(name: 'project', value: 'lumide')]);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 
