@@ -1454,12 +1454,17 @@ void main() {
 
     terminal.write('\x1b]52;c;Y29weSBtZQ==\x1b\\');
     terminal.write('\x1b]52;p;cHJpbWFyeQ==\x1b\\');
+    terminal.write('\x1b]52;;Y2xlYXI=\x1b\\');
     terminal.write('\x1b]52;x;aWdub3JlZA==\x1b\\');
     terminal.write('\x1b]52;c;?\x1b\\');
+    terminal.write('\x1b]52;;?\x1b\\');
     await Future<void>.delayed(Duration.zero);
 
-    expect(stores, [('c', 'copy me'), ('s', 'primary')]);
-    expect(output, ['\x1b]52;c;cGFzdGUgbWU=\x1b\\']);
+    expect(stores, [('c', 'copy me'), ('s', 'primary'), ('c', 'clear')]);
+    expect(output, [
+      '\x1b]52;c;cGFzdGUgbWU=\x1b\\',
+      '\x1b]52;c;cGFzdGUgbWU=\x1b\\',
+    ]);
   });
 
   test('Terminal handles Kitty OSC 5522 clipboard writes', () {

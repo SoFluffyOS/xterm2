@@ -3645,6 +3645,8 @@ String? _decodeSemanticPromptPrintfQ(String value) {
 }
 
 String? _resolveClipboardSelector(String selector) {
+  if (selector.isEmpty) return 'c';
+
   for (final codeUnit in selector.codeUnits) {
     switch (codeUnit) {
       case 0x63:
