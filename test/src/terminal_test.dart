@@ -357,6 +357,20 @@ void main() {
     expect(line.getCodePoint(2), 0x78);
   });
 
+  test('Terminal applies variation selectors inside ZWJ graphemes', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F3F4}\u200d\u2620\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F3F4);
+    expect(line.getCombiningCharacters(0), '\u200d\u2620\ufe0f');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
   test('Terminal keeps invalid emoji modifiers separate from text', () {
     final terminal = Terminal()..resize(8, 2);
 
