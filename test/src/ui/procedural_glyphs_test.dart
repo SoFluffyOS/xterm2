@@ -408,6 +408,10 @@ void main() {
         codePoint,
       for (var codePoint = 0x1fb82; codePoint <= 0x1fb8b; codePoint++)
         codePoint,
+      for (var codePoint = 0x1cc1b; codePoint <= 0x1cc1e; codePoint++)
+        codePoint,
+      for (var codePoint = 0x1cc21; codePoint <= 0x1cc2f; codePoint++)
+        codePoint,
     ];
 
     for (final codePoint in codePoints) {

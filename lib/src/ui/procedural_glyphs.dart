@@ -444,6 +444,63 @@ bool _paintProceduralGlyph(
   final heavy = max(2.0, width * 0.22);
   final centerX = x + width / 2;
   final centerY = y + height / 2;
+
+  if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
+    switch (codePoint) {
+      case 0x1cc1b:
+        fill(Rect.fromLTRB(
+          x,
+          centerY - thin / 2,
+          x + width,
+          centerY + thin / 2,
+        ));
+        fill(Rect.fromLTRB(x + width - thin, y, x + width, centerY));
+        return true;
+      case 0x1cc1c:
+        fill(Rect.fromLTRB(
+          x,
+          centerY - thin / 2,
+          x + width,
+          centerY + thin / 2,
+        ));
+        fill(Rect.fromLTRB(x + width - thin, centerY, x + width, y + height));
+        return true;
+      case 0x1cc1d:
+        fill(Rect.fromLTRB(x, y, x + width, y + thin));
+        fill(Rect.fromLTRB(x, y, x + thin, centerY));
+        return true;
+      case 0x1cc1e:
+        fill(Rect.fromLTRB(x, y + height - thin, x + width, y + height));
+        fill(Rect.fromLTRB(x, centerY, x + thin, y + height));
+        return true;
+    }
+  }
+
+  if (codePoint >= 0x1cc21 && codePoint <= 0x1cc2f) {
+    final quadrants = codePoint - 0x1cc20;
+    final gap = max(1.0, width / 12);
+    final middleGapX = gap * 2 + width % 2;
+    final middleGapY = gap * 2 + height % 2;
+    final quadWidth = (width - gap * 2 - middleGapX) / 2;
+    final quadHeight = (height - gap * 2 - middleGapY) / 2;
+    final rightX = x + gap + quadWidth + middleGapX;
+    final bottomY = y + gap + quadHeight + middleGapY;
+
+    if (quadrants & 1 != 0) {
+      fill(Rect.fromLTWH(x + gap, y + gap, quadWidth, quadHeight));
+    }
+    if (quadrants & 2 != 0) {
+      fill(Rect.fromLTWH(rightX, y + gap, quadWidth, quadHeight));
+    }
+    if (quadrants & 4 != 0) {
+      fill(Rect.fromLTWH(x + gap, bottomY, quadWidth, quadHeight));
+    }
+    if (quadrants & 8 != 0) {
+      fill(Rect.fromLTWH(rightX, bottomY, quadWidth, quadHeight));
+    }
+    return true;
+  }
+
   final symbolStrokePaint = Paint()
     ..color = paint.color
     ..strokeWidth = max(1.0, min(width, height) * 0.12)
@@ -920,6 +977,12 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
+    return true;
+  }
+  if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
+    return true;
+  }
+  if (codePoint >= 0x1cc21 && codePoint <= 0x1cc2f) {
     return true;
   }
   return codePoint >= 0x1fb82 && codePoint <= 0x1fb8b;
