@@ -412,6 +412,12 @@ void main() {
         codePoint,
       for (var codePoint = 0x1cc21; codePoint <= 0x1cc2f; codePoint++)
         codePoint,
+      for (var codePoint = 0x1ce16; codePoint <= 0x1ce19; codePoint++)
+        codePoint,
+      for (var codePoint = 0x1ce51; codePoint <= 0x1ce8f; codePoint++)
+        codePoint,
+      for (var codePoint = 0x1ce90; codePoint <= 0x1ceaf; codePoint++)
+        codePoint,
     ];
 
     for (final codePoint in codePoints) {

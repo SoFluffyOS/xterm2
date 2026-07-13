@@ -501,6 +501,104 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0x1ce16 && codePoint <= 0x1ce19) {
+    fill(Rect.fromLTRB(centerX - thin / 2, y, centerX + thin / 2, y + height));
+    switch (codePoint) {
+      case 0x1ce16:
+        fill(Rect.fromLTRB(centerX, y, x + width, y + thin));
+        return true;
+      case 0x1ce17:
+        fill(Rect.fromLTRB(centerX, y + height - thin, x + width, y + height));
+        return true;
+      case 0x1ce18:
+        fill(Rect.fromLTRB(x, y, centerX, y + thin));
+        return true;
+      case 0x1ce19:
+        fill(Rect.fromLTRB(x, y + height - thin, centerX, y + height));
+        return true;
+    }
+  }
+
+  if (codePoint >= 0x1ce51 && codePoint <= 0x1ce8f) {
+    final sextants = codePoint - 0x1ce50;
+    final gap = max(1.0, width / 12);
+    final middleGapX = gap * 2 + width % 2;
+    final yExtra = height % 3;
+    final middleGapY = gap * 2 + (yExtra / 2).floorToDouble();
+    final blockWidth = (width - gap * 2 - middleGapX) / 2;
+    final topHeight = ((height - gap * 2 - middleGapY * 2) / 3).floorToDouble();
+    final middleHeight = height - gap * 2 - middleGapY * 2 - topHeight * 2;
+    final rightX = x + gap + blockWidth + middleGapX;
+    final middleY = y + gap + topHeight + middleGapY;
+    final bottomY = middleY + middleHeight + middleGapY;
+
+    if (sextants & 1 != 0) {
+      fill(Rect.fromLTWH(x + gap, y + gap, blockWidth, topHeight));
+    }
+    if (sextants & 2 != 0) {
+      fill(Rect.fromLTWH(rightX, y + gap, blockWidth, topHeight));
+    }
+    if (sextants & 4 != 0) {
+      fill(Rect.fromLTWH(x + gap, middleY, blockWidth, middleHeight));
+    }
+    if (sextants & 8 != 0) {
+      fill(Rect.fromLTWH(rightX, middleY, blockWidth, middleHeight));
+    }
+    if (sextants & 16 != 0) {
+      fill(Rect.fromLTWH(x + gap, bottomY, blockWidth, topHeight));
+    }
+    if (sextants & 32 != 0) {
+      fill(Rect.fromLTWH(rightX, bottomY, blockWidth, topHeight));
+    }
+    return true;
+  }
+
+  if (codePoint >= 0x1ce90 && codePoint <= 0x1ceaf) {
+    final index = codePoint - 0x1ce90;
+    const rects = <(int, int, int, int)>[
+      (0, 1, 0, 1),
+      (1, 2, 0, 1),
+      (2, 3, 0, 1),
+      (3, 4, 0, 1),
+      (0, 1, 1, 2),
+      (1, 2, 1, 2),
+      (2, 3, 1, 2),
+      (3, 4, 1, 2),
+      (0, 1, 2, 3),
+      (1, 2, 2, 3),
+      (2, 3, 2, 3),
+      (3, 4, 2, 3),
+      (0, 1, 3, 4),
+      (1, 2, 3, 4),
+      (2, 3, 3, 4),
+      (3, 4, 3, 4),
+      (2, 4, 3, 4),
+      (1, 4, 3, 4),
+      (0, 3, 3, 4),
+      (0, 2, 3, 4),
+      (0, 1, 2, 4),
+      (0, 1, 1, 4),
+      (0, 1, 0, 3),
+      (0, 1, 0, 2),
+      (0, 2, 0, 1),
+      (0, 3, 0, 1),
+      (1, 4, 0, 1),
+      (2, 4, 0, 1),
+      (3, 4, 0, 2),
+      (3, 4, 0, 3),
+      (3, 4, 1, 4),
+      (3, 4, 2, 4),
+    ];
+    final rect = rects[index];
+    fill(Rect.fromLTRB(
+      x + width * rect.$1 / 4,
+      y + height * rect.$3 / 4,
+      x + width * rect.$2 / 4,
+      y + height * rect.$4 / 4,
+    ));
+    return true;
+  }
+
   final symbolStrokePaint = Paint()
     ..color = paint.color
     ..strokeWidth = max(1.0, min(width, height) * 0.12)
@@ -983,6 +1081,15 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   if (codePoint >= 0x1cc21 && codePoint <= 0x1cc2f) {
+    return true;
+  }
+  if (codePoint >= 0x1ce16 && codePoint <= 0x1ce19) {
+    return true;
+  }
+  if (codePoint >= 0x1ce51 && codePoint <= 0x1ce8f) {
+    return true;
+  }
+  if (codePoint >= 0x1ce90 && codePoint <= 0x1ceaf) {
     return true;
   }
   return codePoint >= 0x1fb82 && codePoint <= 0x1fb8b;
