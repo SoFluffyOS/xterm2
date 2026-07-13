@@ -120,6 +120,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports an iTerm2 user variable.
   void Function(String name, String value)? onUserVariableChange;
 
+  /// Called when the application requests terminal focus.
+  void Function()? onFocusRequest;
+
   /// Called when the application requests a desktop notification using
   /// OSC 9 or OSC 777.
   void Function(String title, String body)? onNotification;
@@ -198,6 +201,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onCurrentDirectoryChange,
     this.onRemoteHostChange,
     this.onUserVariableChange,
+    this.onFocusRequest,
     this.onNotification,
     this.onMouseShapeChange,
     this.onProgressReport,
@@ -3026,6 +3030,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     } on FormatException {
       return;
     }
+  }
+
+  @override
+  void requestFocus() {
+    onFocusRequest?.call();
   }
 
   @override

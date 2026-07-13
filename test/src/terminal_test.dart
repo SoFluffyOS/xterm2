@@ -899,6 +899,18 @@ void main() {
     expect(terminal.applicationCursorType, TerminalCursorType.block);
   });
 
+  test('Terminal handles iTerm2 OSC 1337 focus requests', () {
+    var focusRequests = 0;
+    final terminal = Terminal(
+      onFocusRequest: () => focusRequests++,
+    );
+
+    terminal.write('\x1b]1337;StealFocus\x1b\\');
+    terminal.write('\x1b]1337;StealFocus=true\x1b\\');
+
+    expect(focusRequests, 2);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 
