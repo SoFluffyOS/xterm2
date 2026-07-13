@@ -2215,6 +2215,9 @@ class EscapeParser {
           if (pt == '4' && _handleConEmuProgress()) {
             return true;
           }
+          if (pt == '9' && _handleConEmuCurrentDirectory()) {
+            return true;
+          }
           handler.showNotification('', _osc.sublist(1).join(';'));
           return true;
         case '8':
@@ -2363,6 +2366,16 @@ class EscapeParser {
     if (progress < 0) return 0;
     if (progress > 100) return 100;
     return progress;
+  }
+
+  bool _handleConEmuCurrentDirectory() {
+    if (_osc.length < 3) return false;
+
+    final value = _osc.sublist(2).join(';');
+    if (value.isEmpty) return false;
+
+    handler.setCurrentDirectory(value);
+    return true;
   }
 
   void _handleKittyColorProtocol() {

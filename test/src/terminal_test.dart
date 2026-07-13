@@ -810,6 +810,23 @@ void main() {
     expect(currentDirectory, '/tmp/my project');
   });
 
+  test('Terminal reports ConEmu OSC 9;9 current directory', () {
+    String? currentDirectory;
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;9;/tmp/my project\x1b\\');
+    terminal.write('\x1b]9;9\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+    expect(notifications, [(title: '', body: '9')]);
+  });
+
   test('Terminal reports OSC 9 and OSC 777 notifications', () {
     final notifications = <({String title, String body})>[];
     final terminal = Terminal(
