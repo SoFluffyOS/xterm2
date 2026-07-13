@@ -901,6 +901,18 @@ void main() {
     ]);
   });
 
+  test('Terminal decodes iTerm2 OSC 1337 badge format', () {
+    final formats = <String>[];
+    final terminal = Terminal(onITerm2BadgeFormatChange: formats.add);
+
+    final encoded = base64.encode(utf8.encode(r'\(session.name)'));
+    terminal.write('\x1b]1337;SetBadgeFormat=$encoded\x1b\\');
+    terminal.write('\x1b]1337;SetBadgeFormat=\x1b\\');
+    terminal.write('\x1b]1337;SetBadgeFormat=not base64\x1b\\');
+
+    expect(formats, [r'\(session.name)', '']);
+  });
+
   test('Terminal decodes iTerm2 OSC 1337 user variables', () {
     final variables = <({String name, String value})>[];
     final terminal = Terminal(

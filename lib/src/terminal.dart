@@ -123,6 +123,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Resolves an iTerm2 session variable for OSC 1337 ReportVariable queries.
   String? Function(String name)? onITerm2VariableQuery;
 
+  /// Called when the application sets the iTerm2 badge format.
+  void Function(String format)? onITerm2BadgeFormatChange;
+
   /// Called when the application requests terminal focus.
   void Function()? onFocusRequest;
 
@@ -211,6 +214,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onRemoteHostChange,
     this.onUserVariableChange,
     this.onITerm2VariableQuery,
+    this.onITerm2BadgeFormatChange,
     this.onFocusRequest,
     this.onOpenUrl,
     this.onAttentionRequest,
@@ -3067,6 +3071,21 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       'autoName' || 'name' || 'presentationName' => _title ?? '',
       _ => null,
     };
+  }
+
+  @override
+  void setITerm2BadgeFormat(String data) {
+    if (data.isEmpty) {
+      onITerm2BadgeFormatChange?.call('');
+      return;
+    }
+
+    try {
+      final value = utf8.decode(base64.decode(data));
+      onITerm2BadgeFormatChange?.call(value);
+    } on FormatException {
+      return;
+    }
   }
 
   @override

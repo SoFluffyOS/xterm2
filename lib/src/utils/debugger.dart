@@ -1127,6 +1127,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setITerm2BadgeFormat(String data) {
+    onCommand('setITerm2BadgeFormat($data)');
+  }
+
+  @override
   void setUserVariable(String name, String data) {
     onCommand('setUserVariable($name, $data)');
   }

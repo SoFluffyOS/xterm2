@@ -2342,6 +2342,10 @@ class EscapeParser {
       handler.requestFocus();
       return;
     }
+    if (key == 'setbadgeformat') {
+      handler.setITerm2BadgeFormat(value);
+      return;
+    }
 
     if (value.isEmpty) return;
 

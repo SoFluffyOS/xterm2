@@ -462,6 +462,8 @@ abstract class EscapeHandler {
 
   void reportITerm2Variable(String data);
 
+  void setITerm2BadgeFormat(String data);
+
   void setUserVariable(String name, String data);
 
   void requestFocus();
