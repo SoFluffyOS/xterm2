@@ -2304,10 +2304,22 @@ class EscapeParser {
 
     final payload = _osc.sublist(1).join(';');
     final separator = payload.indexOf('=');
+    if (separator < 0) {
+      if (payload.toLowerCase() == 'clearscrollback') {
+        handler.eraseScrollbackOnly();
+      }
+      return;
+    }
+
     if (separator <= 0) return;
 
     final key = payload.substring(0, separator).toLowerCase();
     final value = payload.substring(separator + 1);
+    if (key == 'clearscrollback') {
+      handler.eraseScrollbackOnly();
+      return;
+    }
+
     if (value.isEmpty) return;
 
     switch (key) {

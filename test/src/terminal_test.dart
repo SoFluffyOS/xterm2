@@ -851,6 +851,18 @@ void main() {
     expect(currentDirectory, '/tmp/my project');
   });
 
+  test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
+    final terminal = Terminal(maxLines: 10)..resize(20, 2);
+
+    terminal.write('old1\nold2\nnew');
+    expect(terminal.buffer.scrollBack, 1);
+
+    terminal.write('\x1b]1337;ClearScrollback\x1b\\');
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.lines[0].toString(), startsWith('old2'));
+  });
+
   test('Terminal reports ConEmu OSC 9;9 current directory', () {
     String? currentDirectory;
     final notifications = <({String title, String body})>[];
