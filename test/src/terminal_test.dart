@@ -913,6 +913,38 @@ void main() {
     expect(formats, [r'\(session.name)', '']);
   });
 
+  test('Terminal applies iTerm2 OSC 1337 SetColors', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]1337;SetColors=fg=112233\x1b\\'
+      '\x1b]1337;SetColors=bg=abc\x1b\\'
+      '\x1b]1337;SetColors=curbg=p3:445566\x1b\\'
+      '\x1b]1337;SetColors=red=ff0000\x1b\\'
+      '\x1b]1337;SetColors=br_blue=0000ff\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, 0x112233);
+    expect(terminal.backgroundColorOverride, 0xaabbcc);
+    expect(terminal.cursorColorOverride, 0x445566);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {1: 0xff0000, 12: 0x0000ff},
+    );
+
+    terminal.write(
+      '\x1b]1337;SetColors=fg=default\x1b\\'
+      '\x1b]1337;SetColors=red=default\x1b\\'
+      '\x1b]1337;SetColors=blue=not-a-color\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {12: 0x0000ff},
+    );
+  });
+
   test('Terminal decodes iTerm2 OSC 1337 user variables', () {
     final variables = <({String name, String value})>[];
     final terminal = Terminal(

@@ -2346,6 +2346,10 @@ class EscapeParser {
       handler.setITerm2BadgeFormat(value);
       return;
     }
+    if (key == 'setcolors') {
+      _handleITerm2SetColors(value);
+      return;
+    }
 
     if (value.isEmpty) return;
 
@@ -2386,6 +2390,89 @@ class EscapeParser {
         handler.storeClipboard('c', data);
         return;
     }
+  }
+
+  void _handleITerm2SetColors(String value) {
+    final separator = value.indexOf('=');
+    if (separator <= 0) return;
+
+    final key = value.substring(0, separator).toLowerCase();
+    final color = value.substring(separator + 1);
+    final dynamicColor = switch (key) {
+      'fg' => 10,
+      'bg' => 11,
+      'curbg' => 12,
+      _ => null,
+    };
+    if (dynamicColor != null) {
+      if (_isITerm2DefaultColor(color)) {
+        handler.resetDynamicColor(dynamicColor);
+        return;
+      }
+      if (_normalizeITerm2Color(color) case final normalized?) {
+        handler.setDynamicColor(dynamicColor, normalized);
+      }
+      return;
+    }
+
+    final indexedColor = _iTerm2IndexedColor(key);
+    if (indexedColor == null) return;
+    if (_isITerm2DefaultColor(color)) {
+      handler.resetIndexedColors([indexedColor]);
+      return;
+    }
+    if (_normalizeITerm2Color(color) case final normalized?) {
+      handler.setIndexedColor(indexedColor, normalized);
+    }
+  }
+
+  bool _isITerm2DefaultColor(String value) {
+    return value.isEmpty || value.toLowerCase() == 'default';
+  }
+
+  String? _normalizeITerm2Color(String value) {
+    final color = value.toLowerCase();
+    final separator = color.indexOf(':');
+    final hex = switch (separator < 0) {
+      true => color,
+      false => color.substring(separator + 1),
+    };
+    if (hex.length != 3 && hex.length != 6) return null;
+    if (!_isHexColor(hex)) return null;
+    return '#$hex';
+  }
+
+  bool _isHexColor(String value) {
+    for (var i = 0; i < value.length; i++) {
+      final codeUnit = value.codeUnitAt(i);
+      final isDigit = codeUnit >= 0x30 && codeUnit <= 0x39;
+      final isLowerHex = codeUnit >= 0x61 && codeUnit <= 0x66;
+      if (isDigit || isLowerHex) continue;
+      return false;
+    }
+    return true;
+  }
+
+  int? _iTerm2IndexedColor(String key) {
+    return switch (key) {
+      'black' => 0,
+      'red' => 1,
+      'green' => 2,
+      'yellow' => 3,
+      'blue' => 4,
+      'magenta' => 5,
+      'cyan' => 6,
+      'white' => 7,
+      'br_black' => 8,
+      'br_red' => 9,
+      'br_green' => 10,
+      'br_yellow' => 11,
+      'br_blue' => 12,
+      'br_magenta' => 13,
+      'br_cyan' => 14,
+      'br_white' => 15,
+      _ => null,
+    };
   }
 
   bool _handleConEmuProgress() {
