@@ -2533,6 +2533,15 @@ void main() {
     ]);
   });
 
+  test('Terminal ignores XTWINOPS size queries with extra params', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[14;1t\x1b[16;1t\x1b[18;1t\x1b[21;1t');
+
+    expect(output, isEmpty);
+  });
+
   test('Terminal reports DEC window and terminal state', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24);

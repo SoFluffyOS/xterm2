@@ -1735,12 +1735,15 @@ class EscapeParser {
       case 15: // Report Screen Size in Pixels
         return;
       case 14: // Report Terminal Window Size in Pixels
+        if (_csi.params.length != 1) return;
         handler.sendPixelSize();
         return;
       case 16: // Report Cell Size in Pixels
+        if (_csi.params.length != 1) return;
         handler.sendCellSize();
         return;
       case 18: // Report Terminal Size (in characters)
+        if (_csi.params.length != 1) return;
         handler.sendSize();
         return;
       // Screen handling is currently no in the scope of the package.
@@ -1749,6 +1752,7 @@ class EscapeParser {
       case 20: // Get Icon Title
         return;
       case 21: // Get Terminal Title
+        if (_csi.params.length != 1) return;
         handler.reportTitle();
         return;
       case 22: // Push Terminal Title
