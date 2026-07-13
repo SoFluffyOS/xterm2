@@ -287,6 +287,8 @@ class Buffer {
     if (base == 0) return false;
     final combining = currentLine.getCombiningCharacters(index);
 
+    if (_isWideIndicConjunct(base, combining, codePoint)) return true;
+
     if (_isEmojiModifier(codePoint)) {
       var modifierBase = base;
       if (combining != null) {
@@ -363,6 +365,7 @@ class Buffer {
       >= 0x0C00 && <= 0x0C7F => true,
       >= 0x0C80 && <= 0x0CFF => true,
       >= 0x0D00 && <= 0x0D7F => true,
+      >= 0x0D80 && <= 0x0DFF => true,
       _ => false,
     };
   }
@@ -371,7 +374,7 @@ class Buffer {
     return switch (codePoint) {
       0x094D || 0x09CD || 0x0A4D || 0x0ACD => true,
       0x0B4D || 0x0BCD || 0x0C4D || 0x0CCD => true,
-      0x0D4D => true,
+      0x0D4D || 0x0DCA => true,
       _ => false,
     };
   }

@@ -435,6 +435,20 @@ void main() {
     expect(terminal.buffer.cursorX, 3);
   });
 
+  test('Terminal renders explicit Sinhala ZWJ conjuncts as wide graphemes', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0d9a\u0dca\u200d\u0dbbx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0D9A);
+    expect(line.getCombiningCharacters(0), '\u0dca\u200d\u0dbb');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
   test('Terminal wraps widening Indic ZWJ conjuncts at the right edge', () {
     final terminal = Terminal()..resize(3, 2);
 
