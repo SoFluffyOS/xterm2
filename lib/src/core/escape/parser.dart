@@ -2326,6 +2326,9 @@ class EscapeParser {
       case 'currentdir':
         handler.setCurrentDirectory(value);
         return;
+      case 'remotehost':
+        handler.setRemoteHost(value);
+        return;
       case 'copy':
         if (!value.startsWith(':')) return;
         final data = value.substring(1);

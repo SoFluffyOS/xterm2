@@ -851,6 +851,17 @@ void main() {
     expect(currentDirectory, '/tmp/my project');
   });
 
+  test('Terminal reports iTerm2 OSC 1337 remote host', () {
+    String? remoteHost;
+    final terminal = Terminal(
+      onRemoteHostChange: (value) => remoteHost = value,
+    );
+
+    terminal.write('\x1b]1337;RemoteHost=user@example.com\x1b\\');
+
+    expect(remoteHost, 'user@example.com');
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 

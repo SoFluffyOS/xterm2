@@ -456,6 +456,8 @@ abstract class EscapeHandler {
 
   void setCurrentDirectory(String uri);
 
+  void setRemoteHost(String value);
+
   void showNotification(String title, String body);
 
   void setMouseShape(String shape);

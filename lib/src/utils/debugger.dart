@@ -1112,6 +1112,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setRemoteHost(String value) {
+    onCommand('setRemoteHost($value)');
+  }
+
+  @override
   void showNotification(String title, String body) {
     onCommand('showNotification($title, $body)');
   }

@@ -114,6 +114,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application reports its current directory using OSC 7.
   void Function(String uri)? onCurrentDirectoryChange;
 
+  /// Called when the application reports its remote user/host using OSC 1337.
+  void Function(String value)? onRemoteHostChange;
+
   /// Called when the application requests a desktop notification using
   /// OSC 9 or OSC 777.
   void Function(String title, String body)? onNotification;
@@ -190,6 +193,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onTitleChange,
     this.onIconChange,
     this.onCurrentDirectoryChange,
+    this.onRemoteHostChange,
     this.onNotification,
     this.onMouseShapeChange,
     this.onProgressReport,
@@ -2994,6 +2998,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setCurrentDirectory(String uri) {
     onCurrentDirectoryChange?.call(uri);
+  }
+
+  @override
+  void setRemoteHost(String value) {
+    onRemoteHostChange?.call(value);
   }
 
   @override
