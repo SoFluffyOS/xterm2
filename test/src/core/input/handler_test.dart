@@ -126,6 +126,32 @@ void main() {
       expect(output, ['\x01']);
     });
 
+    test('supports legacy control punctuation chords', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.keyInput(TerminalKey.space, ctrl: true);
+      terminal.keyInput(TerminalKey.bracketLeft, ctrl: true);
+      terminal.keyInput(TerminalKey.backslash, ctrl: true);
+      terminal.keyInput(TerminalKey.bracketRight, ctrl: true);
+      terminal.keyInput(TerminalKey.digit6, ctrl: true, shift: true, text: '^');
+      terminal.keyInput(TerminalKey.slash, ctrl: true);
+      terminal.keyInput(TerminalKey.minus, ctrl: true, shift: true, text: '_');
+
+      expect(output, ['\x00', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f', '\x1f']);
+    });
+
+    test('does not treat Ctrl+Shift+letter as legacy control input', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      final handled =
+          terminal.keyInput(TerminalKey.keyA, ctrl: true, shift: true);
+
+      expect(handled, isFalse);
+      expect(output, isEmpty);
+    });
+
     test('disambiguates modified textual keys in Kitty mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

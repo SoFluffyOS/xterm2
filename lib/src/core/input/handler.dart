@@ -212,17 +212,39 @@ class CtrlInputHandler implements TerminalInputHandler {
     if (event.type == TerminalKeyEventType.release) {
       return null;
     }
-    if (!event.ctrl || event.shift || event.alt) {
+    if (!event.ctrl || event.alt) {
       return null;
     }
 
     final key = event.key;
-    if (key.index < TerminalKey.keyA.index ||
-        key.index > TerminalKey.keyZ.index) {
-      return null;
+    if (!event.shift &&
+        key.index >= TerminalKey.keyA.index &&
+        key.index <= TerminalKey.keyZ.index) {
+      final input = key.index - TerminalKey.keyA.index + 1;
+      return String.fromCharCode(input);
     }
-    final input = key.index - TerminalKey.keyA.index + 1;
-    return String.fromCharCode(input);
+
+    final text = event.text;
+    final textCodePoint = switch (text?.runes.toList(growable: false)) {
+      [final codePoint] => codePoint,
+      _ => null,
+    };
+    final control = switch ((key, textCodePoint)) {
+      (TerminalKey.space, _) || (_, 0x20) => 0x00,
+      (TerminalKey.bracketLeft, _) || (_, 0x5B) => 0x1B,
+      (TerminalKey.backslash, _) || (TerminalKey.intlBackslash, _) => 0x1C,
+      (_, 0x5C) => 0x1C,
+      (TerminalKey.bracketRight, _) || (_, 0x5D) => 0x1D,
+      (TerminalKey.digit6, _) || (_, 0x5E) => 0x1E,
+      (TerminalKey.slash, _) ||
+      (TerminalKey.minus, _) ||
+      (_, 0x2F) ||
+      (_, 0x5F) =>
+        0x1F,
+      _ => null,
+    };
+    if (control == null) return null;
+    return String.fromCharCode(control);
   }
 }
 
