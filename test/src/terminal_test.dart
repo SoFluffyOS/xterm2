@@ -731,6 +731,25 @@ void main() {
       expect(output, ['\x1B[<20;1;1M']);
     });
 
+    test('omits mouse modifiers in X10 tracking mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?9h\x1b[?1006h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(0, 0),
+        modifiers: const TerminalMouseModifiers(
+          shift: true,
+          alt: true,
+          control: true,
+        ),
+      );
+
+      expect(output, ['\x1B[<0;1;1M']);
+    });
+
     test('reports sgr pixel mouse coordinates', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

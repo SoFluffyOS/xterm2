@@ -86,7 +86,6 @@ class ClickMouseHandler implements TerminalMouseHandler {
             event.buttonState,
             event.position,
             event.state.mouseReportMode,
-            modifiers: event.modifiers,
             pixelPosition: event.pixelPosition,
           );
         }
