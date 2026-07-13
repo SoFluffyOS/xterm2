@@ -2269,6 +2269,9 @@ class EscapeParser {
           }
           handler.storeClipboard(_osc[1], data);
           return true;
+        case '66':
+          _handleKittyTextSizingProtocol();
+          return true;
       }
     }
 
@@ -2321,6 +2324,30 @@ class EscapeParser {
       _ => 'c',
     };
     handler.storeClipboard(selector, _osc.sublist(2).join(';'));
+  }
+
+  void _handleKittyTextSizingProtocol() {
+    if (_osc.length < 3) return;
+
+    final text = _osc.sublist(2).join(';');
+    if (text.length > 4096) return;
+    if (!_isSafeKittyText(text)) return;
+
+    for (final codePoint in text.runes) {
+      handler.writeChar(codePoint);
+    }
+  }
+
+  bool _isSafeKittyText(String text) {
+    for (final codePoint in text.runes) {
+      if (codePoint < 0x20 || codePoint == 0x7f) {
+        return false;
+      }
+      if (codePoint >= 0x80 && codePoint <= 0x9f) {
+        return false;
+      }
+    }
+    return true;
   }
 
   String? _kittyClipboardOption(String metadata, String key) {

@@ -765,9 +765,9 @@ void main() {
       expect(lastCode, '6');
       expect(lastData, []);
 
-      terminal.write('\x1b]66;hello world\x07');
+      terminal.write('\x1b]616;hello world\x07');
 
-      expect(lastCode, '66');
+      expect(lastCode, '616');
       expect(lastData, ['hello world']);
 
       terminal.write('\x1b]666;hello;world\x07');
@@ -797,9 +797,9 @@ void main() {
       expect(lastCode, '6');
       expect(lastData, []);
 
-      terminal.write('\x1b]66;hello world\x1b\\');
+      terminal.write('\x1b]616;hello world\x1b\\');
 
-      expect(lastCode, '66');
+      expect(lastCode, '616');
       expect(lastData, ['hello world']);
 
       terminal.write('\x1b]666;hello;world\x1b\\');
@@ -1394,6 +1394,22 @@ void main() {
     expect(terminal.foregroundColorOverride, isNull);
     expect(terminal.cursorColorOverride, isNull);
     expect(terminal.indexedColorOverrides, isEmpty);
+  });
+
+  test('Terminal renders Kitty OSC 66 text sizing payload as plain text', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b]66;s=2:w=7;Hi;there\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), 'Hi;there');
+  });
+
+  test('Terminal ignores unsafe Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b]66;;safe\x7funsafe\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), isEmpty);
   });
 
   test('Terminal handles OSC 52 clipboard store and query', () async {
