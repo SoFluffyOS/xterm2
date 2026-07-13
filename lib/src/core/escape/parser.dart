@@ -2312,6 +2312,9 @@ class EscapeParser {
         case 'reportcellsize':
           handler.reportITerm2CellSize();
           return;
+        case 'requestattention':
+          handler.requestAttention('');
+          return;
         case 'stealfocus':
           handler.requestFocus();
           return;
@@ -2329,6 +2332,10 @@ class EscapeParser {
     }
     if (key == 'reportcellsize') {
       handler.reportITerm2CellSize();
+      return;
+    }
+    if (key == 'requestattention') {
+      handler.requestAttention(value);
       return;
     }
     if (key == 'stealfocus') {

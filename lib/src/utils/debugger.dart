@@ -1137,6 +1137,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void requestAttention(String value) {
+    onCommand('requestAttention($value)');
+  }
+
+  @override
   void showNotification(String title, String body) {
     onCommand('showNotification($title, $body)');
   }

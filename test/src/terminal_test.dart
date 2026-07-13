@@ -920,6 +920,16 @@ void main() {
     expect(urls, ['https://lumide.dev/docs?a=1;b=2']);
   });
 
+  test('Terminal handles iTerm2 OSC 1337 attention requests', () {
+    final requests = <String>[];
+    final terminal = Terminal(onAttentionRequest: requests.add);
+
+    terminal.write('\x1b]1337;RequestAttention\x1b\\');
+    terminal.write('\x1b]1337;RequestAttention=fireworks\x1b\\');
+
+    expect(requests, ['', 'fireworks']);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 

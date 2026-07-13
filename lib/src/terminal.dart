@@ -126,6 +126,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application requests opening a URL.
   void Function(String url)? onOpenUrl;
 
+  /// Called when the application requests user attention.
+  void Function(String value)? onAttentionRequest;
+
   /// Called when the application requests a desktop notification using
   /// OSC 9 or OSC 777.
   void Function(String title, String body)? onNotification;
@@ -206,6 +209,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onUserVariableChange,
     this.onFocusRequest,
     this.onOpenUrl,
+    this.onAttentionRequest,
     this.onNotification,
     this.onMouseShapeChange,
     this.onProgressReport,
@@ -3044,6 +3048,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void openUrl(String url) {
     onOpenUrl?.call(url);
+  }
+
+  @override
+  void requestAttention(String value) {
+    onAttentionRequest?.call(value);
   }
 
   @override
