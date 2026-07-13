@@ -3393,6 +3393,19 @@ void main() {
       expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
     });
 
+    test('delete lines clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(80, 24);
+
+      terminal.write('\x1b[10;39H中\x1b[?69h\x1b[5;39s\x1b[10;5H\x1b[24M');
+
+      expect(terminal.buffer.lines[9].getCodePoint(37), 0);
+      expect(terminal.buffer.lines[9].getWidth(37), 0);
+      expect(terminal.buffer.lines[9].getCodePoint(38), 0);
+      expect(terminal.buffer.lines[9].getWidth(38), 0);
+      expect(terminal.buffer.lines[9].getCodePoint(39), 0);
+      expect(terminal.buffer.lines[9].getWidth(39), 0);
+    });
+
     test('scroll up shifts only horizontal margin cells', () {
       final terminal = Terminal()..resize(6, 4);
 
