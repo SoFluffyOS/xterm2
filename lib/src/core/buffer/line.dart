@@ -266,6 +266,8 @@ class BufferLine with IndexedItem {
     style ??= CursorStyle.empty;
     final combiningCharacters = Map<int, String>.of(_combiningCharacters);
     final underlineColors = Map<int, int>.of(_underlineColors);
+    final rightBoundarySplitsWideCell =
+        end < _length && end > 0 && getWidth(end - 1) == 2;
 
     if (start + count < end) {
       final moveStart = start * _cellSize;
@@ -282,6 +284,13 @@ class BufferLine with IndexedItem {
 
     if (start > 0 && getWidth(start - 1) == 2) {
       eraseCell(start - 1, style);
+    }
+    if (rightBoundarySplitsWideCell) {
+      final shiftedHead = end - count - 1;
+      if (shiftedHead >= start && shiftedHead < _length) {
+        eraseCell(shiftedHead, style);
+      }
+      eraseCell(end, style);
     }
 
     _combiningCharacters.clear();
@@ -351,6 +360,8 @@ class BufferLine with IndexedItem {
     style ??= CursorStyle.empty;
     final combiningCharacters = Map<int, String>.of(_combiningCharacters);
     final underlineColors = Map<int, int>.of(_underlineColors);
+    final rightBoundarySplitsWideCell =
+        end < _length && end > 0 && getWidth(end - 1) == 2;
 
     if (start > 0 && getWidth(start - 1) == 2) {
       eraseCell(start - 1, style);
@@ -372,6 +383,9 @@ class BufferLine with IndexedItem {
 
     if (end > 0 && getWidth(end - 1) == 2) {
       eraseCell(end - 1, style);
+    }
+    if (rightBoundarySplitsWideCell) {
+      eraseCell(end, style);
     }
 
     _combiningCharacters.clear();

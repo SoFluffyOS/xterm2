@@ -3331,6 +3331,46 @@ void main() {
       expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
     });
 
+    test('insert blank characters clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('ABCD橋\x1b[?69h\x1b[1;5s\x1b[1;3H\x1b[@');
+
+      expect(terminal.buffer.lines[0].getText(), 'ABCD');
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].getWidth(2), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x44);
+      expect(terminal.buffer.lines[0].getWidth(4), 1);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0);
+      expect(terminal.buffer.lines[0].getWidth(5), 0);
+    });
+
+    test('insert blank characters clears wide head before right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('中中中中中\x1b[?69h\x1b[1;9s\x1b[1;2Ha\x1b[8@');
+
+      expect(terminal.buffer.lines[0].getText(), 'a');
+      expect(terminal.buffer.lines[0].getCodePoint(8), 0);
+      expect(terminal.buffer.lines[0].getWidth(8), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(9), 0);
+      expect(terminal.buffer.lines[0].getWidth(9), 0);
+    });
+
+    test('delete characters clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(8, 3);
+
+      terminal.write('123456橋\x1b[?69h\x1b[2;7s\x1b[1;2H\x1b[P');
+
+      expect(terminal.buffer.lines[0].getText(), '13456');
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0);
+      expect(terminal.buffer.lines[0].getWidth(5), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0);
+      expect(terminal.buffer.lines[0].getWidth(6), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(7), 0);
+      expect(terminal.buffer.lines[0].getWidth(7), 0);
+    });
+
     test('insert lines shifts only horizontal margin cells', () {
       final terminal = Terminal()..resize(6, 4);
 
