@@ -1027,6 +1027,17 @@ void main() {
     expect(terminal.semanticPromptState.lastCommandExitCode, 7);
   });
 
+  test('Terminal reports OSC 633 shell integration cwd property', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]633;P;Cwd=/tmp/my project\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+  });
+
   test('Terminal pushes and restores window titles', () {
     final titles = <String>[];
     final terminal = Terminal(onTitleChange: titles.add);

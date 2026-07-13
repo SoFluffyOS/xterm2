@@ -3279,6 +3279,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final action = pt.first;
     if (action.isEmpty) return;
 
+    if (action == 'P') {
+      final options = _parseSemanticPromptOptions(pt);
+      final currentDirectory = options['Cwd'] ?? options['cwd'];
+      if (currentDirectory != null && currentDirectory.isNotEmpty) {
+        setCurrentDirectory(currentDirectory);
+      }
+      return;
+    }
+
     final content = switch (action.codeUnitAt(0)) {
       0x41 => TerminalSemanticPromptContent.prompt,
       0x42 => TerminalSemanticPromptContent.input,
