@@ -386,6 +386,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   bool _leftRightMarginMode = false;
 
+  bool _cursorLineHighlightMode = false;
+
+  bool get cursorLineHighlightMode => _cursorLineHighlightMode;
+
   bool _attributeChangeExtentRectangular = false;
 
   int _keyClickVolume = 0;
@@ -1058,6 +1062,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _reportColorSchemeMode = false;
     _graphemeClusterMode = true;
     _leftRightMarginMode = false;
+    _cursorLineHighlightMode = false;
     _kittyKeyboardMode = 0;
     _modifyOtherKeysMode = 0;
     _kittyKeyboardModeStack.clear();
@@ -3145,6 +3150,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void setMouseShape(String shape) {
     onMouseShapeChange?.call(shape);
+  }
+
+  @override
+  void setCursorLineHighlight(bool enabled) {
+    if (_cursorLineHighlightMode == enabled) return;
+    _cursorLineHighlightMode = enabled;
   }
 
   @override

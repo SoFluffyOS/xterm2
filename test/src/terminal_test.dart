@@ -1016,6 +1016,19 @@ void main() {
     expect(requests, ['', 'fireworks']);
   });
 
+  test('Terminal applies iTerm2 OSC 1337 cursor line highlight', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]1337;HighlightCursorLine=yes\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isTrue);
+
+    terminal.write('\x1b]1337;HighlightCursorLine=no\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isFalse);
+
+    terminal.write('\x1b]1337;HighlightCursorLine=invalid\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isFalse);
+  });
+
   test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(20, 2);
 

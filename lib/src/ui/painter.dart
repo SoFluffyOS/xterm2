@@ -115,6 +115,9 @@ class TerminalPainter {
 
   Color get cursorColor => _cursorColorOverride ?? _theme.cursor;
 
+  Color get cursorLineHighlightColor =>
+      _theme.selection.withValues(alpha: 0.18);
+
   Color? get backgroundColorOverride => _backgroundColorOverride;
 
   void updateColorOverrides(

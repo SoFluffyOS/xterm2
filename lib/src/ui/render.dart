@@ -657,6 +657,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       );
     }
 
+    if (_terminal.cursorLineHighlightMode &&
+        _terminal.buffer.absoluteCursorY >= effectFirstLine &&
+        _terminal.buffer.absoluteCursorY <= effectLastLine) {
+      final paint = Paint()..color = _painter.cursorLineHighlightColor;
+      canvas.drawRect(
+        Rect.fromLTWH(
+          offset.dx + _padding.left,
+          offset.dy +
+              (_terminal.buffer.absoluteCursorY * charHeight + _lineOffset)
+                  .truncateToDouble(),
+          max(size.width - _padding.horizontal, 0),
+          charHeight,
+        ),
+        paint,
+      );
+    }
+
     _paintHighlights(
       canvas,
       offset,

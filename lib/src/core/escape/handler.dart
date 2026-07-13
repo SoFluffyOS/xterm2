@@ -482,6 +482,8 @@ abstract class EscapeHandler {
 
   void setMouseShape(String shape);
 
+  void setCursorLineHighlight(bool enabled);
+
   void setHyperlink(String params, String uri);
 
   void setIndexedColor(int index, String value);

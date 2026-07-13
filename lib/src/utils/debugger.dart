@@ -1177,6 +1177,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCursorLineHighlight(bool enabled) {
+    onCommand('setCursorLineHighlight($enabled)');
+  }
+
+  @override
   void reportProgress(TerminalProgressReport report) {
     onCommand('reportProgress(${report.state}, ${report.progress})');
   }

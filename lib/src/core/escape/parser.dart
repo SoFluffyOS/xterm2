@@ -2361,6 +2361,12 @@ class EscapeParser {
       handler.startITerm2ClipboardCapture(value);
       return;
     }
+    if (key == 'highlightcursorline') {
+      if (_parseITerm2Boolean(value) case final enabled?) {
+        handler.setCursorLineHighlight(enabled);
+      }
+      return;
+    }
 
     if (value.isEmpty) return;
 
@@ -2482,6 +2488,14 @@ class EscapeParser {
       'br_magenta' => 13,
       'br_cyan' => 14,
       'br_white' => 15,
+      _ => null,
+    };
+  }
+
+  bool? _parseITerm2Boolean(String value) {
+    return switch (value.toLowerCase()) {
+      '1' || 'true' || 'yes' => true,
+      '0' || 'false' || 'no' => false,
       _ => null,
     };
   }
