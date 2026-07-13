@@ -742,7 +742,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         changed = true;
         continue;
       }
-      if (_pasteControlReplacements.contains(codePoint)) {
+      if (_shouldReplacePastedControl(codePoint)) {
         sanitized.writeCharCode(0x20);
         changed = true;
         continue;
@@ -754,6 +754,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       true => sanitized.toString(),
       false => text,
     };
+  }
+
+  bool _shouldReplacePastedControl(int codePoint) {
+    if (_pasteControlReplacements.contains(codePoint)) return true;
+    return codePoint >= 0x80 && codePoint <= 0x9f;
   }
 
   int _skipPastedEscapeSequence(List<int> codePoints, int escapeIndex) {
