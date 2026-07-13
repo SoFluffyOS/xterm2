@@ -945,6 +945,18 @@ void main() {
     );
   });
 
+  test('Terminal reports iTerm2 shell integration version', () {
+    final versions = <String>[];
+    final terminal = Terminal(
+      onITerm2ShellIntegrationVersionChange: versions.add,
+    );
+
+    terminal.write('\x1b]1337;ShellIntegrationVersion=14;shell=zsh\x1b\\');
+    terminal.write('\x1b]1337;ShellIntegrationVersion=  \x1b\\');
+
+    expect(versions, ['14;shell=zsh']);
+  });
+
   test('Terminal decodes iTerm2 OSC 1337 user variables', () {
     final variables = <({String name, String value})>[];
     final terminal = Terminal(

@@ -2350,6 +2350,10 @@ class EscapeParser {
       _handleITerm2SetColors(value);
       return;
     }
+    if (key == 'shellintegrationversion') {
+      handler.setITerm2ShellIntegrationVersion(value);
+      return;
+    }
 
     if (value.isEmpty) return;
 

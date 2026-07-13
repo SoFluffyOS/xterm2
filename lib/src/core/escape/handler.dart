@@ -464,6 +464,8 @@ abstract class EscapeHandler {
 
   void setITerm2BadgeFormat(String data);
 
+  void setITerm2ShellIntegrationVersion(String value);
+
   void setUserVariable(String name, String data);
 
   void requestFocus();

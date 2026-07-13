@@ -1132,6 +1132,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setITerm2ShellIntegrationVersion(String value) {
+    onCommand('setITerm2ShellIntegrationVersion($value)');
+  }
+
+  @override
   void setUserVariable(String name, String data) {
     onCommand('setUserVariable($name, $data)');
   }

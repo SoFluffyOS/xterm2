@@ -126,6 +126,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Called when the application sets the iTerm2 badge format.
   void Function(String format)? onITerm2BadgeFormatChange;
 
+  /// Called when the application reports its iTerm2 shell integration version.
+  void Function(String version)? onITerm2ShellIntegrationVersionChange;
+
   /// Called when the application requests terminal focus.
   void Function()? onFocusRequest;
 
@@ -215,6 +218,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     this.onUserVariableChange,
     this.onITerm2VariableQuery,
     this.onITerm2BadgeFormatChange,
+    this.onITerm2ShellIntegrationVersionChange,
     this.onFocusRequest,
     this.onOpenUrl,
     this.onAttentionRequest,
@@ -3086,6 +3090,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     } on FormatException {
       return;
     }
+  }
+
+  @override
+  void setITerm2ShellIntegrationVersion(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    onITerm2ShellIntegrationVersionChange?.call(trimmed);
   }
 
   @override
