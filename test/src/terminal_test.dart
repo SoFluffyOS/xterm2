@@ -868,6 +868,21 @@ void main() {
     expect(notifications, [(title: '', body: '9')]);
   });
 
+  test('Terminal reports OSC 3008 context current directory', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write(
+      '\x1b]3008;start=cmd1;type=command;cwd=/tmp/my project;cmdline=ls\x1b\\',
+    );
+    terminal.write('\x1b]3008;end=cmd1;cwd=/tmp/ignored\x1b\\');
+    terminal.write('\x1b]3008;start=;cwd=/tmp/invalid\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+  });
+
   test('Terminal reports OSC 9 and OSC 777 notifications', () {
     final notifications = <({String title, String body})>[];
     final terminal = Terminal(

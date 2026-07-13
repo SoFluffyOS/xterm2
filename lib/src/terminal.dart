@@ -3222,7 +3222,23 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unknownOSC(String ps, List<String> pt) {
     _handleSemanticPromptOsc(ps, pt);
+    _handleContextSignalOsc(ps, pt);
     onPrivateOSC?.call(ps, pt);
+  }
+
+  void _handleContextSignalOsc(String ps, List<String> pt) {
+    if (ps != '3008' || pt.isEmpty) return;
+    final action = pt.first;
+    if (!action.startsWith('start=')) return;
+
+    final contextId = action.substring(6);
+    if (!_isValidContextSignalId(contextId)) return;
+
+    final options = _parseSemanticPromptOptions(pt);
+    final currentDirectory = options['cwd'];
+    if (currentDirectory == null || currentDirectory.isEmpty) return;
+
+    setCurrentDirectory(currentDirectory);
   }
 
   void _handleSemanticPromptOsc(String ps, List<String> pt) {
@@ -3256,6 +3272,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
   }
+}
+
+bool _isValidContextSignalId(String value) {
+  if (value.isEmpty || value.length > 64) return false;
+  for (final codeUnit in value.codeUnits) {
+    if (codeUnit < 0x20 || codeUnit > 0x7e) return false;
+  }
+  return true;
 }
 
 Map<String, String> _parseSemanticPromptOptions(List<String> pt) {
