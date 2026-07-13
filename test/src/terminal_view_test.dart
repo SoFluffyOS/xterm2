@@ -859,6 +859,52 @@ void main() {
 
       expect(terminalOutput, ['\x1b[233;1;233u', '你好']);
     });
+
+    testWidgets('falls back to shifted printable symbols', (tester) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.digit2,
+        character: '',
+        physicalKey: PhysicalKeyboardKey.digit2,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.digit2);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+
+      expect(terminalOutput, ['@']);
+    });
+
+    testWidgets('does not fall back to printable symbols for shortcuts', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.digit2,
+        character: '',
+        physicalKey: PhysicalKeyboardKey.digit2,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.digit2);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+      expect(terminalOutput, isEmpty);
+    });
   });
 
   group('TerminalView.simulateScroll', () {

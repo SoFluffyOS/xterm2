@@ -27,6 +27,72 @@ import 'package:xterm2/src/ui/terminal_text_style.dart';
 import 'package:xterm2/src/ui/terminal_theme.dart';
 import 'package:xterm2/src/ui/themes.dart';
 
+final _shiftedPrintableLogicalFallbacks = <LogicalKeyboardKey, String>{
+  LogicalKeyboardKey.digit1: '!',
+  LogicalKeyboardKey.digit2: '@',
+  LogicalKeyboardKey.digit3: '#',
+  LogicalKeyboardKey.digit4: r'$',
+  LogicalKeyboardKey.digit5: '%',
+  LogicalKeyboardKey.digit6: '^',
+  LogicalKeyboardKey.digit7: '&',
+  LogicalKeyboardKey.digit8: '*',
+  LogicalKeyboardKey.digit9: '(',
+  LogicalKeyboardKey.digit0: ')',
+  LogicalKeyboardKey.minus: '_',
+  LogicalKeyboardKey.equal: '+',
+  LogicalKeyboardKey.bracketLeft: '{',
+  LogicalKeyboardKey.bracketRight: '}',
+  LogicalKeyboardKey.backslash: '|',
+  LogicalKeyboardKey.semicolon: ':',
+  LogicalKeyboardKey.quote: '"',
+  LogicalKeyboardKey.backquote: '~',
+  LogicalKeyboardKey.comma: '<',
+  LogicalKeyboardKey.period: '>',
+  LogicalKeyboardKey.slash: '?',
+  LogicalKeyboardKey.numpadAdd: '+',
+};
+
+final _shiftedPrintablePhysicalFallbacks = <PhysicalKeyboardKey, String>{
+  PhysicalKeyboardKey.digit1: '!',
+  PhysicalKeyboardKey.digit2: '@',
+  PhysicalKeyboardKey.digit3: '#',
+  PhysicalKeyboardKey.digit4: r'$',
+  PhysicalKeyboardKey.digit5: '%',
+  PhysicalKeyboardKey.digit6: '^',
+  PhysicalKeyboardKey.digit7: '&',
+  PhysicalKeyboardKey.digit8: '*',
+  PhysicalKeyboardKey.digit9: '(',
+  PhysicalKeyboardKey.digit0: ')',
+  PhysicalKeyboardKey.minus: '_',
+  PhysicalKeyboardKey.equal: '+',
+  PhysicalKeyboardKey.bracketLeft: '{',
+  PhysicalKeyboardKey.bracketRight: '}',
+  PhysicalKeyboardKey.backslash: '|',
+  PhysicalKeyboardKey.semicolon: ':',
+  PhysicalKeyboardKey.quote: '"',
+  PhysicalKeyboardKey.backquote: '~',
+  PhysicalKeyboardKey.comma: '<',
+  PhysicalKeyboardKey.period: '>',
+  PhysicalKeyboardKey.slash: '?',
+  PhysicalKeyboardKey.numpadAdd: '+',
+};
+
+final _printableLogicalFallbacks = <LogicalKeyboardKey, String>{
+  LogicalKeyboardKey.numpadAdd: '+',
+  LogicalKeyboardKey.numpadSubtract: '-',
+  LogicalKeyboardKey.numpadMultiply: '*',
+  LogicalKeyboardKey.numpadDivide: '/',
+  LogicalKeyboardKey.numpadDecimal: '.',
+};
+
+final _printablePhysicalFallbacks = <PhysicalKeyboardKey, String>{
+  PhysicalKeyboardKey.numpadAdd: '+',
+  PhysicalKeyboardKey.numpadSubtract: '-',
+  PhysicalKeyboardKey.numpadMultiply: '*',
+  PhysicalKeyboardKey.numpadDivide: '/',
+  PhysicalKeyboardKey.numpadDecimal: '.',
+};
+
 class TerminalView extends StatefulWidget {
   const TerminalView(
     this.terminal, {
@@ -608,7 +674,7 @@ class TerminalViewState extends State<TerminalView> {
     }
 
     final key = keyToTerminalKey(event.logicalKey);
-    var text = event.character;
+    var text = _printableTextForKeyEvent(event);
     if (text != null && isKittyModifierKeyCharacter(text)) {
       text = null;
     }
@@ -637,9 +703,73 @@ class TerminalViewState extends State<TerminalView> {
 
     if (handled) {
       _scrollToBottom();
+      return KeyEventResult.handled;
     }
 
-    return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+    if (text case final fallbackText?
+        when _shouldInsertTextFallback(fallbackText, eventType)) {
+      widget.terminal.textInput(fallbackText);
+      _scrollToBottom();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  bool _shouldInsertTextFallback(String text, TerminalKeyEventType eventType) {
+    if (eventType == TerminalKeyEventType.release) {
+      return false;
+    }
+    if (HardwareKeyboard.instance.isControlPressed) {
+      return false;
+    }
+    if (HardwareKeyboard.instance.isAltPressed) {
+      return false;
+    }
+    if (HardwareKeyboard.instance.isMetaPressed) {
+      return false;
+    }
+    return true;
+  }
+
+  String? _printableTextForKeyEvent(KeyEvent event) {
+    final character = event.character;
+    if (character != null && character.isNotEmpty) {
+      return character;
+    }
+
+    if (HardwareKeyboard.instance.isControlPressed) {
+      return null;
+    }
+    if (HardwareKeyboard.instance.isAltPressed) {
+      return null;
+    }
+    if (HardwareKeyboard.instance.isMetaPressed) {
+      return null;
+    }
+
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      final shifted = _shiftedPrintablePhysicalFallbacks[event.physicalKey] ??
+          _shiftedPrintableLogicalFallbacks[event.logicalKey];
+      if (shifted != null) {
+        return shifted;
+      }
+    }
+
+    final fallback = _printablePhysicalFallbacks[event.physicalKey] ??
+        _printableLogicalFallbacks[event.logicalKey];
+    if (fallback != null) {
+      return fallback;
+    }
+
+    final keyLabel = event.logicalKey.keyLabel;
+    if (keyLabel.runes.length != 1) {
+      return null;
+    }
+    if (keyToTerminalKey(event.logicalKey) != null) {
+      return null;
+    }
+    return keyLabel;
   }
 
   void _onKeyboardShow() {
