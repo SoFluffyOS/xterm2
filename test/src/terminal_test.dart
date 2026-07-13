@@ -968,6 +968,19 @@ void main() {
     );
   });
 
+  test('Terminal decodes OSC 133 command line options', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]133;C;cmdline=echo\\ bobr\\nkurwa\x1b\\');
+    terminal.write('\x1b]133;C;cmdline_url=echo%20bobr%3bkurwa\x1b\\');
+    terminal.write('\x1b]133;C;cmdline=' "'echo bobr" '\x1b\\');
+
+    expect(states[0].commandLine, 'echo bobr\nkurwa');
+    expect(states[1].commandLine, 'echo bobr;kurwa');
+    expect(states[2].commandLine, isNull);
+  });
+
   test('Terminal pushes and restores window titles', () {
     final titles = <String>[];
     final terminal = Terminal(onTitleChange: titles.add);

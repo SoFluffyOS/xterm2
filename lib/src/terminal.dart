@@ -62,6 +62,7 @@ final class TerminalSemanticPromptState {
     this.clickMode,
     this.redraw,
     this.specialKey,
+    this.commandLine,
   });
 
   final TerminalSemanticPromptContent content;
@@ -77,6 +78,8 @@ final class TerminalSemanticPromptState {
   final TerminalSemanticPromptRedraw? redraw;
 
   final bool? specialKey;
+
+  final String? commandLine;
 }
 
 /// [Terminal] is an interface to interact with command line applications. It
@@ -3248,6 +3251,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       clickMode: _parseSemanticPromptClickMode(options),
       redraw: _parseSemanticPromptRedraw(options['redraw']),
       specialKey: _parseSemanticPromptBoolean(options['special_key']),
+      commandLine: _parseSemanticPromptCommandLine(options),
     );
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
@@ -3315,6 +3319,68 @@ bool? _parseSemanticPromptBoolean(String? value) {
     '1' => true,
     _ => null,
   };
+}
+
+String? _parseSemanticPromptCommandLine(Map<String, String> options) {
+  final commandLine = options['cmdline'];
+  if (commandLine != null) {
+    return _decodeSemanticPromptPrintfQ(commandLine);
+  }
+
+  final commandLineUrl = options['cmdline_url'];
+  if (commandLineUrl == null) return null;
+
+  try {
+    return Uri.decodeFull(commandLineUrl);
+  } on FormatException {
+    return null;
+  }
+}
+
+String? _decodeSemanticPromptPrintfQ(String value) {
+  final data = switch (value) {
+    final text when text.startsWith(r"$'") => switch (text.endsWith("'")) {
+        true => text.substring(2, text.length - 1),
+        false => null,
+      },
+    final text when text.startsWith("'") => switch (text.endsWith("'")) {
+        true => text.substring(1, text.length - 1),
+        false => null,
+      },
+    _ => value,
+  };
+  if (data == null) return null;
+
+  final result = StringBuffer();
+  var index = 0;
+  while (index < data.length) {
+    final codeUnit = data.codeUnitAt(index);
+    if (codeUnit != 0x5c) {
+      result.writeCharCode(codeUnit);
+      index++;
+      continue;
+    }
+
+    if (index + 1 >= data.length) return null;
+    final escaped = switch (data.codeUnitAt(index + 1)) {
+      0x20 => 0x20,
+      0x5c => 0x5c,
+      0x22 => 0x22,
+      0x27 => 0x27,
+      0x24 => 0x24,
+      0x65 => Ascii.ESC,
+      0x6e => Ascii.LF,
+      0x72 => Ascii.CR,
+      0x74 => Ascii.HT,
+      0x76 => Ascii.VT,
+      _ => null,
+    };
+    if (escaped == null) return null;
+
+    result.writeCharCode(escaped);
+    index += 2;
+  }
+  return result.toString();
 }
 
 String? _resolveClipboardSelector(String selector) {
