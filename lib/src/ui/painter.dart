@@ -229,6 +229,7 @@ class TerminalPainter {
     Offset offset,
     BufferLine line, {
     bool blinkVisible = true,
+    int? activeHyperlinkId,
   }) {
     paintLineBackgrounds(canvas, offset, line);
     return paintLineForegrounds(
@@ -236,6 +237,7 @@ class TerminalPainter {
       offset,
       line,
       blinkVisible: blinkVisible,
+      activeHyperlinkId: activeHyperlinkId,
     );
   }
 
@@ -492,7 +494,7 @@ class TerminalPainter {
         bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
         underline: _hasUnderline(cellFlags) || isActiveHyperlink,
-        doubleUnderline: cellFlags & CellAttr.doubleUnderline != 0,
+        doubleUnderline: _hasDoubleUnderline(cellFlags, isActiveHyperlink),
         decorationStyle: _decorationStyle(cellFlags),
         strikethrough: cellFlags & CellAttr.strikethrough != 0,
         overline: cellFlags & CellAttr.overline != 0,
@@ -551,6 +553,14 @@ class TerminalPainter {
   }
 
   @pragma('vm:prefer-inline')
+  bool _hasDoubleUnderline(int cellFlags, bool isActiveHyperlink) {
+    if (cellFlags & CellAttr.doubleUnderline != 0) {
+      return true;
+    }
+    return isActiveHyperlink && (cellFlags & CellFlags.underline != 0);
+  }
+
+  @pragma('vm:prefer-inline')
   bool _hasVisibleSpaceDecoration(int cellFlags) {
     return cellFlags &
             (CellAttr.underlineMask |
@@ -580,6 +590,10 @@ class TerminalPainter {
     int cellFlags, {
     required bool isHyperlink,
   }) {
+    if (isHyperlink && (cellFlags & CellFlags.underline != 0)) {
+      _paintDoubleUnderline(canvas, offset, color);
+      return;
+    }
     if (cellFlags & CellAttr.undercurl != 0) {
       _paintWavyUnderline(canvas, offset, color);
       return;
@@ -599,6 +613,22 @@ class TerminalPainter {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
+    canvas.drawLine(
+      offset.translate(0, _cellSize.height - 1),
+      offset.translate(_cellSize.width, _cellSize.height - 1),
+      paint,
+    );
+  }
+
+  void _paintDoubleUnderline(Canvas canvas, Offset offset, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      offset.translate(0, _cellSize.height - 3),
+      offset.translate(_cellSize.width, _cellSize.height - 3),
+      paint,
+    );
     canvas.drawLine(
       offset.translate(0, _cellSize.height - 1),
       offset.translate(_cellSize.width, _cellSize.height - 1),

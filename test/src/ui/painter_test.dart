@@ -456,6 +456,35 @@ void main() {
     expect(style.decorationStyle, TextDecorationStyle.double);
   });
 
+  test('paintLine doubles active hyperlink underline on underlined cells',
+      () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(1);
+    final style = CursorStyle()
+      ..setUnderline()
+      ..hyperlinkId = 1;
+    line.setCell(0, 0x41, 1, style);
+
+    final image = await _paintLine(painter, line, activeHyperlinkId: 1);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final lowerUnderlineY = painter.cellSize.height.round() - 1;
+    final upperUnderlineY = painter.cellSize.height.round() - 3;
+    expect(_hasAlphaInRow(byteData, image.width, lowerUnderlineY), isTrue);
+    expect(_hasAlphaInRow(byteData, image.width, upperUnderlineY), isTrue);
+
+    image.dispose();
+    painter.dispose();
+  });
+
   test('TerminalStyle defaults include symbol and Nerd Font fallbacks', () {
     const style = TerminalStyle();
 
@@ -750,16 +779,15 @@ Future<ui.Image> _paintCursor(
   return image;
 }
 
-Future<ui.Image> _paintLine(
-  TerminalPainter painter,
-  BufferLine line,
-) async {
+Future<ui.Image> _paintLine(TerminalPainter painter, BufferLine line,
+    {int? activeHyperlinkId}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   painter.paintLine(
     canvas,
     ui.Offset.zero,
     line,
+    activeHyperlinkId: activeHyperlinkId,
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(120, 40);
