@@ -77,7 +77,10 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     }
     if (event.type == TerminalKeyEventType.release &&
         mode & _reportEventTypes != 0) {
-      return true;
+      if (mode & _reportAllKeysAsEscapeCodes != 0) {
+        return true;
+      }
+      return event.ctrl || event.alt || event.shift;
     }
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;

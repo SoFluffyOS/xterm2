@@ -196,6 +196,37 @@ void main() {
       expect(output, ['\x1b[127;2u', '\x1b[13;2u', '\x1b[9;2u']);
     });
 
+    test('keeps unmodified Kitty control key releases silent', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=3u');
+      terminal.keyInput(TerminalKey.enter, type: TerminalKeyEventType.release);
+      terminal.keyInput(
+        TerminalKey.backspace,
+        type: TerminalKeyEventType.release,
+      );
+      terminal.keyInput(TerminalKey.tab, type: TerminalKeyEventType.release);
+
+      expect(output, isEmpty);
+    });
+
+    test('reports unmodified Kitty control key releases in report-all mode',
+        () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=11u');
+      terminal.keyInput(TerminalKey.enter, type: TerminalKeyEventType.release);
+      terminal.keyInput(
+        TerminalKey.backspace,
+        type: TerminalKeyEventType.release,
+      );
+      terminal.keyInput(TerminalKey.tab, type: TerminalKeyEventType.release);
+
+      expect(output, ['\x1b[13;1:3u', '\x1b[127;1:3u', '\x1b[9;1:3u']);
+    });
+
     test('reports Kitty alternate key codes', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
