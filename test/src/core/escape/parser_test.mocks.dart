@@ -427,6 +427,16 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  void eraseDisplayScrollComplete() => super.noSuchMethod(
+        Invocation.method(
+          #eraseDisplayScrollComplete,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
   @override
   void eraseLineRight() => super.noSuchMethod(
         Invocation.method(

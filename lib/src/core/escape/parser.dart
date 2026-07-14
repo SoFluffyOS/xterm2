@@ -1911,6 +1911,9 @@ class EscapeParser {
       case 3:
         if (selective) return;
         return handler.eraseScrollbackOnly();
+      case 22:
+        if (selective) return;
+        return handler.eraseDisplayScrollComplete();
     }
   }
 

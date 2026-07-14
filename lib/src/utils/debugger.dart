@@ -418,6 +418,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void eraseDisplayScrollComplete() {
+    onCommand('eraseDisplayScrollComplete');
+  }
+
+  @override
   void eraseLineRight() {
     onCommand('eraseLineRight');
   }

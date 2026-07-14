@@ -328,6 +328,16 @@ void main() {
       verify(handler.eraseLineSelective()).called(1);
     });
 
+    test('parses scroll-complete erase display', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write('\x1b[22J\x1b[?22J');
+
+      verify(handler.eraseDisplayScrollComplete()).called(1);
+      verifyNever(handler.eraseDisplaySelective());
+    });
+
     test('parses ISO protected areas', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);

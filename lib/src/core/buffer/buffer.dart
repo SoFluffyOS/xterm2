@@ -1263,6 +1263,13 @@ class Buffer {
     lines.trimStart(scrollBack);
   }
 
+  /// Moves the current viewport into scrollback and replaces it with blanks.
+  void scrollClear() {
+    for (var i = 0; i < viewHeight; i++) {
+      lines.push(_newEmptyLine());
+    }
+  }
+
   /// Clears the viewport and scrollback buffer. Then fill with empty lines.
   void clear() {
     lines.clear();

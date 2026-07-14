@@ -153,6 +153,8 @@ abstract class EscapeHandler {
 
   void eraseScrollbackOnly();
 
+  void eraseDisplayScrollComplete();
+
   void eraseLineRight();
 
   void eraseLineRightSelective();

@@ -1936,6 +1936,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void eraseDisplayScrollComplete() {
+    _buffer.scrollClear();
+  }
+
+  @override
   void eraseLineRight() {
     _buffer.eraseLineFromCursor(respectProtected: _usesIsoProtection);
   }

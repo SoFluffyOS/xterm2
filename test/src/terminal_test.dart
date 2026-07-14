@@ -133,6 +133,23 @@ void main() {
     );
   });
 
+  test('Terminal scroll-complete erase moves viewport into scrollback', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+
+    terminal.write('abcd\r\nefgh\x1b[22J');
+
+    expect(terminal.buffer.scrollBack, 2);
+    expect(terminal.buffer.lines[0].getText(0, 4), 'abcd');
+    expect(terminal.buffer.lines[1].getText(0, 4), 'efgh');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 4)),
+      everyElement(''),
+    );
+  });
+
   test('Terminal restores origin mode with saved cursor', () {
     final terminal = Terminal()..resize(8, 4);
 
