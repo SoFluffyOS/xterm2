@@ -134,6 +134,14 @@ void main() {
     );
     expect(painter.paragraphCacheLength, 2);
 
+    painter.paintLineForegrounds(
+      canvas,
+      Offset.zero,
+      terminal.buffer.lines[0],
+      foregroundOverride: const ui.Color(0xFF00FF00),
+    );
+    expect(painter.paragraphCacheLength, 3);
+
     recorder.endRecording().dispose();
     painter.dispose();
   });

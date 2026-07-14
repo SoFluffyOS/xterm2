@@ -360,6 +360,7 @@ class TerminalPainter {
     int? activeHyperlinkId,
     int? cursorColumn,
     Color? cursorForeground,
+    Color? foregroundOverride,
   }) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
@@ -393,7 +394,7 @@ class TerminalPainter {
         activeHyperlinkId: activeHyperlinkId,
         foregroundOverride: switch (i == cursorColumn) {
           true => cursorForeground,
-          false => null,
+          false => foregroundOverride,
         },
       );
 

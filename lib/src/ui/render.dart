@@ -752,6 +752,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
     _updateTextBlinking(hasBlinkingText);
 
+    final selectionForeground = _painter.selectionForegroundColor;
+    if (selection != null && selectionForeground != null) {
+      _paintSelectionForegrounds(
+        canvas,
+        offset,
+        selection,
+        effectFirstLine,
+        effectLastLine,
+        selectionForeground,
+        cursorColumn: switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
+          true => cursorRenderColumn,
+          false => null,
+        },
+        cursorForeground: cursorForeground,
+      );
+    }
+
     _paintUnderlines(
       canvas,
       offset,
@@ -929,6 +946,62 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
 
       _paintSegment(canvas, offset, segment, _painter.selectionColor);
+    }
+  }
+
+  void _paintSelectionForegrounds(
+    Canvas canvas,
+    Offset offset,
+    BufferRange selection,
+    int firstLine,
+    int lastLine,
+    Color foreground, {
+    int? cursorColumn,
+    Color? cursorForeground,
+  }) {
+    for (final segment in selection.toSegments()) {
+      if (segment.line >= _terminal.buffer.lines.length) {
+        break;
+      }
+
+      if (segment.line < firstLine) {
+        continue;
+      }
+
+      if (segment.line > lastLine) {
+        break;
+      }
+
+      final start = segment.start ?? 0;
+      final end = segment.end ?? _terminal.viewWidth;
+      final segmentOffset = getSegmentOffset(segment, offset);
+      canvas.save();
+      canvas.clipRect(
+        Rect.fromLTWH(
+          segmentOffset.dx,
+          segmentOffset.dy,
+          (end - start) * _painter.cellSize.width,
+          _painter.cellSize.height,
+        ),
+      );
+      _painter.paintLineForegrounds(
+        canvas,
+        offset.translate(
+          _padding.left,
+          segment.line * _painter.cellSize.height + _lineOffset,
+        ),
+        _terminal.buffer.lines[segment.line],
+        blinkVisible: _textBlinkVisible,
+        activeHyperlinkId: _activeHyperlinkId,
+        cursorColumn: switch (
+            segment.line == _terminal.buffer.absoluteCursorY) {
+          true => cursorColumn,
+          false => null,
+        },
+        cursorForeground: cursorForeground,
+        foregroundOverride: foreground,
+      );
+      canvas.restore();
     }
   }
 
