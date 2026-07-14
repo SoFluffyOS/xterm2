@@ -139,6 +139,8 @@ void main() {
     terminal.write('abcd\r\nefgh\x1b[22J');
 
     expect(terminal.buffer.scrollBack, 2);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
     expect(terminal.buffer.lines[0].getText(0, 4), 'abcd');
     expect(terminal.buffer.lines[1].getText(0, 4), 'efgh');
     expect(
@@ -148,6 +150,18 @@ void main() {
           .map((line) => line.getText(0, 4)),
       everyElement(''),
     );
+  });
+
+  test('Terminal scroll-complete erase scrolls only non-empty viewport rows',
+      () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('abcd\x1b[22J');
+
+    expect(terminal.buffer.scrollBack, 1);
+    expect(terminal.buffer.lines[0].getText(0, 4), 'abcd');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
   });
 
   test('Terminal restores origin mode with saved cursor', () {

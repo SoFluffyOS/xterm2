@@ -1265,9 +1265,29 @@ class Buffer {
 
   /// Moves the current viewport into scrollback and replaces it with blanks.
   void scrollClear() {
-    for (var i = 0; i < viewHeight; i++) {
+    final lineCount = _visibleContentLineCount();
+    for (var i = 0; i < lineCount; i++) {
       lines.push(_newEmptyLine());
     }
+  }
+
+  int _visibleContentLineCount() {
+    for (var row = viewHeight - 1; row >= 0; row--) {
+      final line = lines[row + scrollBack];
+      if (_lineHasContent(line)) return row + 1;
+    }
+    return 0;
+  }
+
+  bool _lineHasContent(BufferLine line) {
+    for (var column = 0; column < viewWidth; column++) {
+      if (line.getContent(column) != 0) return true;
+      if (line.getForeground(column) != CellColor.normal) return true;
+      if (line.getBackground(column) != CellColor.normal) return true;
+      if (line.getAttributes(column) != 0) return true;
+      if (line.getUnderlineColor(column) != CellColor.normal) return true;
+    }
+    return false;
   }
 
   /// Clears the viewport and scrollback buffer. Then fill with empty lines.

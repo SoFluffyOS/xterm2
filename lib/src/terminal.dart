@@ -1938,6 +1938,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void eraseDisplayScrollComplete() {
     _buffer.scrollClear();
+    _buffer.setCursor(0, 0);
   }
 
   @override
