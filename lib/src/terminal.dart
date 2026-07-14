@@ -962,6 +962,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     final rightLimit = _horizontalTabRightLimit();
     if (_buffer.cursorX >= rightLimit) return;
 
+    _markHorizontalTabOrigin();
+
     final nextStop = _tabStops.find(_buffer.cursorX + 1, rightLimit + 1);
 
     if (nextStop != null) {
@@ -969,6 +971,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     } else {
       _buffer.setCursorX(rightLimit);
     }
+  }
+
+  void _markHorizontalTabOrigin() {
+    final line = _buffer.currentLine;
+    final column = _buffer.cursorX;
+    if (line.getCodePoint(column) != 0) return;
+    if (column > 0 && line.getWidth(column - 1) == 2) return;
+
+    line.setCell(column, Ascii.HT, 1, _cursorStyle);
   }
 
   @override

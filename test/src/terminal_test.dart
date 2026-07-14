@@ -46,6 +46,32 @@ void main() {
     expect(terminal.buffer.cursorX, 19);
   });
 
+  test('Terminal preserves horizontal tabs for copied output', () {
+    final terminal = Terminal()..resize(20, 2);
+
+    terminal.write('\tabc');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x09);
+    expect(line.getText(0, 11), '\tabc');
+    expect(
+      terminal.buffer.getText(
+        BufferRangeLine(const CellOffset(0, 0), const CellOffset(11, 0)),
+      ),
+      '\tabc',
+    );
+  });
+
+  test('Terminal horizontal tab does not overwrite existing cells', () {
+    final terminal = Terminal()..resize(20, 2);
+
+    terminal.write('x\r\tabc');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'x'.codeUnitAt(0));
+    expect(line.getText(0, 11), 'xabc');
+  });
+
   test('Terminal applies a full reset', () {
     final terminal = Terminal()..resize(20, 5);
     terminal.write(

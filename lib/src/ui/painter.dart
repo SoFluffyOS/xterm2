@@ -395,6 +395,7 @@ class TerminalPainter {
   }) {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
+    if (charCode == 0x09) return;
 
     final cellFlags = cellData.flags;
     if (cellFlags & CellFlags.invisible != 0) return;
