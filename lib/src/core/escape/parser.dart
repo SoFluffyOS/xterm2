@@ -2243,6 +2243,18 @@ class EscapeParser {
             handler.setIndexedColor(index, value);
           }
           return true;
+        case '5':
+          for (var i = 1; i + 1 < _osc.length; i += 2) {
+            final index = int.tryParse(_osc[i]);
+            if (index == null) continue;
+            final value = _osc[i + 1];
+            if (value == '?') {
+              handler.querySpecialColor(index);
+              continue;
+            }
+            handler.setSpecialColor(index, value);
+          }
+          return true;
         case '10':
         case '11':
         case '12':
@@ -2287,6 +2299,14 @@ class EscapeParser {
           if (index != null) indices.add(index);
         }
         handler.resetIndexedColors(indices);
+        return true;
+      case '105':
+        final indices = <int>[];
+        for (var i = 1; i < _osc.length; i++) {
+          final index = int.tryParse(_osc[i]);
+          if (index != null) indices.add(index);
+        }
+        handler.resetSpecialColors(indices);
         return true;
       case '110':
       case '111':

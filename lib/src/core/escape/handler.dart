@@ -498,6 +498,12 @@ abstract class EscapeHandler {
 
   void resetIndexedColors(List<int> indices);
 
+  void setSpecialColor(int index, String value);
+
+  void querySpecialColor(int index);
+
+  void resetSpecialColors(List<int> indices);
+
   void setDynamicColor(int code, String value);
 
   void queryDynamicColor(int code);

@@ -1101,6 +1101,30 @@ class MockEscapeHandler extends _i1.Mock implements _i2.EscapeHandler {
         returnValueForMissingStub: null,
       );
   @override
+  void setSpecialColor(int? index, String? value) => super.noSuchMethod(
+        Invocation.method(
+          #setSpecialColor,
+          [index, value],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void querySpecialColor(int? index) => super.noSuchMethod(
+        Invocation.method(
+          #querySpecialColor,
+          [index],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
+  void resetSpecialColors(List<int>? indices) => super.noSuchMethod(
+        Invocation.method(
+          #resetSpecialColors,
+          [indices],
+        ),
+        returnValueForMissingStub: null,
+      );
+  @override
   void unknownOSC(String? code, List<String>? args) => super.noSuchMethod(
         Invocation.method(
           #unknownOSC,

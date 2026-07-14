@@ -784,6 +784,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       _terminal,
       _terminal.colorRevision,
       _terminal.indexedColorOverrides,
+      _terminal.specialColorOverrides,
       _terminal.foregroundColorOverride,
       _terminal.backgroundColorOverride,
       _terminal.cursorColorOverride,

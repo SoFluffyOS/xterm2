@@ -1540,6 +1540,40 @@ void main() {
     ]);
   });
 
+  test('Terminal applies and answers OSC special colors', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 5 && index == 2) return 0xabcdef;
+        return null;
+      },
+    );
+
+    terminal.write(
+      '\x1b]5;1;#112233;2;?\x1b\\'
+      '\x1b]4;260;#445566;257;?\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.specialColorOverrides),
+      {1: 0x112233, 4: 0x445566},
+    );
+    expect(output, [
+      '\x1b]5;2;rgb:abab/cdcd/efef\x1b\\',
+      '\x1b]4;257;rgb:1111/2222/3333\x1b\\',
+    ]);
+
+    terminal.write('\x1b]105;1\x1b\\');
+    expect(
+      Map<int, int>.fromEntries(terminal.specialColorOverrides),
+      {4: 0x445566},
+    );
+
+    terminal.write('\x1b]104;260\x1b\\');
+    expect(terminal.specialColorOverrides, isEmpty);
+  });
+
   test('Terminal applies bulk OSC palette updates', () {
     final terminal = Terminal();
     final sequence = StringBuffer('\x1b]4');

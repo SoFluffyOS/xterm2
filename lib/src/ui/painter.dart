@@ -8,6 +8,11 @@ import 'package:xterm2/src/ui/procedural_glyphs.dart';
 import 'package:xterm2/xterm.dart';
 
 const _dimColorFactor = 0.66;
+const _specialBoldColor = 0;
+const _specialUnderlineColor = 1;
+const _specialBlinkColor = 2;
+const _specialReverseColor = 3;
+const _specialItalicColor = 4;
 
 /// Encapsulates the logic for painting various terminal elements.
 class TerminalPainter {
@@ -35,6 +40,7 @@ class TerminalPainter {
   final _backgroundPaint = Paint();
 
   final Map<int, Color> _indexedColorOverrides = {};
+  final Map<int, Color> _specialColorOverrides = {};
 
   int _colorRevision = -1;
 
@@ -124,6 +130,7 @@ class TerminalPainter {
     Object source,
     int revision,
     Iterable<MapEntry<int, int>> indexedColors,
+    Iterable<MapEntry<int, int>> specialColors,
     int? foreground,
     int? background,
     int? cursor,
@@ -134,6 +141,11 @@ class TerminalPainter {
     _indexedColorOverrides
       ..clear()
       ..addEntries(indexedColors.map(
+        (entry) => MapEntry(entry.key, Color(0xff000000 | entry.value)),
+      ));
+    _specialColorOverrides
+      ..clear()
+      ..addEntries(specialColors.map(
         (entry) => MapEntry(entry.key, Color(0xff000000 | entry.value)),
       ));
     _foregroundColorOverride = switch (foreground) {
@@ -415,7 +427,7 @@ class TerminalPainter {
       foregroundOverride: foregroundOverride,
     );
     final decorationColor = switch (cellData.underlineColor) {
-      0 => color,
+      0 => _underlineDecorationColor(cellFlags, color),
       _ => resolveForegroundColor(cellData.underlineColor),
     };
 
@@ -762,19 +774,42 @@ class TerminalPainter {
     final color = foregroundOverride ??
         switch (inverse) {
           false => _resolveLogicalForegroundColor(cellData),
-          true => resolveBackgroundColor(cellData.background),
+          true => _specialColorOverrides[_specialReverseColor] ??
+              resolveBackgroundColor(cellData.background),
         };
     return color;
   }
 
   Color _resolveLogicalForegroundColor(CellData cellData) {
-    final color = resolveForegroundColor(cellData.foreground);
+    final specialColor = _attributeForegroundColor(cellData.flags);
+    final color = specialColor ?? resolveForegroundColor(cellData.foreground);
     if (cellData.flags & CellFlags.faint == 0) return color;
     return color.withValues(
       red: color.r * _dimColorFactor,
       green: color.g * _dimColorFactor,
       blue: color.b * _dimColorFactor,
     );
+  }
+
+  Color? _attributeForegroundColor(int cellFlags) {
+    if (cellFlags & CellFlags.bold != 0) {
+      final color = _specialColorOverrides[_specialBoldColor];
+      if (color != null) return color;
+    }
+    if (cellFlags & CellFlags.italic != 0) {
+      final color = _specialColorOverrides[_specialItalicColor];
+      if (color != null) return color;
+    }
+    if (cellFlags & CellFlags.blink != 0) {
+      final color = _specialColorOverrides[_specialBlinkColor];
+      if (color != null) return color;
+    }
+    return null;
+  }
+
+  Color _underlineDecorationColor(int cellFlags, Color fallback) {
+    if (cellFlags & CellAttr.underlineMask == 0) return fallback;
+    return _specialColorOverrides[_specialUnderlineColor] ?? fallback;
   }
 
   ({Color background, Color foreground}) resolveCursorColors(

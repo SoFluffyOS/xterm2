@@ -94,6 +94,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   static const _maxKittyKeyboardModeStackDepth = 4096;
   static const _maxTitleStackDepth = 4096;
   static const _kittyKeyboardModeMask = 0x1f;
+  static const _specialColorBaseIndex = 256;
+  static const _specialColorCount = 5;
 
   /// The number of lines that the scrollback buffer can hold. If the buffer
   /// exceeds this size, the lines at the top of the buffer will be removed.
@@ -159,8 +161,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void Function(TerminalSemanticPromptState state)? onSemanticPrompt;
 
   /// Resolves the currently displayed color for OSC color queries. [code] is
-  /// 4 for an indexed color or 10–12 for dynamic colors; [index] is provided
-  /// only for code 4. The return value is a 24-bit RGB color.
+  /// 4 for an indexed color, 5 for a special attribute color, or 10–12 for
+  /// dynamic colors; [index] is provided only for code 4 or 5. The return value
+  /// is a 24-bit RGB color.
   int? Function(int code, int? index)? onColorQuery;
 
   /// Resolves the current terminal color scheme for CSI ? 996 n queries.
@@ -259,6 +262,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   final Map<String, int> _explicitHyperlinkIds = {};
 
   final Map<int, int> _indexedColorOverrides = {};
+  final Map<int, int> _specialColorOverrides = {};
 
   int? _foregroundColorOverride;
 
@@ -284,6 +288,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   Iterable<MapEntry<int, int>> get indexedColorOverrides {
     return _indexedColorOverrides.entries;
+  }
+
+  Iterable<MapEntry<int, int>> get specialColorOverrides {
+    return _specialColorOverrides.entries;
   }
 
   int? get foregroundColorOverride => _foregroundColorOverride;
@@ -3296,6 +3304,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void setIndexedColor(int index, String value) {
+    final specialIndex = _specialColorIndexFromPaletteIndex(index);
+    if (specialIndex != null) {
+      setSpecialColor(specialIndex, value);
+      return;
+    }
     if (index < 0 || index > 255) return;
     final color = _parseOscColor(value);
     if (color == null || _indexedColorOverrides[index] == color) return;
@@ -3305,6 +3318,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void queryIndexedColor(int index) {
+    final specialIndex = _specialColorIndexFromPaletteIndex(index);
+    if (specialIndex != null) {
+      _querySpecialColor(index, specialIndex, 4);
+      return;
+    }
     if (index < 0 || index > 255) return;
     final color = _indexedColorOverrides[index] ?? onColorQuery?.call(4, index);
     if (color == null) return;
@@ -3322,9 +3340,64 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
     var changed = false;
     for (final index in indices) {
+      final specialIndex = _specialColorIndexFromPaletteIndex(index);
+      if (specialIndex != null) {
+        changed =
+            _specialColorOverrides.remove(specialIndex) != null || changed;
+        continue;
+      }
       changed = _indexedColorOverrides.remove(index) != null || changed;
     }
     if (changed) _colorRevision++;
+  }
+
+  @override
+  void setSpecialColor(int index, String value) {
+    if (!_isSpecialColorIndex(index)) return;
+    final color = _parseOscColor(value);
+    if (color == null || _specialColorOverrides[index] == color) return;
+    _specialColorOverrides[index] = color;
+    _colorRevision++;
+  }
+
+  @override
+  void querySpecialColor(int index) {
+    _querySpecialColor(index, index, 5);
+  }
+
+  void _querySpecialColor(int reportIndex, int storageIndex, int code) {
+    if (!_isSpecialColorIndex(storageIndex)) return;
+    final color = _specialColorOverrides[storageIndex] ??
+        onColorQuery?.call(5, storageIndex);
+    if (color == null) return;
+    onOutput?.call('\x1b]$code;$reportIndex;${_formatOscColor(color)}\x1b\\');
+  }
+
+  @override
+  void resetSpecialColors(List<int> indices) {
+    if (indices.isEmpty) {
+      if (_specialColorOverrides.isEmpty) return;
+      _specialColorOverrides.clear();
+      _colorRevision++;
+      return;
+    }
+
+    var changed = false;
+    for (final index in indices) {
+      if (!_isSpecialColorIndex(index)) continue;
+      changed = _specialColorOverrides.remove(index) != null || changed;
+    }
+    if (changed) _colorRevision++;
+  }
+
+  int? _specialColorIndexFromPaletteIndex(int index) {
+    final specialIndex = index - _specialColorBaseIndex;
+    if (!_isSpecialColorIndex(specialIndex)) return null;
+    return specialIndex;
+  }
+
+  bool _isSpecialColorIndex(int index) {
+    return index >= 0 && index < _specialColorCount;
   }
 
   @override

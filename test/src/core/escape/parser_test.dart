@@ -488,5 +488,19 @@ void main() {
       verify(handler.singleShiftCharset(3)).called(1);
       verify(handler.moveCursorY(-2)).called(1);
     });
+
+    test('parses xterm special color OSCs', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write(
+        '\x1b]5;1;#123456;2;?\x1b\\'
+        '\x1b]105;1;2\x1b\\',
+      );
+
+      verify(handler.setSpecialColor(1, '#123456')).called(1);
+      verify(handler.querySpecialColor(2)).called(1);
+      verify(handler.resetSpecialColors([1, 2])).called(1);
+    });
   });
 }

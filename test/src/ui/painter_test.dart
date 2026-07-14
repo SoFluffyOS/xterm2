@@ -172,6 +172,7 @@ void main() {
       terminal,
       terminal.colorRevision,
       terminal.indexedColorOverrides,
+      terminal.specialColorOverrides,
       terminal.foregroundColorOverride,
       terminal.backgroundColorOverride,
       terminal.cursorColorOverride,
@@ -254,6 +255,52 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter applies OSC special attribute colors', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()
+      ..write(
+        '\x1b]5;0;#111111;2;#222222;3;#333333;4;#444444\x1b\\',
+      );
+
+    painter.updateColorOverrides(
+      terminal,
+      terminal.colorRevision,
+      terminal.indexedColorOverrides,
+      terminal.specialColorOverrides,
+      terminal.foregroundColorOverride,
+      terminal.backgroundColorOverride,
+      terminal.cursorColorOverride,
+    );
+
+    final boldCell = CellData.empty()..flags = CellFlags.bold;
+    final blinkCell = CellData.empty()..flags = CellFlags.blink;
+    final italicCell = CellData.empty()..flags = CellFlags.italic;
+    final inverseCell = CellData.empty()..flags = CellFlags.inverse;
+
+    expect(
+      painter.resolveCellForegroundColor(boldCell),
+      const ui.Color(0xff111111),
+    );
+    expect(
+      painter.resolveCellForegroundColor(blinkCell),
+      const ui.Color(0xff222222),
+    );
+    expect(
+      painter.resolveCellForegroundColor(inverseCell),
+      const ui.Color(0xff333333),
+    );
+    expect(
+      painter.resolveCellForegroundColor(italicCell),
+      const ui.Color(0xff444444),
+    );
+
+    painter.dispose();
+  });
+
   test('TerminalPainter invalidates colors when terminal changes', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -268,6 +315,7 @@ void main() {
         terminal,
         terminal.colorRevision,
         terminal.indexedColorOverrides,
+        terminal.specialColorOverrides,
         terminal.foregroundColorOverride,
         terminal.backgroundColorOverride,
         terminal.cursorColorOverride,
