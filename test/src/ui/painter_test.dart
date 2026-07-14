@@ -165,7 +165,9 @@ void main() {
     final terminal = Terminal()
       ..write(
         '\x1b]4;1;#123456\x1b\\'
-        '\x1b]10;#234567;#345678;#456789\x1b\\',
+        '\x1b]10;#234567;#345678;#456789\x1b\\'
+        '\x1b]17;#56789a\x1b\\'
+        '\x1b]19;#6789ab\x1b\\',
       );
 
     painter.updateColorOverrides(
@@ -176,6 +178,8 @@ void main() {
       terminal.foregroundColorOverride,
       terminal.backgroundColorOverride,
       terminal.cursorColorOverride,
+      terminal.selectionColorOverride,
+      terminal.selectionForegroundColorOverride,
     );
 
     expect(
@@ -188,6 +192,8 @@ void main() {
     );
     expect(painter.backgroundColor, const ui.Color(0xff345678));
     expect(painter.cursorColor, const ui.Color(0xff456789));
+    expect(painter.selectionColor, const ui.Color(0xff56789a));
+    expect(painter.selectionForegroundColor, const ui.Color(0xff6789ab));
 
     painter.dispose();
   });
@@ -274,6 +280,8 @@ void main() {
       terminal.foregroundColorOverride,
       terminal.backgroundColorOverride,
       terminal.cursorColorOverride,
+      terminal.selectionColorOverride,
+      terminal.selectionForegroundColorOverride,
     );
 
     final boldCell = CellData.empty()..flags = CellFlags.bold;
@@ -319,6 +327,8 @@ void main() {
         terminal.foregroundColorOverride,
         terminal.backgroundColorOverride,
         terminal.cursorColorOverride,
+        terminal.selectionColorOverride,
+        terminal.selectionForegroundColorOverride,
       );
     }
 

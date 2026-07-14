@@ -502,5 +502,22 @@ void main() {
       verify(handler.querySpecialColor(2)).called(1);
       verify(handler.resetSpecialColors([1, 2])).called(1);
     });
+
+    test('parses xterm selection dynamic color OSCs', () {
+      final handler = MockEscapeHandler();
+      final parser = EscapeParser(handler);
+
+      parser.write(
+        '\x1b]17;#123456\x1b\\'
+        '\x1b]19;?\x1b\\'
+        '\x1b]117\x1b\\'
+        '\x1b]119\x1b\\',
+      );
+
+      verify(handler.setDynamicColor(17, '#123456')).called(1);
+      verify(handler.queryDynamicColor(19)).called(1);
+      verify(handler.resetDynamicColor(17)).called(1);
+      verify(handler.resetDynamicColor(19)).called(1);
+    });
   });
 }

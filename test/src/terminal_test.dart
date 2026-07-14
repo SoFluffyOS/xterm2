@@ -1472,7 +1472,9 @@ void main() {
 
     terminal.write(
       '\x1b]4;1;#abc;42;rgb:ffff/8000/0000\x1b\\'
-      '\x1b]10;#112233;#445566;#778899\x1b\\',
+      '\x1b]10;#112233;#445566;#778899\x1b\\'
+      '\x1b]17;#223344\x1b\\'
+      '\x1b]19;#334455\x1b\\',
     );
 
     expect(
@@ -1482,12 +1484,16 @@ void main() {
     expect(terminal.foregroundColorOverride, 0x112233);
     expect(terminal.backgroundColorOverride, 0x445566);
     expect(terminal.cursorColorOverride, 0x778899);
+    expect(terminal.selectionColorOverride, 0x223344);
+    expect(terminal.selectionForegroundColorOverride, 0x334455);
 
     terminal.write(
       '\x1b]104;1\x1b\\'
       '\x1b]110\x1b\\'
       '\x1b]111\x1b\\'
-      '\x1b]112\x1b\\',
+      '\x1b]112\x1b\\'
+      '\x1b]117\x1b\\'
+      '\x1b]119\x1b\\',
     );
 
     expect(
@@ -1497,6 +1503,8 @@ void main() {
     expect(terminal.foregroundColorOverride, isNull);
     expect(terminal.backgroundColorOverride, isNull);
     expect(terminal.cursorColorOverride, isNull);
+    expect(terminal.selectionColorOverride, isNull);
+    expect(terminal.selectionForegroundColorOverride, isNull);
 
     terminal.write('\x1b]104\x1b\\');
     expect(terminal.indexedColorOverrides, isEmpty);
@@ -1522,21 +1530,26 @@ void main() {
       onColorQuery: (code, index) {
         if (code == 4 && index == 2) return 0x123456;
         if (code == 11) return 0xabcdef;
+        if (code == 19) return 0x456789;
         return null;
       },
     );
-    terminal.write('\x1b]4;1;#010203\x1b\\');
+    terminal.write('\x1b]4;1;#010203\x1b\\\x1b]17;#234567\x1b\\');
 
     terminal.write(
       '\x1b]4;1;?;2;?\x1b\\'
       '\x1b]11;?\x1b\\'
-      '\x1b]12;?\x1b\\',
+      '\x1b]12;?\x1b\\'
+      '\x1b]17;?\x1b\\'
+      '\x1b]19;?\x1b\\',
     );
 
     expect(output, [
       '\x1b]4;1;rgb:0101/0202/0303\x1b\\',
       '\x1b]4;2;rgb:1212/3434/5656\x1b\\',
       '\x1b]11;rgb:abab/cdcd/efef\x1b\\',
+      '\x1b]17;rgb:2323/4545/6767\x1b\\',
+      '\x1b]19;rgb:4545/6767/8989\x1b\\',
     ]);
   });
 

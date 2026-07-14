@@ -52,6 +52,10 @@ class TerminalPainter {
 
   Color? _cursorColorOverride;
 
+  Color? _selectionColorOverride;
+
+  Color? _selectionForegroundColorOverride;
+
   TerminalStyle get textStyle => _textStyle;
   TerminalStyle _textStyle;
   set textStyle(TerminalStyle value) {
@@ -121,8 +125,11 @@ class TerminalPainter {
 
   Color get cursorColor => _cursorColorOverride ?? _theme.cursor;
 
-  Color get cursorLineHighlightColor =>
-      _theme.selection.withValues(alpha: 0.18);
+  Color get selectionColor => _selectionColorOverride ?? _theme.selection;
+
+  Color? get selectionForegroundColor => _selectionForegroundColorOverride;
+
+  Color get cursorLineHighlightColor => selectionColor.withValues(alpha: 0.18);
 
   Color? get backgroundColorOverride => _backgroundColorOverride;
 
@@ -134,6 +141,8 @@ class TerminalPainter {
     int? foreground,
     int? background,
     int? cursor,
+    int? selection,
+    int? selectionForeground,
   ) {
     if (identical(_colorSource, source) && _colorRevision == revision) return;
     _colorSource = source;
@@ -157,6 +166,14 @@ class TerminalPainter {
       null => null,
     };
     _cursorColorOverride = switch (cursor) {
+      final value? => Color(0xff000000 | value),
+      null => null,
+    };
+    _selectionColorOverride = switch (selection) {
+      final value? => Color(0xff000000 | value),
+      null => null,
+    };
+    _selectionForegroundColorOverride = switch (selectionForeground) {
       final value? => Color(0xff000000 | value),
       null => null,
     };

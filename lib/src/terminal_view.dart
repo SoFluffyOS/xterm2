@@ -397,6 +397,8 @@ class TerminalViewState extends State<TerminalView> {
       10 => widget.theme.foreground,
       11 => widget.theme.background,
       12 => widget.theme.cursor,
+      17 => widget.theme.selection,
+      19 => widget.theme.foreground,
       _ => null,
     };
     if (color == null) return null;

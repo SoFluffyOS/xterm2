@@ -2258,6 +2258,8 @@ class EscapeParser {
         case '10':
         case '11':
         case '12':
+        case '17':
+        case '19':
           final firstCode = int.parse(ps);
           for (var i = 1; i < _osc.length; i++) {
             final code = firstCode + i - 1;
@@ -2311,6 +2313,8 @@ class EscapeParser {
       case '110':
       case '111':
       case '112':
+      case '117':
+      case '119':
         handler.resetDynamicColor(int.parse(ps) - 100);
         return true;
       case '777':

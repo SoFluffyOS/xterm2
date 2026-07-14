@@ -788,6 +788,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       _terminal.foregroundColorOverride,
       _terminal.backgroundColorOverride,
       _terminal.cursorColorOverride,
+      _terminal.selectionColorOverride,
+      _terminal.selectionForegroundColorOverride,
     );
     _painter.reverseDisplay = _terminal.reverseDisplayMode;
   }
@@ -926,7 +928,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         break;
       }
 
-      _paintSegment(canvas, offset, segment, _painter.theme.selection);
+      _paintSegment(canvas, offset, segment, _painter.selectionColor);
     }
   }
 

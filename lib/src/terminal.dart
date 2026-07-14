@@ -270,6 +270,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   int? _cursorColorOverride;
 
+  int? _selectionColorOverride;
+
+  int? _selectionForegroundColorOverride;
+
   int _colorRevision = 0;
 
   String? _clipboardCaptureSelector;
@@ -299,6 +303,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   int? get backgroundColorOverride => _backgroundColorOverride;
 
   int? get cursorColorOverride => _cursorColorOverride;
+
+  int? get selectionColorOverride => _selectionColorOverride;
+
+  int? get selectionForegroundColorOverride =>
+      _selectionForegroundColorOverride;
 
   late var _buffer = _mainBuffer;
 
@@ -3418,6 +3427,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         if (_cursorColorOverride == color) return;
         _cursorColorOverride = color;
         break;
+      case 17:
+        if (_selectionColorOverride == color) return;
+        _selectionColorOverride = color;
+        break;
+      case 19:
+        if (_selectionForegroundColorOverride == color) return;
+        _selectionForegroundColorOverride = color;
+        break;
       default:
         return;
     }
@@ -3430,6 +3447,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       10 => _foregroundColorOverride,
       11 => _backgroundColorOverride,
       12 => _cursorColorOverride,
+      17 => _selectionColorOverride,
+      19 => _selectionForegroundColorOverride,
       _ => null,
     };
     final color = override ?? onColorQuery?.call(code, null);
@@ -3451,6 +3470,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       case 12:
         if (_cursorColorOverride == null) return;
         _cursorColorOverride = null;
+        break;
+      case 17:
+        if (_selectionColorOverride == null) return;
+        _selectionColorOverride = null;
+        break;
+      case 19:
+        if (_selectionForegroundColorOverride == null) return;
+        _selectionForegroundColorOverride = null;
         break;
       default:
         return;
