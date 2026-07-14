@@ -203,6 +203,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _lastTerminalHeight = 0;
 
+  var _lastForceScrollToBottomGeneration = 0;
+
   void _onScroll() {
     _stickToBottom = _scrollOffset >= _maxScrollExtent;
     markNeedsLayout();
@@ -216,10 +218,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
-    final needsLayout =
+    final forceScrollToBottom =
+        _terminal.buffer.forceScrollToBottomGeneration !=
+            _lastForceScrollToBottomGeneration;
+    if (forceScrollToBottom) {
+      _stickToBottom = true;
+    }
+    final needsLayout = forceScrollToBottom ||
         _terminal.buffer.lines.length != _lastTerminalLineCount ||
-            _terminal.viewWidth != _lastTerminalWidth ||
-            _terminal.viewHeight != _lastTerminalHeight;
+        _terminal.viewWidth != _lastTerminalWidth ||
+        _terminal.viewHeight != _lastTerminalHeight;
     _recordTerminalLayoutState();
     if (needsLayout) {
       markNeedsLayout();
@@ -233,6 +241,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _lastTerminalLineCount = _terminal.buffer.lines.length;
     _lastTerminalWidth = _terminal.viewWidth;
     _lastTerminalHeight = _terminal.viewHeight;
+    _lastForceScrollToBottomGeneration =
+        _terminal.buffer.forceScrollToBottomGeneration;
   }
 
   void _onControllerUpdate() {

@@ -100,6 +100,11 @@ class Buffer {
   /// The number of lines above the viewport.
   int get scrollBack => height - viewHeight;
 
+  /// Increments when terminal-originated actions should force the viewport to
+  /// the bottom even if the user was previously scrolled up.
+  int get forceScrollToBottomGeneration => _forceScrollToBottomGeneration;
+  var _forceScrollToBottomGeneration = 0;
+
   /// Vertical position of the cursor relative to the top of the buffer,
   /// starting from 0.
   int get absoluteCursorY => _cursorY + scrollBack;
@@ -541,6 +546,7 @@ class Buffer {
         respectProtected: respectProtected,
       );
     }
+    _forceScrollToBottomGeneration++;
   }
 
   /// Erases the line from the cursor to the end of the line, including the
@@ -1261,6 +1267,7 @@ class Buffer {
     }
 
     lines.trimStart(scrollBack);
+    _forceScrollToBottomGeneration++;
   }
 
   /// Moves the current viewport into scrollback and replaces it with blanks.
@@ -1269,6 +1276,7 @@ class Buffer {
     for (var i = 0; i < lineCount; i++) {
       lines.push(_newEmptyLine());
     }
+    _forceScrollToBottomGeneration++;
   }
 
   int _visibleContentLineCount() {
@@ -1296,6 +1304,7 @@ class Buffer {
     for (int i = 0; i < viewHeight; i++) {
       lines.push(_newEmptyLine());
     }
+    _forceScrollToBottomGeneration++;
   }
 
   void reset() {

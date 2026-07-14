@@ -29,6 +29,95 @@ void main() {
     setup.focusNode.dispose();
   });
 
+  test('scroll-complete erase returns viewport to bottom', () {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    offset.jumpTo(0);
+
+    setup.terminal.write('a\r\nb\r\nc\x1b[22J');
+    expect(render.debugNeedsLayout, isTrue);
+
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+
+    expect(offset.pixels, offset.maxScrollExtent);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  test('full display erase returns viewport to bottom', () {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    setup.terminal.write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n');
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    offset.jumpTo(0);
+
+    setup.terminal.write('\x1b[H\x1b[2J');
+    expect(render.debugNeedsLayout, isTrue);
+
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+
+    expect(offset.pixels, offset.maxScrollExtent);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  test('normal output preserves user scrollback position', () {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    setup.terminal.write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n');
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    offset.jumpTo(0);
+
+    setup.terminal.write('h\r\n');
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+
+    expect(offset.pixels, 0);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
   test('character selection expands forward endpoint across rows', () {
     final setup = _createRenderTerminal();
     final render = setup.render;
