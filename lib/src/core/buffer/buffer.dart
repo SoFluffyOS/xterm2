@@ -896,7 +896,7 @@ class Buffer {
   }
 
   bool get _canScrollUpByPushingLines {
-    if (!isAltBuffer) return false;
+    if (isAltBuffer) return false;
     if (_marginTop != 0) return false;
     return _marginBottom == viewHeight - 1;
   }

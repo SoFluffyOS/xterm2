@@ -133,6 +133,22 @@ void main() {
     );
   });
 
+  test('Terminal full-screen scroll up preserves main-buffer history', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('1111\r\n2222\r\n3333\x1b[S');
+
+    expect(terminal.buffer.scrollBack, 1);
+    expect(terminal.buffer.lines[0].getText(0, 4), '1111');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 4)),
+      ['2222', '3333', ''],
+    );
+  });
+
   test('Terminal scroll-complete erase moves viewport into scrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(4, 2);
 
@@ -3877,11 +3893,12 @@ void main() {
     terminal.write('\r\nDEF\r\nGHI');
     terminal.write('\x1b[2;2H\x1b[S');
 
-    expect(terminal.buffer.lines[0].getText(0, 3), 'DEF');
-    expect(terminal.buffer.lines[1].getText(0, 3), 'GHI');
+    final viewport = terminal.buffer.scrollBack;
+    expect(terminal.buffer.lines[viewport].getText(0, 3), 'DEF');
+    expect(terminal.buffer.lines[viewport + 1].getText(0, 3), 'GHI');
     for (var column = 0; column < 3; column++) {
-      expect(terminal.hyperlinkAt(CellOffset(column, 0)), isNull);
-      expect(terminal.hyperlinkAt(CellOffset(column, 1)), isNull);
+      expect(terminal.hyperlinkAt(CellOffset(column, viewport)), isNull);
+      expect(terminal.hyperlinkAt(CellOffset(column, viewport + 1)), isNull);
     }
   });
 
