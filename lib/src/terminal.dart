@@ -606,6 +606,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     notifyListeners();
   }
 
+  /// Clears the viewport and scrollback, then moves renderers to the bottom.
+  void clear() {
+    if (_isDisposed) return;
+    _buffer.clear();
+    if (_synchronizedUpdateMode) return;
+    notifyListeners();
+  }
+
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
