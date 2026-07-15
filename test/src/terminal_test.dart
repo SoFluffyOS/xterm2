@@ -2035,6 +2035,18 @@ void main() {
     expect(terminal.buffer.lines[0].toString(), 'after');
   });
 
+  test('Terminal bounds oversized DCS payloads across chunks', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP+q${'4' * 4100}');
+    terminal.write('5' * 4100);
+    terminal.write('\x1b\\safe');
+
+    expect(output, isEmpty);
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
+
   test('Terminal resumes split escape sequences interrupted by DCS', () {
     final terminal = Terminal();
 
@@ -2959,12 +2971,29 @@ void main() {
       'kxIN': '\x1b[I',
       'kxOUT': '\x1b[O',
       'bold': '\x1b[1m',
+      'cbt': '\x1b[Z',
+      'civis': '\x1b[?25l',
+      'cnorm': '\x1b[?12l\x1b[?25h',
+      'cr': '\r',
       'dim': '\x1b[2m',
+      'dsl': '\x1b]2;\x07',
+      'flash': '\x1b[?5h\$<100/>\x1b[?5l',
+      'fsl': '\x07',
+      'home': '\x1b[H',
       'invis': '\x1b[8m',
+      'rmacs': '\x1b(B',
+      'rmam': '\x1b[?7l',
+      'rmir': '\x1b[4l',
+      'rmkx': '\x1b[?1l\x1b>',
       'rev': '\x1b[7m',
+      'smacs': '\x1b(0',
+      'smam': '\x1b[?7h',
+      'smir': '\x1b[4h',
+      'smkx': '\x1b[?1h\x1b=',
       'smul': '\x1b[4m',
       'rmul': '\x1b[24m',
       'sgr0': '\x1b(B\x1b[m',
+      'tsl': '\x1b]2;',
       'op': '\x1b[39;49m',
       'setrgbf': '\x1b[38:2:%p1%d:%p2%d:%p3%dm',
       'setrgbb': '\x1b[48:2:%p1%d:%p2%d:%p3%dm',

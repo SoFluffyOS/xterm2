@@ -21,7 +21,7 @@ class EscapeParser {
 
   static const _maxOscParams = 256;
 
-  static const _maxDcsRawLength = 256;
+  static const _maxDcsRawLength = 8192;
 
   static const _escFinalIncomplete = -1;
 
