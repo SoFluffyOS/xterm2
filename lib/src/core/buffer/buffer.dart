@@ -1692,7 +1692,7 @@ class Buffer {
 
   /// Get the plain text content of the buffer including the scrollback.
   /// Accepts an optional [range] to get a specific part of the buffer.
-  String getText([BufferRange? range]) {
+  String getText([BufferRange? range, bool trimWhitespace = false]) {
     range ??= BufferRangeLine(
       CellOffset(0, 0),
       CellOffset(viewWidth, height - 1),
@@ -1700,7 +1700,7 @@ class Buffer {
 
     range = range.normalized;
 
-    final builder = StringBuffer();
+    final chunks = <String>[];
 
     for (var segment in range.toSegments()) {
       if (segment.line < 0 || segment.line >= height) {
@@ -1711,12 +1711,45 @@ class Buffer {
       if (!(segment.line == range.begin.y ||
           segment.line == 0 ||
           joinWrappedLine)) {
-        builder.write("\n");
+        if (trimWhitespace) {
+          _trimTrailingSelectionWhitespace(chunks);
+        }
+        chunks.add('\n');
       }
-      builder.write(line.getText(segment.start, segment.end));
+      chunks.add(line.getText(segment.start, segment.end));
     }
 
-    return builder.toString();
+    if (trimWhitespace) {
+      _trimTrailingSelectionWhitespace(chunks);
+    }
+
+    return chunks.join();
+  }
+
+  void _trimTrailingSelectionWhitespace(List<String> chunks) {
+    while (chunks.isNotEmpty) {
+      final chunk = chunks.last;
+      final trimmed = _trimRightSelectionWhitespace(chunk);
+      if (trimmed.length == chunk.length) return;
+      if (trimmed.isNotEmpty) {
+        chunks[chunks.length - 1] = trimmed;
+        return;
+      }
+      chunks.removeLast();
+    }
+  }
+
+  String _trimRightSelectionWhitespace(String text) {
+    var end = text.length;
+    while (end > 0) {
+      final codeUnit = text.codeUnitAt(end - 1);
+      if (codeUnit != 0x20 && codeUnit != 0x09) break;
+      end--;
+    }
+    return switch (end == text.length) {
+      true => text,
+      false => text.substring(0, end),
+    };
   }
 
   /// Returns a debug representation of the buffer.

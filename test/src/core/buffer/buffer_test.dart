@@ -201,6 +201,31 @@ void main() {
         'bc\ngh',
       );
     });
+
+    test('can trim trailing whitespace at hard line breaks', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('1AB  \r\n2EFGH');
+
+      final range = BufferRangeLine(
+        const CellOffset(0, 0),
+        const CellOffset(3, 1),
+      );
+
+      expect(terminal.buffer.getText(range), '1AB  \n2EF');
+      expect(terminal.buffer.getText(range, true), '1AB\n2EF');
+    });
+
+    test('keeps trailing whitespace inside soft-wrapped selections', () {
+      final terminal = Terminal()..resize(5, 3);
+      terminal.write('1AB  2EF');
+
+      final range = BufferRangeLine(
+        const CellOffset(0, 0),
+        const CellOffset(3, 1),
+      );
+
+      expect(terminal.buffer.getText(range, true), '1AB  2EF');
+    });
   });
 
   group('Buffer.resize()', () {

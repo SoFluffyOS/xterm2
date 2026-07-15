@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:xterm2/src/ui/shortcut/actions.dart';
 import 'package:xterm2/xterm.dart';
 
 import '../_fixture/_fixture.dart';
@@ -739,6 +740,67 @@ void main() {
         terminal.buffer.getText(controller.selection),
         startsWith('line1\nline2\nline3'),
       );
+
+      controller.dispose();
+    });
+
+    testWidgets('copy selection trims trailing whitespace', (tester) async {
+      final terminal = Terminal(maxLines: 10)..resize(5, 3);
+      final controller = TerminalController();
+      String? clipboardText;
+
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          switch (call.method) {
+            case 'Clipboard.setData':
+              final arguments = call.arguments;
+              if (arguments is Map) {
+                clipboardText = arguments['text'] as String?;
+              }
+              return null;
+            case 'Clipboard.getData':
+              return {'text': clipboardText};
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      terminal.write('1AB  \r\n2EFGH');
+      controller.setSelection(
+        terminal.buffer.createAnchor(0, 0),
+        terminal.buffer.createAnchor(3, 1),
+      );
+
+      late BuildContext actionContext;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TerminalActions(
+            terminal: terminal,
+            controller: controller,
+            child: Builder(
+              builder: (context) {
+                actionContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+
+      final result =
+          Actions.invoke(actionContext, CopySelectionTextIntent.copy);
+      if (result is Future) {
+        await result;
+      }
+
+      expect(clipboardText, '1AB\n2EF');
 
       controller.dispose();
     });

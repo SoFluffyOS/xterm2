@@ -41,7 +41,7 @@ class TerminalActions extends StatelessWidget {
               return;
             }
 
-            final text = terminal.buffer.getText(selection);
+            final text = terminal.buffer.getText(selection, true);
 
             await Clipboard.setData(ClipboardData(text: text));
 
