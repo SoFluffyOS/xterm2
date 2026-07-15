@@ -258,8 +258,9 @@ void main() {
       terminal.write('\x1b[=1u');
       terminal.keyInput(TerminalKey.f13);
       terminal.keyInput(TerminalKey.numpad0, alt: true);
+      terminal.keyInput(TerminalKey.numpadComma);
 
-      expect(output, ['\x1b[57376u', '\x1b[57399;3u']);
+      expect(output, ['\x1b[57376u', '\x1b[57399;3u', '\x1b[57416u']);
     });
 
     test('reports Kitty repeat and release events', () {

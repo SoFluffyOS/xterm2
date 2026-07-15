@@ -358,6 +358,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       TerminalKey.numpadAdd => 57413,
       TerminalKey.numpadEnter => 57414,
       TerminalKey.numpadEqual => 57415,
+      TerminalKey.numpadComma => 57416,
       _ => null,
     };
   }
