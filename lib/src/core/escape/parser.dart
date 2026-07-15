@@ -1288,6 +1288,12 @@ class EscapeParser {
         case 9:
           handler.setCursorStrikethrough();
           continue;
+        case 51:
+          handler.setCursorFramed();
+          continue;
+        case 52:
+          handler.setCursorEncircled();
+          continue;
         case 53:
           handler.setCursorOverline();
           continue;
@@ -1316,6 +1322,9 @@ class EscapeParser {
           continue;
         case 29:
           handler.unsetCursorStrikethrough();
+          continue;
+        case 54:
+          handler.unsetCursorFrame();
           continue;
         case 55:
           handler.unsetCursorOverline();

@@ -782,6 +782,48 @@ void main() {
     painter.dispose();
   });
 
+  test('paintLine renders framed and encircled SGR decorations', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(2);
+    final frameStyle = CursorStyle()..setFramed();
+    final circleStyle = CursorStyle()..setEncircled();
+    line.setCell(0, 0x20, 1, frameStyle);
+    line.setCell(1, 0x20, 1, circleStyle);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final cellWidth = painter.cellSize.width.ceil();
+    final cellHeight = painter.cellSize.height.ceil();
+    expect(
+      _hasAnyAlphaInRect(byteData, image.width, 0, 0, cellWidth, cellHeight),
+      isTrue,
+    );
+    expect(
+      _hasAnyAlphaInRect(
+        byteData,
+        image.width,
+        cellWidth,
+        0,
+        cellWidth * 2,
+        cellHeight,
+      ),
+      isTrue,
+    );
+    expect(painter.paragraphCacheLength, 0);
+
+    image.dispose();
+    painter.dispose();
+  });
+
   test('paintLine batches same-color backgrounds without seams', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

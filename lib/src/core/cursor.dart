@@ -64,6 +64,16 @@ class CursorStyle {
     attrs |= CellAttr.overline;
   }
 
+  void setFramed() {
+    attrs &= ~CellAttr.frameMask;
+    attrs |= CellAttr.framed;
+  }
+
+  void setEncircled() {
+    attrs &= ~CellAttr.frameMask;
+    attrs |= CellAttr.encircled;
+  }
+
   void setProtected() {
     attrs |= CellAttr.protected;
   }
@@ -124,6 +134,10 @@ class CursorStyle {
     attrs &= ~CellAttr.overline;
   }
 
+  void unsetFrame() {
+    attrs &= ~CellAttr.frameMask;
+  }
+
   void unsetProtected() {
     attrs &= ~CellAttr.protected;
   }
@@ -151,6 +165,10 @@ class CursorStyle {
   bool get isInvisible => (attrs & CellAttr.invisible) != 0;
 
   bool get isOverline => (attrs & CellAttr.overline) != 0;
+
+  bool get isFramed => (attrs & CellAttr.framed) != 0;
+
+  bool get isEncircled => (attrs & CellAttr.encircled) != 0;
 
   bool get isProtected => (attrs & CellAttr.protected) != 0;
 

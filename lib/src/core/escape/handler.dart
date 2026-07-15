@@ -402,6 +402,10 @@ abstract class EscapeHandler {
 
   void setCursorOverline();
 
+  void setCursorFramed();
+
+  void setCursorEncircled();
+
   void unsetCursorBold();
 
   void unsetCursorFaint();
@@ -419,6 +423,8 @@ abstract class EscapeHandler {
   void unsetCursorStrikethrough();
 
   void unsetCursorOverline();
+
+  void unsetCursorFrame();
 
   void setForegroundColor16(int color);
 

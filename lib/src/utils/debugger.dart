@@ -980,6 +980,16 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   }
 
   @override
+  void setCursorFramed() {
+    onCommand('setCursorFramed');
+  }
+
+  @override
+  void setCursorEncircled() {
+    onCommand('setCursorEncircled');
+  }
+
+  @override
   void unsetCursorBold() {
     onCommand('unsetCursorBold');
   }
@@ -1022,6 +1032,11 @@ class _TerminalDebuggerHandler implements EscapeHandler {
   @override
   void unsetCursorOverline() {
     onCommand('unsetCursorOverline');
+  }
+
+  @override
+  void unsetCursorFrame() {
+    onCommand('unsetCursorFrame');
   }
 
   @override

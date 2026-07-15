@@ -1879,6 +1879,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (_cursorStyle.isInvisible) attributes.add(8);
     if (_cursorStyle.attrs & CellAttr.strikethrough != 0) attributes.add(9);
     if (_cursorStyle.isDoubleUnderline) attributes.add(21);
+    if (_cursorStyle.isFramed) attributes.add(51);
+    if (_cursorStyle.isEncircled) attributes.add(52);
     if (_cursorStyle.isOverline) attributes.add(53);
     _appendSgrColor(attributes, _cursorStyle.foreground, 30, 90, 38);
     _appendSgrColor(attributes, _cursorStyle.background, 40, 100, 48);
@@ -2993,6 +2995,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   @override
+  void setCursorFramed() {
+    _cursorStyle.setFramed();
+  }
+
+  @override
+  void setCursorEncircled() {
+    _cursorStyle.setEncircled();
+  }
+
+  @override
   void unsetCursorBold() {
     _cursorStyle.unsetBold();
   }
@@ -3035,6 +3047,11 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void unsetCursorOverline() {
     _cursorStyle.unsetOverline();
+  }
+
+  @override
+  void unsetCursorFrame() {
+    _cursorStyle.unsetFrame();
   }
 
   @override

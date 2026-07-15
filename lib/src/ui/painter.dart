@@ -444,10 +444,34 @@ class TerminalPainter {
       cellData,
       foregroundOverride: foregroundOverride,
     );
+    final charWidth = cellData.content >> CellContent.widthShift;
+    final cellSpan = switch (charWidth) {
+      2 => 2,
+      _ => 1,
+    };
+    final allocatedWidth = _cellSize.width * cellSpan;
     final decorationColor = switch (cellData.underlineColor) {
       0 => _underlineDecorationColor(cellFlags, color),
       _ => resolveForegroundColor(cellData.underlineColor),
     };
+
+    if (combiningCharacters == null &&
+        (charCode == 0x20 || isBlankBraille) &&
+        !isActiveHyperlink &&
+        cellFlags &
+                (CellAttr.underlineMask |
+                    CellAttr.strikethrough |
+                    CellAttr.overline) ==
+            0) {
+      _paintFrameDecoration(
+        canvas,
+        offset,
+        color,
+        cellFlags,
+        allocatedWidth: allocatedWidth,
+      );
+      return;
+    }
 
     _foregroundPaint.color = color;
     if (combiningCharacters == null &&
@@ -500,6 +524,13 @@ class TerminalPainter {
           _foregroundPaint,
         );
       }
+      _paintFrameDecoration(
+        canvas,
+        offset,
+        color,
+        cellFlags,
+        allocatedWidth: allocatedWidth,
+      );
       return;
     }
 
@@ -554,15 +585,16 @@ class TerminalPainter {
       );
     }
 
-    final charWidth = cellData.content >> CellContent.widthShift;
-    final cellSpan = switch (charWidth) {
-      2 => 2,
-      _ => 1,
-    };
-    final allocatedWidth = _cellSize.width * cellSpan;
     if (paragraph.maxIntrinsicWidth <= allocatedWidth &&
         paragraph.height <= _cellSize.height) {
       canvas.drawParagraph(paragraph, offset);
+      _paintFrameDecoration(
+        canvas,
+        offset,
+        color,
+        cellFlags,
+        allocatedWidth: allocatedWidth,
+      );
       return;
     }
     canvas.save();
@@ -576,6 +608,13 @@ class TerminalPainter {
     );
     canvas.drawParagraph(paragraph, offset);
     canvas.restore();
+    _paintFrameDecoration(
+      canvas,
+      offset,
+      color,
+      cellFlags,
+      allocatedWidth: allocatedWidth,
+    );
   }
 
   @pragma('vm:prefer-inline')
@@ -596,8 +635,37 @@ class TerminalPainter {
     return cellFlags &
             (CellAttr.underlineMask |
                 CellAttr.strikethrough |
-                CellAttr.overline) !=
+                CellAttr.overline |
+                CellAttr.frameMask) !=
         0;
+  }
+
+  void _paintFrameDecoration(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    int cellFlags, {
+    required double allocatedWidth,
+  }) {
+    if (cellFlags & CellAttr.frameMask == 0) return;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final rect = Rect.fromLTWH(
+      offset.dx + 0.5,
+      offset.dy + 0.5,
+      allocatedWidth - 1,
+      _cellSize.height - 1,
+    );
+
+    if (cellFlags & CellAttr.encircled != 0) {
+      canvas.drawOval(rect, paint);
+      return;
+    }
+
+    canvas.drawRect(rect, paint);
   }
 
   @pragma('vm:prefer-inline')

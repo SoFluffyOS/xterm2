@@ -818,6 +818,19 @@ void main() {
     expect(terminal.cursor.isOverline, isFalse);
   });
 
+  test('Terminal applies framed and encircled SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[51mframe\x1b[52mcircle\x1b[54mplain');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.framed, isNot(0));
+    expect(line.getAttributes(5) & CellAttr.framed, 0);
+    expect(line.getAttributes(5) & CellAttr.encircled, isNot(0));
+    expect(terminal.cursor.isFramed, isFalse);
+    expect(terminal.cursor.isEncircled, isFalse);
+  });
+
   test('Terminal applies double underline SGR', () {
     final terminal = Terminal()..resize(20, 5);
 
