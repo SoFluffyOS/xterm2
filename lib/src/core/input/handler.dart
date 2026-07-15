@@ -81,6 +81,8 @@ class ApplicationKeypadInputHandler implements TerminalInputHandler {
       TerminalKey.numpadSubtract => 'm',
       TerminalKey.numpadAdd => 'k',
       TerminalKey.numpadEnter => 'M',
+      TerminalKey.numpadEqual => 'X',
+      TerminalKey.numpadComma => 'l',
       _ => null,
     };
     if (suffix == null) return null;

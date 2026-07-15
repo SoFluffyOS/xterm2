@@ -21,10 +21,12 @@ void main() {
       terminal.keyInput(TerminalKey.numpad1);
       terminal.keyInput(TerminalKey.numpadAdd);
       terminal.keyInput(TerminalKey.numpadEnter);
+      terminal.keyInput(TerminalKey.numpadEqual);
+      terminal.keyInput(TerminalKey.numpadComma);
       terminal.write('\x1b[?1035h');
       terminal.keyInput(TerminalKey.numpad1);
 
-      expect(output, ['\x1bOq', '\x1bOk', '\x1bOM']);
+      expect(output, ['\x1bOq', '\x1bOk', '\x1bOM', '\x1bOX', '\x1bOl']);
     });
 
     test('honors ANSI keyboard action mode', () {
