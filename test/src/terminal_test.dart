@@ -2146,6 +2146,29 @@ void main() {
     ]);
   });
 
+  test('Terminal reports ANSI and DEC private mode states', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[4h'
+      '\x1b[4\x24p'
+      '\x1b[?7\x24p'
+      '\x1b[?1006\x24p'
+      '\x1b[?1006h'
+      '\x1b[?1006\x24p'
+      '\x1b[?9999\x24p',
+    );
+
+    expect(output, [
+      '\x1b[4;1\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?1006;2\x24y',
+      '\x1b[?1006;1\x24y',
+      '\x1b[?9999;0\x24y',
+    ]);
+  });
+
   test('Terminal reports Alacritty-compatible device attributes', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
