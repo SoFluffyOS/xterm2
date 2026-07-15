@@ -807,6 +807,50 @@ void main() {
   });
 
   group('TerminalView selection gestures', () {
+    testWidgets('alt drag creates a rectangular block selection', (
+      tester,
+    ) async {
+      final terminal = Terminal(maxLines: 10)..resize(5, 3);
+      final controller = TerminalController();
+
+      terminal.write('abcde\r\nfghij');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              controller: controller,
+              autoResize: false,
+              autofocus: true,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cellSize = state.renderTerminal.cellSize;
+      final start = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 1.5, cellSize.height * 0.5),
+      );
+      final end = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 3.5, cellSize.height * 1.5),
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.down(start);
+      await gesture.moveTo(end);
+      await tester.pump();
+      await gesture.up();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+
+      expect(controller.selection, isA<BufferRangeBlock>());
+      expect(terminal.buffer.getText(controller.selection), 'bcd\nghi');
+
+      controller.dispose();
+    });
+
     testWidgets('triple click selects a soft-wrapped line', (tester) async {
       final terminal = Terminal(maxLines: 10)..resize(5, 4);
       final controller = TerminalController();

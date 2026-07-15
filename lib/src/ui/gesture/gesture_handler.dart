@@ -10,6 +10,7 @@ import 'package:xterm2/src/ui/controller.dart';
 import 'package:xterm2/src/ui/gesture/gesture_detector.dart';
 import 'package:xterm2/src/ui/pointer_input.dart';
 import 'package:xterm2/src/ui/render.dart';
+import 'package:xterm2/src/ui/selection_mode.dart';
 
 class TerminalGestureHandler extends StatefulWidget {
   const TerminalGestureHandler({
@@ -255,9 +256,16 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     _lastDragStartDetails = details;
     if (_terminalReportsDrag) return;
 
-    details.kind == PointerDeviceKind.mouse
-        ? renderTerminal.selectCharacters(details.localPosition)
-        : renderTerminal.selectWord(details.localPosition);
+    if (details.kind != PointerDeviceKind.mouse) {
+      renderTerminal.selectWord(details.localPosition);
+      return;
+    }
+
+    renderTerminal.selectCharacters(
+      details.localPosition,
+      null,
+      _dragSelectionMode,
+    );
   }
 
   void onDragUpdate(DragUpdateDetails details) {
@@ -265,6 +273,17 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     renderTerminal.selectCharacters(
       _lastDragStartDetails!.localPosition,
       details.localPosition,
+      _dragSelectionMode,
     );
+  }
+
+  SelectionMode get _dragSelectionMode {
+    final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
+    final altPressed = pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
+        pressedKeys.contains(LogicalKeyboardKey.altRight);
+    return switch (altPressed) {
+      true => SelectionMode.block,
+      false => SelectionMode.line,
+    };
   }
 }
