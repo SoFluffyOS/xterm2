@@ -1075,6 +1075,7 @@ class EscapeParser {
   /// https://terminalguide.namepad.de/seq/csi_sc/
   void _csiHandleSendDeviceAttributes() {
     if (_csi.intermediates.isNotEmpty || _csi.params.length > 1) return;
+    if (_csi.params.isNotEmpty && _csi.params[0] != 0) return;
     switch (_csi.prefix) {
       case Ascii.greaterThan:
         return handler.sendSecondaryDeviceAttributes();

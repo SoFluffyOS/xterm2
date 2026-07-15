@@ -2415,10 +2415,12 @@ void main() {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
 
-    terminal.write('\x1b[c\x1b[>c');
+    terminal.write('\x1b[c\x1b[0c\x1b[>c\x1b[>0c\x1b[5c\x1b[>5c');
 
     expect(output, [
       '\x1b[?6c',
+      '\x1b[?6c',
+      '\x1b[>0;50000;1c',
       '\x1b[>0;50000;1c',
     ]);
   });
