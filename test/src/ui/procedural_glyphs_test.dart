@@ -406,7 +406,7 @@ void main() {
     final codePoints = <int>[
       for (var codePoint = 0x1fb00; codePoint <= 0x1fb3b; codePoint++)
         codePoint,
-      for (var codePoint = 0x1fb82; codePoint <= 0x1fb8b; codePoint++)
+      for (var codePoint = 0x1fb7c; codePoint <= 0x1fb97; codePoint++)
         codePoint,
       for (var codePoint = 0x1cc1b; codePoint <= 0x1cc1e; codePoint++)
         codePoint,

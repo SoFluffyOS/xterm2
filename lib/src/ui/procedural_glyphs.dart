@@ -440,6 +440,120 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0x1fb7c && codePoint <= 0x1fb81) {
+    final oneEighthWidth = width / 8;
+    final oneEighthHeight = height / 8;
+    switch (codePoint) {
+      case 0x1fb7c:
+        fill(Rect.fromLTWH(x, y, oneEighthWidth, height));
+        fill(Rect.fromLTWH(
+            x, y + height - oneEighthHeight, width, oneEighthHeight));
+        return true;
+      case 0x1fb7d:
+        fill(Rect.fromLTWH(x, y, oneEighthWidth, height));
+        fill(Rect.fromLTWH(x, y, width, oneEighthHeight));
+        return true;
+      case 0x1fb7e:
+        fill(Rect.fromLTWH(
+            x + width - oneEighthWidth, y, oneEighthWidth, height));
+        fill(Rect.fromLTWH(x, y, width, oneEighthHeight));
+        return true;
+      case 0x1fb7f:
+        fill(Rect.fromLTWH(
+            x + width - oneEighthWidth, y, oneEighthWidth, height));
+        fill(Rect.fromLTWH(
+            x, y + height - oneEighthHeight, width, oneEighthHeight));
+        return true;
+      case 0x1fb80:
+        fill(Rect.fromLTWH(x, y, width, oneEighthHeight));
+        fill(Rect.fromLTWH(
+            x, y + height - oneEighthHeight, width, oneEighthHeight));
+        return true;
+      case 0x1fb81:
+        for (final eighth in [0, 2, 4, 7]) {
+          fill(Rect.fromLTWH(
+            x,
+            y + height * eighth / 8,
+            width,
+            oneEighthHeight,
+          ));
+        }
+        return true;
+    }
+  }
+
+  if (codePoint >= 0x1fb8c && codePoint <= 0x1fb97) {
+    final halfWidth = width / 2;
+    final halfHeight = height / 2;
+    final oneQuarterHeight = height / 4;
+    final shadedPaint = Paint()
+      ..color = paint.color.withValues(alpha: paint.color.a * 0.5);
+    switch (codePoint) {
+      case 0x1fb8c:
+        canvas.drawRect(Rect.fromLTWH(x, y, halfWidth, height), shadedPaint);
+        return true;
+      case 0x1fb8d:
+        canvas.drawRect(
+          Rect.fromLTWH(x + halfWidth, y, halfWidth, height),
+          shadedPaint,
+        );
+        return true;
+      case 0x1fb8e:
+        canvas.drawRect(Rect.fromLTWH(x, y, width, halfHeight), shadedPaint);
+        return true;
+      case 0x1fb8f:
+        canvas.drawRect(
+          Rect.fromLTWH(x, y + halfHeight, width, halfHeight),
+          shadedPaint,
+        );
+        return true;
+      case 0x1fb90:
+        canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadedPaint);
+        return true;
+      case 0x1fb91:
+        canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadedPaint);
+        fill(Rect.fromLTWH(x, y, width, halfHeight));
+        return true;
+      case 0x1fb92:
+        canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadedPaint);
+        fill(Rect.fromLTWH(x, y + halfHeight, width, halfHeight));
+        return true;
+      case 0x1fb93:
+        return true;
+      case 0x1fb94:
+        canvas.drawRect(Rect.fromLTWH(x, y, width, height), shadedPaint);
+        fill(Rect.fromLTWH(x + halfWidth, y, halfWidth, height));
+        return true;
+      case 0x1fb95:
+      case 0x1fb96:
+        final alternate = codePoint == 0x1fb96;
+        final cellWidth = width / 2;
+        final cellHeight = height / 2;
+        for (var row = 0; row < 2; row++) {
+          for (var column = 0; column < 2; column++) {
+            final draw = ((row + column).isEven) != alternate;
+            if (!draw) continue;
+            fill(Rect.fromLTWH(
+              x + column * cellWidth,
+              y + row * cellHeight,
+              cellWidth,
+              cellHeight,
+            ));
+          }
+        }
+        return true;
+      case 0x1fb97:
+        fill(Rect.fromLTWH(x, y + oneQuarterHeight, width, oneQuarterHeight));
+        fill(Rect.fromLTWH(
+          x,
+          y + oneQuarterHeight * 3,
+          width,
+          oneQuarterHeight,
+        ));
+        return true;
+    }
+  }
+
   final thin = max(1.0, width * 0.12);
   final heavy = max(2.0, width * 0.22);
   final centerX = x + width / 2;
@@ -1077,6 +1191,9 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
     return true;
   }
+  if (codePoint >= 0x1fb7c && codePoint <= 0x1fb97) {
+    return true;
+  }
   if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
     return true;
   }
@@ -1092,7 +1209,7 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x1ce90 && codePoint <= 0x1ceaf) {
     return true;
   }
-  return codePoint >= 0x1fb82 && codePoint <= 0x1fb8b;
+  return false;
 }
 
 bool _isTerminalSymbolGlyph(int codePoint) {
