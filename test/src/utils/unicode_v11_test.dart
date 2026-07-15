@@ -2,6 +2,10 @@ import 'package:test/test.dart';
 import 'package:xterm2/src/utils/unicode_v11.dart';
 
 void main() {
+  test('Unicode width table reports its synchronized version', () {
+    expect(unicodeV11.version, '16.0');
+  });
+
   test('Unicode width table includes Emoji 16 presentation additions', () {
     for (final codePoint in <int>[
       0x1FA89,

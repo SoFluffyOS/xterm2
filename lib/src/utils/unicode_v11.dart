@@ -2,9 +2,8 @@
 
 import 'dart:typed_data';
 
-// Width and combining ranges synchronized with Unicode 15.1, including the
-// Emoji 16.0 presentation additions. The filename and public type retain their
-// historical names for compatibility.
+// Width and combining ranges synchronized with Unicode 16.0. The filename and
+// public type retain their historical names for compatibility.
 const BMP_COMBINING = [
   [0x00AD, 0x00AD],
   [0x0300, 0x036F],
@@ -534,7 +533,7 @@ bool bisearch(int ucs, List<List<int>> data) {
 
 class UnicodeV11 {
   // The historical class name is retained for API compatibility.
-  final version = '15.1';
+  final version = '16.0';
 
   int wcwidth(int codePoint) {
     if (codePoint < 32) return 0;
