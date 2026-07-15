@@ -1675,10 +1675,63 @@ class Buffer {
       endLine++;
     }
 
+    while (startLine < endLine && _lineHasOnlyWhitespace(startLine)) {
+      startLine++;
+    }
+
+    while (endLine > startLine && _lineHasOnlyWhitespace(endLine)) {
+      endLine--;
+    }
+
+    final startColumn = _firstNonWhitespaceColumn(startLine);
+    final endColumn = _lastNonWhitespaceColumnEnd(endLine);
+    if (startColumn == viewWidth && endColumn == 0) {
+      return BufferRangeLine(
+        CellOffset(0, startLine),
+        CellOffset(viewWidth, endLine),
+      );
+    }
+
     return BufferRangeLine(
-      CellOffset(0, startLine),
-      CellOffset(viewWidth, endLine),
+      CellOffset(startColumn, startLine),
+      CellOffset(endColumn, endLine),
     );
+  }
+
+  bool _lineHasOnlyWhitespace(int lineIndex) {
+    return _firstNonWhitespaceColumn(lineIndex) == viewWidth;
+  }
+
+  int _firstNonWhitespaceColumn(int lineIndex) {
+    final line = lines[lineIndex];
+    for (var column = 0; column < viewWidth; column++) {
+      if (!_isLineBoundaryWhitespace(line.getCodePoint(column))) {
+        return column;
+      }
+    }
+    return viewWidth;
+  }
+
+  int _lastNonWhitespaceColumnEnd(int lineIndex) {
+    final line = lines[lineIndex];
+    for (var column = viewWidth - 1; column >= 0; column--) {
+      if (_isLineBoundaryWhitespace(line.getCodePoint(column))) {
+        continue;
+      }
+      return column +
+          switch (line.getWidth(column)) {
+            2 => 2,
+            _ => 1,
+          };
+    }
+    return 0;
+  }
+
+  bool _isLineBoundaryWhitespace(int codePoint) {
+    return switch (codePoint) {
+      0 || 0x09 || 0x20 => true,
+      _ => false,
+    };
   }
 
   bool _lineContinuesFromPrevious(int lineIndex) {

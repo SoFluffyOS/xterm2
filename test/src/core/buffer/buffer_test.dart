@@ -440,6 +440,24 @@ void main() {
       expect(boundary?.end, const CellOffset(5, 1));
       expect(terminal.buffer.getText(boundary), 'world');
     });
+
+    test('trims soft-wrapped leading and trailing whitespace', () {
+      final terminal = Terminal()..resize(5, 10);
+      terminal.write(' 12 34012             \n 123');
+
+      final firstBoundary = terminal.buffer.getLineBoundary(
+        const CellOffset(1, 0),
+      );
+      final secondBoundary = terminal.buffer.getLineBoundary(
+        const CellOffset(1, 1),
+      );
+
+      expect(firstBoundary?.begin, const CellOffset(1, 0));
+      expect(firstBoundary?.end, const CellOffset(4, 1));
+      expect(secondBoundary?.begin, const CellOffset(1, 0));
+      expect(secondBoundary?.end, const CellOffset(4, 1));
+      expect(terminal.buffer.getText(firstBoundary), '12 34012');
+    });
   });
 
   test('does not delete lines beyond the scroll region', () {
