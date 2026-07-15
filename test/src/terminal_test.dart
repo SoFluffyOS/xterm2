@@ -2977,6 +2977,35 @@ void main() {
     );
   });
 
+  test('Terminal reports modern terminfo feature flags', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'AX': '1',
+      'Tc': '1',
+      'Su': '1',
+      'XT': '1',
+      'fullkbd': '1',
+      'it': '8',
+      'pairs': '32767',
+      'acsc':
+          '++\\,\\,--..00``aaffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')}'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal reports common terminfo keyboard capabilities', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
