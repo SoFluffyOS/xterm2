@@ -477,6 +477,22 @@ void main() {
     expect(terminal.buffer.cursorX, 2);
   });
 
+  test('Terminal preserves hyperlinks when VS16 wraps a grapheme', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ab\u2764\ufe0f');
+
+    expect(terminal.hyperlinkAt(const CellOffset(2, 0)), isNull);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(1, 1)),
+      'https://example.com',
+    );
+  });
+
   test('Terminal drops VS16-expanded graphemes that cannot fit', () {
     final terminal = Terminal()..resize(1, 2);
 
