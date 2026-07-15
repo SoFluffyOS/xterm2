@@ -744,6 +744,45 @@ void main() {
     });
   });
 
+  group('TerminalView selection gestures', () {
+    testWidgets('triple click selects a soft-wrapped line', (tester) async {
+      final terminal = Terminal(maxLines: 10)..resize(5, 4);
+      final controller = TerminalController();
+
+      terminal.write('old\r\nhelloworld\r\nafter');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              controller: controller,
+              autoResize: false,
+              autofocus: true,
+            ),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cellSize = state.renderTerminal.cellSize;
+      final position = state.renderTerminal.localToGlobal(
+        Offset(cellSize.width * 1.5, cellSize.height * 2.5),
+      );
+
+      await tester.tapAt(position);
+      await tester.tapAt(position);
+      await tester.tapAt(position);
+
+      expect(
+        terminal.buffer.getText(controller.selection),
+        startsWith('helloworld'),
+      );
+
+      controller.dispose();
+    });
+  });
+
   group('TerminalView.textScaler', () {
     testWidgets('works', (tester) async {
       final terminal = Terminal();

@@ -219,6 +219,25 @@ void main() {
     setup.focusNode.dispose();
   });
 
+  test('line selection includes soft-wrapped logical line', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final cellSize = render.cellSize;
+    setup.terminal.resize(5, 4);
+    setup.terminal.write('old\r\nhelloworld\r\nafter');
+
+    render.selectLine(
+      Offset(cellSize.width * 1.5, cellSize.height * 2.5),
+    );
+
+    final selection = setup.controller.selection;
+    expect(selection?.begin, const CellOffset(0, 1));
+    expect(selection?.end, const CellOffset(5, 2));
+    expect(setup.terminal.buffer.getText(selection), 'helloworld');
+
+    setup.focusNode.dispose();
+  });
+
   test('highlight segment offset includes render paint offset', () {
     final setup = _createRenderTerminal();
     final render = setup.render;

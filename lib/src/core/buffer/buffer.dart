@@ -1651,6 +1651,27 @@ class Buffer {
     );
   }
 
+  BufferRangeLine? getLineBoundary(CellOffset position) {
+    if (position.y < 0 || position.y >= lines.length) {
+      return null;
+    }
+
+    var startLine = position.y;
+    while (_lineContinuesFromPrevious(startLine)) {
+      startLine--;
+    }
+
+    var endLine = position.y;
+    while (_lineContinuesToNext(endLine)) {
+      endLine++;
+    }
+
+    return BufferRangeLine(
+      CellOffset(0, startLine),
+      CellOffset(viewWidth, endLine),
+    );
+  }
+
   bool _lineContinuesFromPrevious(int lineIndex) {
     return lineIndex > 0 && lines[lineIndex].isWrapped;
   }

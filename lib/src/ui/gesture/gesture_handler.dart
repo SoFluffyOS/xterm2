@@ -82,6 +82,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
         onDragStart: onDragStart,
         onDragUpdate: onDragUpdate,
         onDoubleTapDown: onDoubleTapDown,
+        onTripleTapDown: onTripleTapDown,
       ),
     );
   }
@@ -230,6 +231,10 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   void onDoubleTapDown(TapDownDetails details) {
     renderTerminal.selectWord(details.localPosition);
+  }
+
+  void onTripleTapDown(TapDownDetails details) {
+    renderTerminal.selectLine(details.localPosition);
   }
 
   void onLongPressStart(LongPressStartDetails details) {

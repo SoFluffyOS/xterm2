@@ -363,6 +363,34 @@ void main() {
     });
   });
 
+  group('Buffer.getLineBoundary', () {
+    test('selects soft-wrapped logical lines', () {
+      final terminal = Terminal()..resize(5, 4);
+      terminal.write('old\r\nhelloworld\r\nafter');
+
+      final boundary = terminal.buffer.getLineBoundary(
+        const CellOffset(1, 2),
+      );
+
+      expect(boundary?.begin, const CellOffset(0, 1));
+      expect(boundary?.end, const CellOffset(5, 2));
+      expect(terminal.buffer.getText(boundary), 'helloworld');
+    });
+
+    test('keeps hard line breaks separate', () {
+      final terminal = Terminal()..resize(5, 4);
+      terminal.write('hello\r\nworld');
+
+      final boundary = terminal.buffer.getLineBoundary(
+        const CellOffset(1, 1),
+      );
+
+      expect(boundary?.begin, const CellOffset(0, 1));
+      expect(boundary?.end, const CellOffset(5, 1));
+      expect(terminal.buffer.getText(boundary), 'world');
+    });
+  });
+
   test('does not delete lines beyond the scroll region', () {
     final terminal = Terminal();
     terminal.resize(10, 10);

@@ -453,6 +453,33 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
   }
 
+  /// Selects entire visual lines in the terminal that contain [from] and [to].
+  ///
+  /// Soft-wrapped rows are treated as one logical line, matching terminal
+  /// triple-click selection behavior.
+  void selectLine(Offset from, [Offset? to]) {
+    final fromOffset = getCellOffset(from);
+    final fromBoundary = _terminal.buffer.getLineBoundary(fromOffset);
+    if (fromBoundary == null) return;
+    if (to == null) {
+      _controller.setSelection(
+        _terminal.buffer.createAnchorFromOffset(fromBoundary.begin),
+        _terminal.buffer.createAnchorFromOffset(fromBoundary.end),
+        mode: SelectionMode.line,
+      );
+    } else {
+      final toOffset = getCellOffset(to);
+      final toBoundary = _terminal.buffer.getLineBoundary(toOffset);
+      if (toBoundary == null) return;
+      final range = fromBoundary.merge(toBoundary);
+      _controller.setSelection(
+        _terminal.buffer.createAnchorFromOffset(range.begin),
+        _terminal.buffer.createAnchorFromOffset(range.end),
+        mode: SelectionMode.line,
+      );
+    }
+  }
+
   /// Selects characters in the terminal that starts from [from] to [to]. At
   /// least one cell is selected even if [from] and [to] are same.
   void selectCharacters(Offset from, [Offset? to]) {

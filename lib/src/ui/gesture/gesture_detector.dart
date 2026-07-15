@@ -20,6 +20,7 @@ class TerminalGestureDetector extends StatefulWidget {
     this.onDragStart,
     this.onDragUpdate,
     this.onDoubleTapDown,
+    this.onTripleTapDown,
   });
 
   final Widget? child;
@@ -35,6 +36,8 @@ class TerminalGestureDetector extends StatefulWidget {
   final GestureTapUpCallback? onSecondaryTapUp;
 
   final GestureTapDownCallback? onDoubleTapDown;
+
+  final GestureTapDownCallback? onTripleTapDown;
 
   final GestureTapDownCallback? onTertiaryTapDown;
 
@@ -60,9 +63,11 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
 
   Offset? _lastTapOffset;
 
-  // True if a second tap down of a double tap is detected. Used to discard
-  // subsequent tap up / tap hold of the same tap.
-  bool _isDoubleTap = false;
+  int _tapCount = 0;
+
+  // True if a repeated tap down is detected. Used to discard subsequent tap up
+  // / tap hold of the same tap.
+  bool _isRepeatedTap = false;
 
   @override
   void dispose() {
@@ -75,31 +80,38 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
   void _handleTapDown(TapDownDetails details) {
     widget.onTapDown?.call(details);
 
-    if (_doubleTapTimer != null &&
-        _isWithinDoubleTapTolerance(details.globalPosition)) {
-      // If there was already a previous tap, the second down hold/tap is a
-      // double tap down.
-      widget.onDoubleTapDown?.call(details);
-
-      _doubleTapTimer!.cancel();
-      _doubleTapTimeout();
-      _isDoubleTap = true;
+    final timer = _doubleTapTimer;
+    if (timer != null && _isWithinDoubleTapTolerance(details.globalPosition)) {
+      _tapCount++;
+      switch (_tapCount) {
+        case 2:
+          widget.onDoubleTapDown?.call(details);
+        case 3:
+          widget.onTripleTapDown?.call(details);
+          timer.cancel();
+          _doubleTapTimeout();
+        default:
+          break;
+      }
+      _isRepeatedTap = true;
     }
   }
 
   void _handleTapUp(TapUpDetails details) {
     widget.onTapUp?.call(details);
-    if (!_isDoubleTap) {
+    if (!_isRepeatedTap) {
       widget.onSingleTapUp?.call(details);
       _lastTapOffset = details.globalPosition;
+      _tapCount = 1;
       _doubleTapTimer = Timer(kDoubleTapTimeout, _doubleTapTimeout);
     }
-    _isDoubleTap = false;
+    _isRepeatedTap = false;
   }
 
   void _doubleTapTimeout() {
     _doubleTapTimer = null;
     _lastTapOffset = null;
+    _tapCount = 0;
   }
 
   bool _isWithinDoubleTapTolerance(Offset secondTapOffset) {
