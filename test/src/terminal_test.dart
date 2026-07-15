@@ -3075,6 +3075,26 @@ void main() {
     expect(terminal.kittyKeyboardMode, 0);
   });
 
+  test('Terminal pops Kitty keyboard mode to previous set mode', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[=1u\x1b[>2u');
+    expect(terminal.kittyKeyboardMode, 2);
+
+    terminal.write('\x1b[<u');
+    expect(terminal.kittyKeyboardMode, 1);
+  });
+
+  test('Terminal multi-pops Kitty keyboard mode to oldest saved mode', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[=1u\x1b[>2u\x1b[>3u');
+    expect(terminal.kittyKeyboardMode, 3);
+
+    terminal.write('\x1b[<2u');
+    expect(terminal.kittyKeyboardMode, 1);
+  });
+
   test('Terminal restores main cursor when leaving 1049 alternate screen', () {
     final terminal = Terminal()..resize(5, 5);
 

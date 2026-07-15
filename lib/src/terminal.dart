@@ -2855,7 +2855,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     }
 
     final normalizedMode = mode & _kittyKeyboardModeMask;
-    _kittyKeyboardModeStack.add(normalizedMode);
+    _kittyKeyboardModeStack.add(_kittyKeyboardMode);
     _kittyKeyboardMode = normalizedMode;
   }
 
@@ -2863,15 +2863,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void popKittyKeyboardModes(int count) {
     if (count <= 0) return;
 
-    final newLength = switch (count >= _kittyKeyboardModeStack.length) {
-      true => 0,
-      false => _kittyKeyboardModeStack.length - count,
-    };
+    if (count > _kittyKeyboardModeStack.length) {
+      _kittyKeyboardModeStack.clear();
+      _kittyKeyboardMode = 0;
+      return;
+    }
+
+    final newLength = _kittyKeyboardModeStack.length - count;
+    _kittyKeyboardMode = _kittyKeyboardModeStack[newLength];
     _kittyKeyboardModeStack.length = newLength;
-    _kittyKeyboardMode = switch (_kittyKeyboardModeStack.isEmpty) {
-      true => 0,
-      false => _kittyKeyboardModeStack.last,
-    };
   }
 
   @override
