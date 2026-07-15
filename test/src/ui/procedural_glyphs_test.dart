@@ -260,7 +260,13 @@ void main() {
     final canvas = Canvas(recorder);
     final paint = Paint()..color = const Color(0xffffffff);
 
-    for (var codePoint = 0xe0b0; codePoint <= 0xe0bf; codePoint++) {
+    final codePoints = [
+      for (var codePoint = 0xe0b0; codePoint <= 0xe0bf; codePoint++) codePoint,
+      0xe0d2,
+      0xe0d4,
+    ];
+
+    for (final codePoint in codePoints) {
       expect(
         paintProceduralGlyph(
           canvas,
@@ -309,6 +315,46 @@ void main() {
         _hasAnyAlphaInCell(bytes, 80, index * 10, 0, 10, 20),
         isTrue,
         reason: 'U+${(0xe0b8 + index).toRadixString(16)}',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
+  });
+
+  test('procedural extended powerline separators paint visible pixels',
+      () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    const codePoints = [0xe0d2, 0xe0d4];
+
+    for (var index = 0; index < codePoints.length; index++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset(index * 10, 0),
+          const Size(10, 20),
+          codePoints[index],
+          paint,
+        ),
+        isTrue,
+        reason: 'U+${codePoints[index].toRadixString(16)}',
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(20, 20);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected extended powerline image bytes');
+    }
+
+    for (var index = 0; index < codePoints.length; index++) {
+      expect(
+        _hasAnyAlphaInCell(bytes, 20, index * 10, 0, 10, 20),
+        isTrue,
+        reason: 'U+${codePoints[index].toRadixString(16)}',
       );
     }
 

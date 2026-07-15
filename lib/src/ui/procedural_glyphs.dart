@@ -405,6 +405,37 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint == 0xe0d2 || codePoint == 0xe0d4) {
+    final pointsRight = codePoint == 0xe0d2;
+    final centerX = x + width / 2;
+    final edgeX = switch (pointsRight) {
+      true => x,
+      false => x + width,
+    };
+    final otherEdgeX = switch (pointsRight) {
+      true => x + width,
+      false => x,
+    };
+    final gap = max(1.0, min(width, height) * 0.08);
+
+    final topPath = Path()
+      ..moveTo(edgeX, y)
+      ..lineTo(otherEdgeX, y)
+      ..lineTo(centerX, y + height / 2 - gap)
+      ..lineTo(edgeX, y + height / 2 - gap)
+      ..close();
+    final bottomPath = Path()
+      ..moveTo(edgeX, y + height)
+      ..lineTo(otherEdgeX, y + height)
+      ..lineTo(centerX, y + height / 2 + gap)
+      ..lineTo(edgeX, y + height / 2 + gap)
+      ..close();
+    canvas
+      ..drawPath(topPath, paint)
+      ..drawPath(bottomPath, paint);
+    return true;
+  }
+
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
     final sextants = _sextantMasks[codePoint - 0x1fb00];
     final halfWidth = width / 2;
@@ -1186,6 +1217,9 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   if (codePoint >= 0xe0b0 && codePoint <= 0xe0bf) {
+    return true;
+  }
+  if (codePoint == 0xe0d2 || codePoint == 0xe0d4) {
     return true;
   }
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
