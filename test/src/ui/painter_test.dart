@@ -631,13 +631,20 @@ void main() {
     painter.dispose();
   });
 
-  test('TerminalStyle defaults include symbol and Nerd Font fallbacks', () {
+  test('TerminalStyle defaults include platform glyph fallbacks', () {
     const style = TerminalStyle();
 
     expect(
       style.fontFamilyFallback,
       containsAllInOrder([
+        'SF Mono',
+        'Menlo',
+        'Cascadia Mono',
+        'DejaVu Sans Mono',
+        'Apple Color Emoji',
+        'Segoe UI Emoji',
         'Noto Color Emoji',
+        'Segoe UI Symbol',
         'Symbols Nerd Font Mono',
         'Symbols Nerd Font',
         'Noto Sans Symbols 2',

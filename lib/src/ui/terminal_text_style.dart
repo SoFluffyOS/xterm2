@@ -7,17 +7,23 @@ const _kDefaultHeight = 1.2;
 const _kDefaultFontFamily = 'monospace';
 
 const _kDefaultFontFamilyFallback = [
+  'SF Mono',
   'Menlo',
   'Monaco',
+  'Cascadia Mono',
   'Consolas',
   'Liberation Mono',
+  'DejaVu Sans Mono',
   'Courier New',
   'Noto Sans Mono CJK SC',
   'Noto Sans Mono CJK TC',
   'Noto Sans Mono CJK KR',
   'Noto Sans Mono CJK JP',
   'Noto Sans Mono CJK HK',
+  'Apple Color Emoji',
+  'Segoe UI Emoji',
   'Noto Color Emoji',
+  'Segoe UI Symbol',
   'Symbols Nerd Font Mono',
   'Symbols Nerd Font',
   'Noto Sans Symbols 2',
