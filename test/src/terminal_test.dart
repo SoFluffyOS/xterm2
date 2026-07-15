@@ -194,6 +194,21 @@ void main() {
     expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
   });
 
+  test('Terminal clear preserves the active prompt after scrollback overflow',
+      () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\r\nold3\r\nold4\r\nold5\r\n~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
   test('Terminal clear preserves wrapped active input', () {
     final terminal = Terminal(maxLines: 10)..resize(6, 4);
 
