@@ -2985,6 +2985,37 @@ void main() {
     ]);
   });
 
+  test('Terminal reports XTGETTCAP navigation key capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kcbt': '\x1b[Z',
+      'kcub1': '\x1b[D',
+      'kcud1': '\x1b[B',
+      'kcuf1': '\x1b[C',
+      'kcuu1': '\x1b[A',
+      'kdch1': '\x1b[3~',
+      'kend': '\x1b[F',
+      'khome': '\x1b[H',
+      'kich1': '\x1b[2~',
+      'knp': '\x1b[6~',
+      'kpp': '\x1b[5~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')}'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
   test('Terminal handles split XTGETTCAP payloads', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
