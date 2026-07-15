@@ -757,6 +757,24 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     0x7f, // DEL
   };
 
+  /// Returns whether [text] is safe enough to paste without user confirmation.
+  ///
+  /// This follows the same protection model used by modern terminals such as
+  /// Ghostty: newlines and bracketed-paste terminators can inject commands,
+  /// while terminal control bytes can alter terminal state. [paste] still
+  /// sanitizes the payload; this method is for UI confirmation decisions.
+  static bool isPasteSafe(String text) {
+    if (text.contains('\n') || text.contains('\r')) return false;
+    if (text.contains('\x1b[201~')) return false;
+    for (final codePoint in text.runes) {
+      if (codePoint == 0x09) continue;
+      if (codePoint < 0x20) return false;
+      if (codePoint == 0x7f) return false;
+      if (codePoint >= 0x80 && codePoint <= 0x9f) return false;
+    }
+    return true;
+  }
+
   String _sanitizePasteText(String text) {
     final codePoints = text.runes.toList(growable: false);
     var sanitized = StringBuffer();

@@ -1921,6 +1921,17 @@ void main() {
     ]);
   });
 
+  test('Terminal paste safety detects command-injection payloads', () {
+    expect(Terminal.isPasteSafe('echo hello'), isTrue);
+    expect(Terminal.isPasteSafe('echo hello\nrm unsafe'), isFalse);
+    expect(Terminal.isPasteSafe('echo hello\r'), isFalse);
+    expect(Terminal.isPasteSafe('safe\x1b[201~unsafe'), isFalse);
+    expect(Terminal.isPasteSafe('safe\x1b]52;c;AAAA\x07'), isFalse);
+    expect(Terminal.isPasteSafe('safe\targument'), isTrue);
+    expect(Terminal.isPasteSafe('safe\x03'), isFalse);
+    expect(Terminal.isPasteSafe('c1\u009b31m'), isFalse);
+  });
+
   group('Terminal synchronized updates', () {
     test('coalesces redraws until the update ends', () {
       final terminal = Terminal();
