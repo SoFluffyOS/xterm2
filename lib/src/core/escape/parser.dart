@@ -1563,6 +1563,7 @@ class EscapeParser {
     if (_csi.params.isEmpty) return;
 
     if (_csi.prefix == Ascii.questionMark) {
+      if (_csi.params.length > 1 && _csi.params.first != 63) return;
       switch (_csi.params[0]) {
         case 996:
           return handler.sendColorScheme();

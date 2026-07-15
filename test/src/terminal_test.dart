@@ -3371,6 +3371,15 @@ void main() {
     ]);
   });
 
+  test('Terminal ignores malformed private device status reports', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[?6;1n\x1b[?996;1n\x1b[?63;1n');
+
+    expect(output, ['\x1bP1!~0000\x1b\\']);
+  });
+
   test('Terminal supports reverse wrap mode for cursor left', () {
     final terminal = Terminal()..resize(5, 3);
 
