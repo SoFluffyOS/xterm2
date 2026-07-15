@@ -1365,7 +1365,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void sendCursorPosition() {
-    onOutput?.call(_emitter.cursorPosition(_buffer.cursorX, _buffer.cursorY));
+    final x = switch (_originMode) {
+      true => max(0, _buffer.cursorX - _buffer.marginLeft),
+      false => _buffer.cursorX,
+    };
+    final y = switch (_originMode) {
+      true => max(0, _buffer.cursorY - _buffer.marginTop),
+      false => _buffer.cursorY,
+    };
+    onOutput?.call(_emitter.cursorPosition(x, y));
   }
 
   @override

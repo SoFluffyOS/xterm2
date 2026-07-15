@@ -3009,6 +3009,15 @@ void main() {
     expect(output, ['\x1b[3;5R']);
   });
 
+  test('Terminal reports origin-mode cursor position relative to margins', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[5;20r\x1b[?6h\x1b[3;5H\x1b[6n');
+
+    expect(output, ['\x1b[3;5R']);
+  });
+
   test('Terminal reports private device status', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add);
