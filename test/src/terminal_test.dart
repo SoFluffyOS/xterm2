@@ -426,6 +426,36 @@ void main() {
     expect(line.getCodePoint(1), 0x78);
   });
 
+  test('Terminal applies variation selectors to keycap bases', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('#\ufe0e#\ufe0f');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x23);
+    expect(line.getCombiningCharacters(0), '\ufe0e');
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x23);
+    expect(line.getCombiningCharacters(1), '\ufe0f');
+    expect(line.getWidth(1), 2);
+    expect(line.getWidth(2), 0);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal keeps keycap sequences in one wide grapheme', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('#\ufe0f\u20e3x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x23);
+    expect(line.getCombiningCharacters(0), '\ufe0f\u20e3');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
   test('Terminal can disable grapheme width adjustment', () {
     final terminal = Terminal()..resize(10, 2);
 
