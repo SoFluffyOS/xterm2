@@ -1555,6 +1555,40 @@ void main() {
     );
   });
 
+  test('Terminal applies OSC 133 fresh-line actions', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('Hello\x1b]133;L\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 1);
+    expect(states, isEmpty);
+
+    terminal.write('prompt\x1b]133;A\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 2);
+    expect(states.last.content, TerminalSemanticPromptContent.prompt);
+
+    terminal.write('\x1b]133;N\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 2);
+    expect(states.last.content, TerminalSemanticPromptContent.prompt);
+  });
+
+  test('Terminal keeps OSC 133 prompt marker on current line', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('Hello\x1b]133;P\x1b\\');
+
+    expect(terminal.buffer.cursorX, 5);
+    expect(terminal.buffer.cursorY, 0);
+    expect(states.single.content, TerminalSemanticPromptContent.prompt);
+  });
+
   test('Terminal decodes OSC 133 command line options', () {
     final states = <TerminalSemanticPromptState>[];
     final terminal = Terminal(onSemanticPrompt: states.add);

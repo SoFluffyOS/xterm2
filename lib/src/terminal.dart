@@ -3622,9 +3622,20 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (ps != '133' || pt.isEmpty) return;
     final action = pt.first;
     if (action.isEmpty) return;
+    final actionCode = action.codeUnitAt(0);
+
+    switch (actionCode) {
+      case 0x41: // A: prompt start
+      case 0x4e: // N: fresh-line prompt start
+      case 0x4c: // L: fresh line
+        _semanticPromptFreshLine();
+    }
+
+    if (actionCode == 0x4c) return;
+
     final options = _parseSemanticPromptOptions(pt);
 
-    final content = switch (action.codeUnitAt(0)) {
+    final content = switch (actionCode) {
       0x41 || 0x4e || 0x50 => TerminalSemanticPromptContent.prompt,
       0x42 || 0x49 => TerminalSemanticPromptContent.input,
       0x43 || 0x44 => TerminalSemanticPromptContent.output,
@@ -3632,7 +3643,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     };
     if (content == null) return;
 
-    final exitCode = switch (action.codeUnitAt(0)) {
+    final exitCode = switch (actionCode) {
       0x44 => _parseSemanticPromptExitCode(pt),
       _ => _semanticPromptState.lastCommandExitCode,
     };
@@ -3648,6 +3659,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     );
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
+  }
+
+  void _semanticPromptFreshLine() {
+    if (_buffer.cursorX == 0) return;
+    carriageReturn();
+    index();
   }
 
   void _handleVsCodeShellIntegrationOsc(String ps, List<String> pt) {
