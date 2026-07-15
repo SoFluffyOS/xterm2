@@ -208,6 +208,40 @@ void main() {
     expect(terminal.buffer.cursorY, 0);
   });
 
+  test('Terminal complete erase at semantic prompt preserves history', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write(
+      'old1\r\nold2\r\n'
+      '\x1b]133;A\x1b\\~/simon '
+      '\x1b[H\x1b[2J',
+    );
+
+    expect(terminal.buffer.scrollBack, 3);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].getText(0, 12), 'old1');
+    expect(terminal.buffer.lines[1].getText(0, 12), 'old2');
+    expect(terminal.buffer.lines[2].getText(0, 12), '~/simon ');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 12)),
+      everyElement(''),
+    );
+  });
+
+  test('Terminal complete erase in output state does not preserve history', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\x1b[H\x1b[2J');
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+  });
+
   test('Terminal clear preserves the active prompt line', () {
     final terminal = Terminal(maxLines: 10)..resize(12, 4);
 

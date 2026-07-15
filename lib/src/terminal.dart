@@ -2013,12 +2013,25 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void eraseDisplay() {
+    if (_shouldScrollClearBeforeEraseDisplay()) {
+      _buffer.scrollClear();
+    }
     _buffer.eraseDisplay(respectProtected: _usesIsoProtection);
   }
 
   @override
   void eraseDisplaySelective() {
     _buffer.eraseDisplay(respectProtected: true);
+  }
+
+  bool _shouldScrollClearBeforeEraseDisplay() {
+    if (isUsingAltBuffer) return false;
+    return switch (_semanticPromptState.content) {
+      TerminalSemanticPromptContent.prompt ||
+      TerminalSemanticPromptContent.input =>
+        true,
+      TerminalSemanticPromptContent.output => false,
+    };
   }
 
   @override
