@@ -708,6 +708,42 @@ void main() {
     });
   });
 
+  group('TerminalView shortcuts', () {
+    testWidgets('select all includes scrollback', (tester) async {
+      final terminal = Terminal(maxLines: 10)..resize(4, 2);
+      final controller = TerminalController();
+
+      terminal.write('line1\r\nline2\r\nline3');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              controller: controller,
+              autofocus: true,
+              shortcuts: {
+                SingleActivator(LogicalKeyboardKey.keyA):
+                    const SelectAllTextIntent(SelectionChangedCause.keyboard),
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+
+      expect(
+        terminal.buffer.getText(controller.selection),
+        startsWith('line1\nline2\nline3'),
+      );
+
+      controller.dispose();
+    });
+  });
+
   group('TerminalView.textScaler', () {
     testWidgets('works', (tester) async {
       final terminal = Terminal();

@@ -51,10 +51,7 @@ class TerminalActions extends StatelessWidget {
         SelectAllTextIntent: CallbackAction<SelectAllTextIntent>(
           onInvoke: (intent) {
             controller.setSelection(
-              terminal.buffer.createAnchor(
-                0,
-                terminal.buffer.height - terminal.viewHeight,
-              ),
+              terminal.buffer.createAnchor(0, 0),
               terminal.buffer.createAnchor(
                 terminal.viewWidth,
                 terminal.buffer.height - 1,
