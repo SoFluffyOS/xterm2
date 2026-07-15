@@ -39,6 +39,7 @@ class TerminalStyle {
     this.height = _kDefaultHeight,
     this.fontFamily = _kDefaultFontFamily,
     this.fontFamilyFallback = _kDefaultFontFamilyFallback,
+    this.drawBoldTextWithBrightColors = true,
   });
 
   factory TerminalStyle.fromTextStyle(TextStyle textStyle) {
@@ -50,6 +51,7 @@ class TerminalStyle {
           _kDefaultFontFamily,
       fontFamilyFallback:
           textStyle.fontFamilyFallback ?? _kDefaultFontFamilyFallback,
+      drawBoldTextWithBrightColors: true,
     );
   }
 
@@ -60,6 +62,8 @@ class TerminalStyle {
   final String fontFamily;
 
   final List<String> fontFamilyFallback;
+
+  final bool drawBoldTextWithBrightColors;
 
   TextStyle toTextStyle({
     Color? color,
@@ -114,12 +118,15 @@ class TerminalStyle {
     double? height,
     String? fontFamily,
     List<String>? fontFamilyFallback,
+    bool? drawBoldTextWithBrightColors,
   }) {
     return TerminalStyle(
       fontSize: fontSize ?? this.fontSize,
       height: height ?? this.height,
       fontFamily: fontFamily ?? this.fontFamily,
       fontFamilyFallback: fontFamilyFallback ?? this.fontFamilyFallback,
+      drawBoldTextWithBrightColors:
+          drawBoldTextWithBrightColors ?? this.drawBoldTextWithBrightColors,
     );
   }
 
@@ -130,6 +137,7 @@ class TerminalStyle {
     if (fontSize != other.fontSize ||
         height != other.height ||
         fontFamily != other.fontFamily ||
+        drawBoldTextWithBrightColors != other.drawBoldTextWithBrightColors ||
         fontFamilyFallback.length != other.fontFamilyFallback.length) {
       return false;
     }
@@ -146,6 +154,7 @@ class TerminalStyle {
         fontSize,
         height,
         fontFamily,
+        drawBoldTextWithBrightColors,
         Object.hashAll(fontFamilyFallback),
       );
 }

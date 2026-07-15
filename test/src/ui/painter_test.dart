@@ -225,6 +225,68 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter maps bold ANSI colors to bright palette', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final redCell = CellData.empty()
+      ..foreground = CellColor.named | 1
+      ..flags = CellFlags.bold;
+    final brightRedCell = CellData.empty()
+      ..foreground = CellColor.named | 9
+      ..flags = CellFlags.bold;
+    final rgbCell = CellData.empty()
+      ..foreground = CellColor.rgb | 0x102030
+      ..flags = CellFlags.bold;
+
+    expect(
+      painter.resolveCellForegroundColor(redCell),
+      TerminalThemes.whiteOnBlack.brightRed,
+    );
+    expect(
+      painter.resolveCellForegroundColor(brightRedCell),
+      TerminalThemes.whiteOnBlack.brightRed,
+    );
+    expect(
+      painter.resolveCellForegroundColor(rgbCell),
+      const ui.Color(0xff102030),
+    );
+
+    painter.dispose();
+  });
+
+  test('TerminalPainter lets OSC bold color override bold bright mapping', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final terminal = Terminal()..write('\x1b]5;0;#123456\x1b\\');
+    painter.updateColorOverrides(
+      terminal,
+      terminal.colorRevision,
+      terminal.indexedColorOverrides,
+      terminal.specialColorOverrides,
+      terminal.foregroundColorOverride,
+      terminal.backgroundColorOverride,
+      terminal.cursorColorOverride,
+      terminal.selectionColorOverride,
+      terminal.selectionForegroundColorOverride,
+    );
+    final cell = CellData.empty()
+      ..foreground = CellColor.named | 1
+      ..flags = CellFlags.bold;
+
+    expect(
+      painter.resolveCellForegroundColor(cell),
+      const ui.Color(0xff123456),
+    );
+
+    painter.dispose();
+  });
+
   test('TerminalPainter dims faint text without making it transparent', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
@@ -603,6 +665,7 @@ void main() {
       height: 1.1,
       fontFamily: 'Mono',
       fontFamilyFallback: ['A', 'B'],
+      drawBoldTextWithBrightColors: false,
     );
 
     expect(
@@ -612,9 +675,11 @@ void main() {
         height: 1.1,
         fontFamily: 'Mono',
         fontFamilyFallback: ['A', 'B'],
+        drawBoldTextWithBrightColors: false,
       ),
     );
     expect(style.copyWith(fontFamilyFallback: ['A', 'C']), isNot(style));
+    expect(style.copyWith(drawBoldTextWithBrightColors: true), isNot(style));
   });
 
   test('paintLine strikes through procedural glyphs', () async {

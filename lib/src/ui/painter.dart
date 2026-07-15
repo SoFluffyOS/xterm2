@@ -800,7 +800,8 @@ class TerminalPainter {
 
   Color _resolveLogicalForegroundColor(CellData cellData) {
     final specialColor = _attributeForegroundColor(cellData.flags);
-    final color = specialColor ?? resolveForegroundColor(cellData.foreground);
+    final color =
+        specialColor ?? resolveForegroundColor(_boldBrightForeground(cellData));
     if (cellData.flags & CellFlags.faint == 0) return color;
     return color.withValues(
       red: color.r * _dimColorFactor,
@@ -823,6 +824,27 @@ class TerminalPainter {
       if (color != null) return color;
     }
     return null;
+  }
+
+  int _boldBrightForeground(CellData cellData) {
+    if (!_textStyle.drawBoldTextWithBrightColors) {
+      return cellData.foreground;
+    }
+    if (cellData.flags & CellFlags.bold == 0) {
+      return cellData.foreground;
+    }
+
+    final colorType = cellData.foreground & CellColor.typeMask;
+    if (colorType != CellColor.named && colorType != CellColor.palette) {
+      return cellData.foreground;
+    }
+
+    final colorValue = cellData.foreground & CellColor.valueMask;
+    if (colorValue > 7) {
+      return cellData.foreground;
+    }
+
+    return colorType | (colorValue + 8);
   }
 
   Color _underlineDecorationColor(int cellFlags, Color fallback) {
