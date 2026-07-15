@@ -1530,16 +1530,24 @@ void main() {
       onColorQuery: (code, index) {
         if (code == 4 && index == 2) return 0x123456;
         if (code == 11) return 0xabcdef;
+        if (code == 13) return 0x13579b;
         if (code == 19) return 0x456789;
         return null;
       },
     );
-    terminal.write('\x1b]4;1;#010203\x1b\\\x1b]17;#234567\x1b\\');
+    terminal.write(
+      '\x1b]4;1;#010203\x1b\\'
+      '\x1b]13;#02468a\x1b\\'
+      '\x1b]17;#234567\x1b\\',
+    );
 
     terminal.write(
       '\x1b]4;1;?;2;?\x1b\\'
       '\x1b]11;?\x1b\\'
       '\x1b]12;?\x1b\\'
+      '\x1b]13;?\x1b\\'
+      '\x1b]113\x1b\\'
+      '\x1b]13;?\x1b\\'
       '\x1b]17;?\x1b\\'
       '\x1b]19;?\x1b\\',
     );
@@ -1548,6 +1556,8 @@ void main() {
       '\x1b]4;1;rgb:0101/0202/0303\x1b\\',
       '\x1b]4;2;rgb:1212/3434/5656\x1b\\',
       '\x1b]11;rgb:abab/cdcd/efef\x1b\\',
+      '\x1b]13;rgb:0202/4646/8a8a\x1b\\',
+      '\x1b]13;rgb:1313/5757/9b9b\x1b\\',
       '\x1b]17;rgb:2323/4545/6767\x1b\\',
       '\x1b]19;rgb:4545/6767/8989\x1b\\',
     ]);

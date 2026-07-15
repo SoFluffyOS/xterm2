@@ -263,6 +263,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   final Map<int, int> _indexedColorOverrides = {};
   final Map<int, int> _specialColorOverrides = {};
+  final Map<int, int> _auxiliaryDynamicColorOverrides = {};
 
   int? _foregroundColorOverride;
 
@@ -3427,6 +3428,14 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
         if (_cursorColorOverride == color) return;
         _cursorColorOverride = color;
         break;
+      case 13:
+      case 14:
+      case 15:
+      case 16:
+      case 18:
+        if (_auxiliaryDynamicColorOverrides[code] == color) return;
+        _auxiliaryDynamicColorOverrides[code] = color;
+        break;
       case 17:
         if (_selectionColorOverride == color) return;
         _selectionColorOverride = color;
@@ -3449,7 +3458,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       12 => _cursorColorOverride,
       17 => _selectionColorOverride,
       19 => _selectionForegroundColorOverride,
-      _ => null,
+      _ => _auxiliaryDynamicColorOverrides[code],
     };
     final color = override ?? onColorQuery?.call(code, null);
     if (color == null) return;
@@ -3470,6 +3479,13 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       case 12:
         if (_cursorColorOverride == null) return;
         _cursorColorOverride = null;
+        break;
+      case 13:
+      case 14:
+      case 15:
+      case 16:
+      case 18:
+        if (_auxiliaryDynamicColorOverrides.remove(code) == null) return;
         break;
       case 17:
         if (_selectionColorOverride == null) return;

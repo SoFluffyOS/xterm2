@@ -503,20 +503,28 @@ void main() {
       verify(handler.resetSpecialColors([1, 2])).called(1);
     });
 
-    test('parses xterm selection dynamic color OSCs', () {
+    test('parses xterm dynamic color OSCs', () {
       final handler = MockEscapeHandler();
       final parser = EscapeParser(handler);
 
       parser.write(
+        '\x1b]13;#010203\x1b\\'
         '\x1b]17;#123456\x1b\\'
+        '\x1b]18;#654321\x1b\\'
         '\x1b]19;?\x1b\\'
+        '\x1b]113\x1b\\'
         '\x1b]117\x1b\\'
+        '\x1b]118\x1b\\'
         '\x1b]119\x1b\\',
       );
 
+      verify(handler.setDynamicColor(13, '#010203')).called(1);
       verify(handler.setDynamicColor(17, '#123456')).called(1);
+      verify(handler.setDynamicColor(18, '#654321')).called(1);
       verify(handler.queryDynamicColor(19)).called(1);
+      verify(handler.resetDynamicColor(13)).called(1);
       verify(handler.resetDynamicColor(17)).called(1);
+      verify(handler.resetDynamicColor(18)).called(1);
       verify(handler.resetDynamicColor(19)).called(1);
     });
   });
