@@ -89,6 +89,22 @@ void main() {
     expect(terminal.buffer.lines[0].getWidth(0), 0);
   });
 
+  test('reflow() can print wide characters after shrinking wide content', () {
+    final terminal = Terminal()..resize(3, 3);
+
+    terminal.write('x😀');
+    terminal.resize(2, 3);
+    terminal.setCursor(1, 2);
+    terminal.write('😀');
+
+    final bottomLine = terminal
+        .buffer.lines[terminal.buffer.scrollBack + terminal.buffer.cursorY];
+
+    expect(bottomLine.getCodePoint(0), 0x1F600);
+    expect(bottomLine.getWidth(0), 2);
+    expect(bottomLine.getWidth(1), 0);
+  });
+
   test('reflow() preserves combining characters', () {
     final terminal = Terminal()..resize(8, 5);
     terminal.write('abcde\u0301fgh');
