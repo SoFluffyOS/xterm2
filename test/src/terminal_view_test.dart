@@ -403,6 +403,44 @@ void main() {
     expect(state.renderTerminal.activeHyperlinkId, isNull);
   });
 
+  testWidgets(
+      'TerminalView activates hovered OSC 8 links when modifier is held',
+      (tester) async {
+    final terminal = Terminal()
+      ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');
+    String? activatedUri;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          onHyperlinkTap: (uri) => activatedUri = uri,
+        ),
+      ),
+    );
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+    final modifierKey = switch (defaultTargetPlatform == TargetPlatform.macOS) {
+      true => LogicalKeyboardKey.metaLeft,
+      false => LogicalKeyboardKey.controlLeft,
+    };
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+
+    await tester.sendKeyDownEvent(modifierKey);
+    await tester.sendEventToBinding(pointer.hover(position));
+    await tester.pump();
+
+    expect(state.renderTerminal.activeHyperlinkId, isNotNull);
+
+    await tester.tapAt(position);
+    await tester.pump();
+
+    expect(activatedUri, 'https://example.com');
+
+    await tester.sendKeyUpEvent(modifierKey);
+  });
+
   testWidgets('TerminalView reports hovered cell offsets', (tester) async {
     final terminal = Terminal()..write('abcdef');
     CellOffset? hoveredOffset;

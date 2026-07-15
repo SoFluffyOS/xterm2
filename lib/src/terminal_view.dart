@@ -560,6 +560,7 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onTapUp(TapUpDetails details) {
+    _updateHyperlinkModifierState();
     final offset = renderTerminal.getCellOffset(details.localPosition);
     final hyperlink = switch (_hyperlinkModifierPressed) {
       true => widget.terminal.hyperlinkAt(offset),
@@ -575,6 +576,7 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onPointerHover(PointerHoverEvent event) {
+    _updateHyperlinkModifierState();
     final offset = renderTerminal.getCellOffset(event.localPosition);
     final hyperlinkId = widget.terminal.hyperlinkIdAt(offset);
     _setHoveredHyperlinkId(switch (hyperlinkId) {
