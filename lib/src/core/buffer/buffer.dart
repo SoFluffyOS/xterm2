@@ -1358,16 +1358,20 @@ class Buffer {
     resetHorizontalMargins();
   }
 
-  void screenAlignmentTest() {
+  void screenAlignmentTest(CursorStyle style) {
     final viewportStart = scrollBack;
     final viewportEnd = viewportStart + viewHeight;
+    resetVerticalMargins();
+    resetHorizontalMargins();
     for (var row = viewportStart; row < viewportEnd; row++) {
       final line = lines[row];
       line.isWrapped = false;
       for (var column = 0; column < viewWidth; column++) {
-        line.setCell(column, 0x45, 1, CursorStyle.empty);
+        line.setCell(column, 0x45, 1, style);
       }
     }
+    _cursorX = 0;
+    _cursorY = 0;
   }
 
   void resetViewport() {

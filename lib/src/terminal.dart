@@ -1201,7 +1201,12 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void screenAlignmentTest() {
-    _buffer.screenAlignmentTest();
+    final style = CursorStyle(
+      foreground: _cursorStyle.foreground,
+      background: _cursorStyle.background,
+    );
+    _originMode = false;
+    _buffer.screenAlignmentTest(style);
   }
 
   @override

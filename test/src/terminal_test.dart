@@ -133,6 +133,34 @@ void main() {
     );
   });
 
+  test('Terminal DEC screen alignment homes cursor and resets margins', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('\x1b[2;3r\x1b[?69h\x1b[2;3s\x1b[?6h\x1b[2;2H');
+    terminal.write('\x1b#8');
+
+    expect(terminal.originMode, isFalse);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, 2);
+    expect(terminal.buffer.marginLeft, 0);
+    expect(terminal.buffer.marginRight, 3);
+  });
+
+  test('Terminal DEC screen alignment keeps only active colors', () {
+    final terminal = Terminal()..resize(4, 2);
+
+    terminal.write('\u2764\ufe0f\x1b[31;41;1;4;9m\x1b[1"q\x1b#8');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getText(0, 4), 'EEEE');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+    expect(line.getBackground(0), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(0), 0);
+    expect(line.getCombiningCharacters(0), isNull);
+  });
+
   test('Terminal full-screen scroll up preserves main-buffer history', () {
     final terminal = Terminal(maxLines: 10)..resize(4, 3);
 
