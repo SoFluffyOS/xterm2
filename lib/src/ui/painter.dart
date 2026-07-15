@@ -361,6 +361,7 @@ class TerminalPainter {
     int? cursorColumn,
     Color? cursorForeground,
     Color? foregroundOverride,
+    bool ensureSelectionContrast = false,
   }) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
@@ -396,6 +397,7 @@ class TerminalPainter {
           true => cursorForeground,
           false => foregroundOverride,
         },
+        ensureSelectionContrast: ensureSelectionContrast && i != cursorColumn,
       );
 
       if (charWidth == 2) {
@@ -422,6 +424,7 @@ class TerminalPainter {
     bool blinkVisible = true,
     int? activeHyperlinkId,
     Color? foregroundOverride,
+    bool ensureSelectionContrast = false,
   }) {
     final charCode = cellData.content & CellContent.codepointMask;
     if (charCode == 0) return;
@@ -440,10 +443,16 @@ class TerminalPainter {
         !_hasVisibleSpaceDecoration(cellFlags)) {
       return;
     }
-    final color = resolveCellForegroundColor(
-      cellData,
-      foregroundOverride: foregroundOverride,
-    );
+    final color = switch (ensureSelectionContrast) {
+      true => resolveSelectionForegroundColor(
+          cellData,
+          foregroundOverride: foregroundOverride,
+        ),
+      false => resolveCellForegroundColor(
+          cellData,
+          foregroundOverride: foregroundOverride,
+        ),
+    };
     final charWidth = cellData.content >> CellContent.widthShift;
     final cellSpan = switch (charWidth) {
       2 => 2,
@@ -886,6 +895,34 @@ class TerminalPainter {
               resolveBackgroundColor(cellData.background),
         };
     return color;
+  }
+
+  Color resolveSelectionForegroundColor(
+    CellData cellData, {
+    Color? foregroundOverride,
+  }) {
+    final foreground = resolveCellForegroundColor(
+      cellData,
+      foregroundOverride: foregroundOverride,
+    );
+    final cellBackground =
+        resolveCellBackgroundColor(cellData) ?? backgroundColor;
+    final selectedBackground = Color.alphaBlend(
+      selectionColor,
+      cellBackground,
+    );
+    if (_contrastRatio(foreground, selectedBackground) >= 1.5) {
+      return foreground;
+    }
+
+    final terminalBackgroundContrast =
+        _contrastRatio(backgroundColor, selectedBackground);
+    final terminalForegroundContrast =
+        _contrastRatio(foregroundColor, selectedBackground);
+    return switch (terminalBackgroundContrast >= terminalForegroundContrast) {
+      true => backgroundColor,
+      false => foregroundColor,
+    };
   }
 
   Color _resolveLogicalForegroundColor(CellData cellData) {

@@ -435,6 +435,34 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter reveals low-contrast selected text', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()..foreground = CellColor.rgb | 0xaeafad;
+
+    final color = painter.resolveSelectionForegroundColor(cell);
+
+    expect(color, painter.backgroundColor);
+    painter.dispose();
+  });
+
+  test('TerminalPainter preserves contrasting selected text', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final cell = CellData.empty()..foreground = CellColor.rgb | 0xff0000;
+
+    final color = painter.resolveSelectionForegroundColor(cell);
+
+    expect(color, const ui.Color(0xffff0000));
+    painter.dispose();
+  });
+
   test('TerminalPainter cell width fits visible ASCII glyphs', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

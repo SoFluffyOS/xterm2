@@ -813,15 +813,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
     _updateTextBlinking(hasBlinkingText);
 
-    final selectionForeground = _painter.selectionForegroundColor;
-    if (selection != null && selectionForeground != null) {
+    if (selection != null) {
       _paintSelectionForegrounds(
         canvas,
         offset,
         selection,
         effectFirstLine,
         effectLastLine,
-        selectionForeground,
+        _painter.selectionForegroundColor,
         cursorColumn: switch (shouldPaintBlockCursor && _focusNode.hasFocus) {
           true => cursorRenderColumn,
           false => null,
@@ -1016,7 +1015,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     BufferRange selection,
     int firstLine,
     int lastLine,
-    Color foreground, {
+    Color? foreground, {
     int? cursorColumn,
     Color? cursorForeground,
   }) {
@@ -1061,6 +1060,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         },
         cursorForeground: cursorForeground,
         foregroundOverride: foreground,
+        ensureSelectionContrast: true,
       );
       canvas.restore();
     }
