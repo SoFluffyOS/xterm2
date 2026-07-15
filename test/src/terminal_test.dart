@@ -504,6 +504,20 @@ void main() {
     expect(terminal.buffer.cursorX, 3);
   });
 
+  test('Terminal ignores invalid VS15 inside emoji ZWJ graphemes', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F469}\ufe0e\u200d\u{1F466}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F469);
+    expect(line.getCombiningCharacters(0), '\u200d\u{1F466}');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
   test('Terminal keeps invalid emoji modifiers separate from text', () {
     final terminal = Terminal()..resize(8, 2);
 

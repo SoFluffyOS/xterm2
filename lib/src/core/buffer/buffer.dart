@@ -135,7 +135,7 @@ class Buffer {
     final cellWidth = unicodeV11.wcwidth(codePoint);
     if (terminal.graphemeClusterMode &&
         (codePoint == 0xFE0E || codePoint == 0xFE0F)) {
-      if (_previousSupportsEmojiVariation() &&
+      if (_previousSupportsEmojiVariation(codePoint) &&
           _resizePreviousGrapheme(codePoint)) {
         _addCombiningCharacter(codePoint);
       }
@@ -225,10 +225,13 @@ class Buffer {
     return _setPreviousGraphemeWidth(desiredWidth);
   }
 
-  bool _previousSupportsEmojiVariation() {
+  bool _previousSupportsEmojiVariation(int variationSelector) {
     final index = _previousCellIndex();
     if (index == null) return false;
-    return _supportsEmojiVariation(currentLine.getCodePoint(index));
+    return _supportsEmojiVariation(
+      currentLine.getCodePoint(index),
+      variationSelector,
+    );
   }
 
   bool _setPreviousGraphemeWidth(int desiredWidth) {
@@ -444,7 +447,7 @@ class Buffer {
     return codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF;
   }
 
-  static bool _supportsEmojiVariation(int codePoint) {
+  static bool _supportsEmojiVariation(int codePoint, int variationSelector) {
     return switch (codePoint) {
       0x23 || 0x2A || >= 0x30 && <= 0x39 => true,
       0xA9 || 0xAE || 0x203C || 0x2049 || 0x2122 || 0x2139 => true,
@@ -473,7 +476,7 @@ class Buffer {
       >= 0x2934 && <= 0x2935 || >= 0x2B05 && <= 0x2B07 => true,
       >= 0x2B1B && <= 0x2B1C || 0x2B50 || 0x2B55 => true,
       0x3030 || 0x303D || 0x3297 || 0x3299 => true,
-      >= 0x1F000 && <= 0x1FAFF => true,
+      >= 0x1F000 && <= 0x1FAFF => variationSelector == 0xFE0F,
       _ => false,
     };
   }
