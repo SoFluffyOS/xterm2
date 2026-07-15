@@ -143,9 +143,14 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       return '\x1b[$payload$terminator';
     }
 
+    final modifierParameter =
+        switch (modifiers == 1 && associatedText != null) {
+      true => '',
+      false => '$modifiers',
+    };
     final eventParameter = switch (eventType) {
-      null => '$modifiers',
-      final value => '$modifiers:$value',
+      null => modifierParameter,
+      final value => '$modifierParameter:$value',
     };
     final textParameter = switch (associatedText) {
       null => '',

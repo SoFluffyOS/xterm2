@@ -336,7 +336,7 @@ void main() {
       terminal.keyInput(TerminalKey.keyA, text: 'a');
       terminal.keyInput(TerminalKey.none, text: 'é');
 
-      expect(output, ['\x1b[97;1;97u', '\x1b[233;1;233u']);
+      expect(output, ['\x1b[97;;97u', '\x1b[233;;233u']);
     });
 
     test('omits Kitty associated text for modified keys', () {
