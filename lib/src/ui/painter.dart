@@ -494,6 +494,7 @@ class TerminalPainter {
           offset,
           decorationColor,
           cellFlags,
+          allocatedWidth: allocatedWidth,
           isHyperlink: isActiveHyperlink,
         );
       }
@@ -501,26 +502,26 @@ class TerminalPainter {
         _foregroundPaint.color = decorationColor;
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 3),
-          offset.translate(_cellSize.width, _cellSize.height - 3),
+          offset.translate(allocatedWidth, _cellSize.height - 3),
           _foregroundPaint,
         );
         canvas.drawLine(
           offset.translate(0, _cellSize.height - 1),
-          offset.translate(_cellSize.width, _cellSize.height - 1),
+          offset.translate(allocatedWidth, _cellSize.height - 1),
           _foregroundPaint,
         );
       }
       if (cellFlags & CellAttr.strikethrough != 0) {
         canvas.drawLine(
           offset.translate(0, _cellSize.height / 2),
-          offset.translate(_cellSize.width, _cellSize.height / 2),
+          offset.translate(allocatedWidth, _cellSize.height / 2),
           _foregroundPaint,
         );
       }
       if (cellFlags & CellAttr.overline != 0) {
         canvas.drawLine(
           offset,
-          offset.translate(_cellSize.width, 0),
+          offset.translate(allocatedWidth, 0),
           _foregroundPaint,
         );
       }
@@ -687,22 +688,23 @@ class TerminalPainter {
     Offset offset,
     Color color,
     int cellFlags, {
+    required double allocatedWidth,
     required bool isHyperlink,
   }) {
     if (isHyperlink && (cellFlags & CellFlags.underline != 0)) {
-      _paintDoubleUnderline(canvas, offset, color);
+      _paintDoubleUnderline(canvas, offset, color, allocatedWidth);
       return;
     }
     if (cellFlags & CellAttr.undercurl != 0) {
-      _paintWavyUnderline(canvas, offset, color);
+      _paintWavyUnderline(canvas, offset, color, allocatedWidth);
       return;
     }
     if (cellFlags & CellAttr.dottedUnderline != 0) {
-      _paintDottedUnderline(canvas, offset, color);
+      _paintDottedUnderline(canvas, offset, color, allocatedWidth);
       return;
     }
     if (cellFlags & CellAttr.dashedUnderline != 0) {
-      _paintDashedUnderline(canvas, offset, color);
+      _paintDashedUnderline(canvas, offset, color, allocatedWidth);
       return;
     }
     if (cellFlags & CellFlags.underline == 0 && !isHyperlink) {
@@ -714,41 +716,51 @@ class TerminalPainter {
       ..strokeWidth = 1;
     canvas.drawLine(
       offset.translate(0, _cellSize.height - 1),
-      offset.translate(_cellSize.width, _cellSize.height - 1),
+      offset.translate(allocatedWidth, _cellSize.height - 1),
       paint,
     );
   }
 
-  void _paintDoubleUnderline(Canvas canvas, Offset offset, Color color) {
+  void _paintDoubleUnderline(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    double allocatedWidth,
+  ) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
     canvas.drawLine(
       offset.translate(0, _cellSize.height - 3),
-      offset.translate(_cellSize.width, _cellSize.height - 3),
+      offset.translate(allocatedWidth, _cellSize.height - 3),
       paint,
     );
     canvas.drawLine(
       offset.translate(0, _cellSize.height - 1),
-      offset.translate(_cellSize.width, _cellSize.height - 1),
+      offset.translate(allocatedWidth, _cellSize.height - 1),
       paint,
     );
   }
 
-  void _paintWavyUnderline(Canvas canvas, Offset offset, Color color) {
+  void _paintWavyUnderline(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    double allocatedWidth,
+  ) {
     final baseline = offset.dy + _cellSize.height - 2;
     final amplitude = (_cellSize.height / 12).clamp(1.0, 2.0).toDouble();
     final segmentWidth = (_cellSize.width / 2).clamp(3.0, 6.0).toDouble();
     final path = Path()..moveTo(offset.dx, baseline);
     var x = offset.dx;
     var waveUp = true;
-    while (x < offset.dx + _cellSize.width) {
+    while (x < offset.dx + allocatedWidth) {
       final controlY = switch (waveUp) {
         true => baseline - amplitude,
         false => baseline + amplitude,
       };
       final nextX = (x + segmentWidth)
-          .clamp(offset.dx, offset.dx + _cellSize.width)
+          .clamp(offset.dx, offset.dx + allocatedWidth)
           .toDouble();
       path.quadraticBezierTo(
         x + segmentWidth / 2,
@@ -767,7 +779,12 @@ class TerminalPainter {
     canvas.drawPath(path, paint);
   }
 
-  void _paintDottedUnderline(Canvas canvas, Offset offset, Color color) {
+  void _paintDottedUnderline(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    double allocatedWidth,
+  ) {
     final y = offset.dy + _cellSize.height - 1;
     final radius = (_cellSize.height / 18).clamp(0.75, 1.25).toDouble();
     final step = (radius * 4).clamp(3.0, 5.0).toDouble();
@@ -776,13 +793,18 @@ class TerminalPainter {
       ..style = PaintingStyle.fill;
 
     var x = offset.dx + radius;
-    while (x < offset.dx + _cellSize.width) {
+    while (x < offset.dx + allocatedWidth) {
       canvas.drawCircle(Offset(x, y), radius, paint);
       x += step;
     }
   }
 
-  void _paintDashedUnderline(Canvas canvas, Offset offset, Color color) {
+  void _paintDashedUnderline(
+    Canvas canvas,
+    Offset offset,
+    Color color,
+    double allocatedWidth,
+  ) {
     final y = offset.dy + _cellSize.height - 1;
     final dashWidth = (_cellSize.width / 3).clamp(3.0, 6.0).toDouble();
     final gapWidth = (dashWidth / 2).clamp(1.0, 3.0).toDouble();
@@ -791,9 +813,9 @@ class TerminalPainter {
       ..strokeWidth = 1;
 
     var x = offset.dx;
-    while (x < offset.dx + _cellSize.width) {
+    while (x < offset.dx + allocatedWidth) {
       final endX = (x + dashWidth)
-          .clamp(offset.dx, offset.dx + _cellSize.width)
+          .clamp(offset.dx, offset.dx + allocatedWidth)
           .toDouble();
       canvas.drawLine(Offset(x, y), Offset(endX, y), paint);
       x = endX + gapWidth;

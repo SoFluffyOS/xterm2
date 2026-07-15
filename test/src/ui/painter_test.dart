@@ -712,6 +712,30 @@ void main() {
     image.dispose();
   });
 
+  test('paintLine spans decorations across wide procedural glyphs', () async {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+    );
+    final line = BufferLine(2);
+    final style = CursorStyle()..setStrikethrough();
+    line.setCell(0, 0x2500, 2, style);
+
+    final image = await _paintLine(painter, line);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = bytes;
+    if (byteData == null) {
+      fail('Expected line image bytes');
+    }
+
+    final strikeY = (painter.cellSize.height / 2).round();
+    final secondCellX = painter.cellSize.width.floor() + 1;
+    expect(_hasAlphaNear(byteData, image.width, secondCellX, strikeY), isTrue);
+
+    image.dispose();
+  });
+
   test('paintLine renders dotted underlines for procedural glyphs', () async {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,
