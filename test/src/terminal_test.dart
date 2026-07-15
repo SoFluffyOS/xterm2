@@ -180,6 +180,33 @@ void main() {
     expect(terminal.buffer.cursorY, 0);
   });
 
+  test('Terminal clear preserves the active prompt line', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\r\nold3\r\n~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
+  test('Terminal clear preserves wrapped active input', () {
+    final terminal = Terminal(maxLines: 10)..resize(6, 4);
+
+    terminal.write('old\r\nabcdefg');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 2);
+    expect(terminal.buffer.lines[1].getText(0, 6), 'abcdef');
+    expect(terminal.buffer.lines[2].getText(0, 6), 'g');
+    expect(terminal.buffer.lines[2].isWrapped, isTrue);
+  });
+
   test('Terminal restores origin mode with saved cursor', () {
     final terminal = Terminal()..resize(8, 4);
 

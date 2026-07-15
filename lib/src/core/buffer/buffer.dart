@@ -1298,17 +1298,51 @@ class Buffer {
     return false;
   }
 
-  /// Clears the viewport and scrollback buffer. Then fill with empty lines.
+  /// Clears scrollback and viewport content before the active prompt/input.
+  ///
+  /// This follows terminal clear actions that keep the current prompt visible
+  /// while dropping previous output.
   void clear() {
+    var promptStart = absoluteCursorY;
+    while (promptStart > scrollBack && lines[promptStart].isWrapped) {
+      promptStart--;
+    }
+
+    final promptEnd = absoluteCursorY;
+    final promptLines = <BufferLine>[];
+    for (var index = promptStart; index <= promptEnd; index++) {
+      final line = BufferLine(viewWidth)
+        ..copyFrom(lines[index], 0, 0, viewWidth)
+        ..isWrapped = lines[index].isWrapped;
+      promptLines.add(line);
+    }
+
     lines.clear();
-    for (int i = 0; i < viewHeight; i++) {
+
+    final promptTop = max(0, _cursorY - promptLines.length + 1);
+    for (var row = 0; row < viewHeight; row++) {
+      final promptIndex = row - promptTop;
+      if (promptIndex >= 0 && promptIndex < promptLines.length) {
+        lines.push(promptLines[promptIndex]);
+        continue;
+      }
+      lines.push(_newEmptyLine());
+    }
+
+    _cursorY = min(promptTop + promptLines.length - 1, viewHeight - 1);
+    _forceScrollToBottomGeneration++;
+  }
+
+  void _clearAll() {
+    lines.clear();
+    for (var i = 0; i < viewHeight; i++) {
       lines.push(_newEmptyLine());
     }
     _forceScrollToBottomGeneration++;
   }
 
   void reset() {
-    clear();
+    _clearAll();
     _cursorX = 0;
     _cursorY = 0;
     _savedCursorX = 0;
