@@ -2542,7 +2542,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   @override
   void clearAltBuffer() {
-    _altBuffer.clear();
+    _altBuffer.reset();
   }
 
   @override

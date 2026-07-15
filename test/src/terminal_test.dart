@@ -222,6 +222,20 @@ void main() {
     expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
   });
 
+  test('Terminal clear moves a short active prompt to the bottom', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
   test('Terminal clear preserves the active prompt after scrollback overflow',
       () {
     final terminal = Terminal(maxLines: 10)..resize(12, 4);
@@ -244,10 +258,10 @@ void main() {
     terminal.clear();
 
     expect(terminal.buffer.scrollBack, 0);
-    expect(terminal.buffer.cursorY, 2);
-    expect(terminal.buffer.lines[1].getText(0, 6), 'abcdef');
-    expect(terminal.buffer.lines[2].getText(0, 6), 'g');
-    expect(terminal.buffer.lines[2].isWrapped, isTrue);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[2].getText(0, 6), 'abcdef');
+    expect(terminal.buffer.lines[3].getText(0, 6), 'g');
+    expect(terminal.buffer.lines[3].isWrapped, isTrue);
   });
 
   test('Terminal restores origin mode with saved cursor', () {

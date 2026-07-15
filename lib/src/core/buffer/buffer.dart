@@ -1322,7 +1322,7 @@ class Buffer {
 
     lines.clear();
 
-    final promptTop = max(0, _cursorY - promptLines.length + 1);
+    final promptTop = max(0, viewHeight - promptLines.length);
     for (var row = 0; row < viewHeight; row++) {
       final promptIndex = row - promptTop;
       if (promptIndex >= 0 && promptIndex < promptLines.length) {
