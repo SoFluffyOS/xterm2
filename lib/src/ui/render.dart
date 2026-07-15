@@ -402,6 +402,33 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     );
   }
 
+  /// Get the viewport-local [CellOffset] of the cell that [offset] is in.
+  ///
+  /// Mouse reports are screen-relative, not scrollback-buffer-relative.
+  CellOffset _getViewportCellOffset(Offset offset) {
+    final x = offset.dx - _padding.left;
+    final y = offset.dy - _padding.top;
+    final row = y ~/ _painter.cellSize.height;
+    final col = x ~/ _painter.cellSize.width;
+    return CellOffset(
+      col.clamp(0, _terminal.viewWidth - 1),
+      row.clamp(0, _terminal.viewHeight - 1),
+    );
+  }
+
+  CellOffset _getViewportPixelOffset(Offset offset) {
+    final x = (offset.dx - _padding.left).floor();
+    final y = (offset.dy - _padding.top).floor();
+    final maxX =
+        max(0, (_terminal.viewWidth * _painter.cellSize.width).floor());
+    final maxY =
+        max(0, (_terminal.viewHeight * _painter.cellSize.height).floor());
+    return CellOffset(
+      x.clamp(0, max(0, maxX - 1)),
+      y.clamp(0, max(0, maxY - 1)),
+    );
+  }
+
   /// Selects entire words in the terminal that contains [from] and [to].
   void selectWord(Offset from, [Offset? to]) {
     final fromOffset = getCellOffset(from);
@@ -488,14 +515,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     bool motion = false,
     TerminalMouseModifiers modifiers = TerminalMouseModifiers.none,
   }) {
-    final position = getCellOffset(offset);
+    final position = _getViewportCellOffset(offset);
     return _terminal.mouseInput(
       button,
       buttonState,
       position,
       motion: motion,
       modifiers: modifiers,
-      pixelPosition: CellOffset(offset.dx.floor(), offset.dy.floor()),
+      pixelPosition: _getViewportPixelOffset(offset),
     );
   }
 

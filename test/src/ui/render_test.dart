@@ -362,6 +362,67 @@ void main() {
 
     setup.focusNode.dispose();
   });
+
+  test('mouse reporting uses viewport cells when scrolled', () {
+    final output = <String>[];
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset, onOutput: output.add);
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    setup.terminal
+      ..write('\x1b[?1000h\x1b[?1006h')
+      ..write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n');
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    )));
+    offset.jumpTo(render.cellSize.height * 2);
+
+    render.mouseEvent(
+      TerminalMouseButton.left,
+      TerminalMouseButtonState.down,
+      Offset(render.cellSize.width * 2, render.cellSize.height * 3),
+    );
+
+    expect(output.last, '\x1b[<0;3;4M');
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  test('sgr pixel mouse reporting excludes padding', () {
+    final output = <String>[];
+    final setup = _createRenderTerminal(
+      padding: const EdgeInsets.only(left: 7, top: 11),
+      onOutput: output.add,
+    );
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(BoxConstraints.tight(Size(
+      render.cellSize.width * 10 + 7,
+      render.cellSize.height * 5 + 11,
+    )));
+    setup.terminal.write('\x1b[?1000h\x1b[?1016h');
+
+    render.mouseEvent(
+      TerminalMouseButton.left,
+      TerminalMouseButtonState.down,
+      const Offset(27, 41),
+    );
+
+    expect(output.last, '\x1b[<0;21;31M');
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
 }
 
 ({
@@ -374,8 +435,9 @@ void main() {
   bool autoResize = false,
   double backgroundOpacity = 1,
   ViewportOffset? offset,
+  void Function(String)? onOutput,
 }) {
-  final terminal = Terminal()..resize(10, 5);
+  final terminal = Terminal(onOutput: onOutput)..resize(10, 5);
   final controller = TerminalController();
   final focusNode = FocusNode();
   final render = RenderTerminal(
