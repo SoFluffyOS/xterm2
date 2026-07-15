@@ -285,6 +285,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       const TerminalSemanticPromptState(
     content: TerminalSemanticPromptContent.output,
   );
+  bool _semanticInputTerminatesAtLineFeed = false;
 
   int _nextHyperlinkId = 1;
 
@@ -1033,6 +1034,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void lineFeed() {
     _captureITerm2ClipboardText('\n');
     _buffer.lineFeed();
+    _semanticPromptLineFeed();
   }
 
   @override
@@ -1099,6 +1101,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     _synchronizedUpdateMode = false;
     _buffer = _mainBuffer;
     _precedingCodepoint = 0;
+    _semanticInputTerminatesAtLineFeed = false;
     _cursorStyle.reset();
     _cursorStyle.hyperlinkId = 0;
     _protectionMode = _ProtectionMode.off;
@@ -3657,6 +3660,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       specialKey: _parseSemanticPromptBoolean(options['special_key']),
       commandLine: _parseSemanticPromptCommandLine(options),
     );
+    _semanticInputTerminatesAtLineFeed = actionCode == 0x49;
     _semanticPromptState = state;
     onSemanticPrompt?.call(state);
   }
@@ -3665,6 +3669,22 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     if (_buffer.cursorX == 0) return;
     carriageReturn();
     index();
+  }
+
+  void _semanticPromptLineFeed() {
+    if (!_semanticInputTerminatesAtLineFeed) return;
+    if (_semanticPromptState.content != TerminalSemanticPromptContent.input) {
+      _semanticInputTerminatesAtLineFeed = false;
+      return;
+    }
+
+    _semanticInputTerminatesAtLineFeed = false;
+    final state = TerminalSemanticPromptState(
+      content: TerminalSemanticPromptContent.output,
+      lastCommandExitCode: _semanticPromptState.lastCommandExitCode,
+    );
+    _semanticPromptState = state;
+    onSemanticPrompt?.call(state);
   }
 
   void _handleVsCodeShellIntegrationOsc(String ps, List<String> pt) {

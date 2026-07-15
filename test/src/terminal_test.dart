@@ -1589,6 +1589,20 @@ void main() {
     expect(states.single.content, TerminalSemanticPromptContent.prompt);
   });
 
+  test('Terminal terminates OSC 133 input on linefeed', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('\x1b]133;I\x1b\\\n');
+
+    expect(states.map((state) => state.content), [
+      TerminalSemanticPromptContent.input,
+      TerminalSemanticPromptContent.output,
+    ]);
+    expect(terminal.semanticPromptState.content,
+        TerminalSemanticPromptContent.output);
+  });
+
   test('Terminal decodes OSC 133 command line options', () {
     final states = <TerminalSemanticPromptState>[];
     final terminal = Terminal(onSemanticPrompt: states.add);
