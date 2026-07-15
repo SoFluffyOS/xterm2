@@ -24,6 +24,7 @@ import 'package:xterm2/src/core/state.dart';
 import 'package:xterm2/src/core/tabs.dart';
 import 'package:xterm2/src/utils/ascii.dart';
 import 'package:xterm2/src/utils/circular_buffer.dart';
+import 'package:xterm2/src/utils/unicode_v11.dart';
 
 enum _ProtectionMode { off, iso, dec }
 
@@ -951,7 +952,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   @override
   void writeChar(int char) {
     _captureITerm2ClipboardText(String.fromCharCode(char));
-    _precedingCodepoint = char;
+    if (unicodeV11.wcwidth(char) > 0) {
+      _precedingCodepoint = char;
+    }
     _buffer.writeChar(char);
   }
 

@@ -377,6 +377,18 @@ void main() {
     expect(line.getCodePoint(1), 0x79);
   });
 
+  test('Terminal repeat previous character ignores combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('e\u0301\x1b[2b');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'e'.codeUnitAt(0));
+    expect(line.getCombiningCharacters(0), '\u0301');
+    expect(line.getCodePoint(1), 'e'.codeUnitAt(0));
+    expect(line.getCodePoint(2), 'e'.codeUnitAt(0));
+  });
+
   test('Terminal disables extended grapheme joining with mode 2027', () {
     final terminal = Terminal()..resize(12, 2);
 
