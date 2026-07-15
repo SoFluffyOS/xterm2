@@ -3356,6 +3356,21 @@ void main() {
     expect(line.getUnderlineColor(2), CellColor.rgb | 0x070809);
   });
 
+  test('Terminal applies Kakoune-style SGR underline foreground and background',
+      () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[4:3;38;2;51;51;51;48;2;170;170;170;58;2;255;97;136mX',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.undercurl, isNot(0));
+    expect(line.getForeground(0), CellColor.rgb | 0x333333);
+    expect(line.getBackground(0), CellColor.rgb | 0xaaaaaa);
+    expect(line.getUnderlineColor(0), CellColor.rgb | 0xff6188);
+  });
+
   test('Terminal supports colon-delimited SGR truecolor background', () {
     final terminal = Terminal();
 
