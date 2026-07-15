@@ -1880,6 +1880,24 @@ void main() {
     expect(terminal.buffer.lines[0].toString().trimRight(), isEmpty);
   });
 
+  test('Terminal accepts max-size Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(5000, 2);
+    final text = List.filled(4096, 'x').join();
+
+    terminal.write('\x1b]66;;$text\x1b\\');
+
+    expect(terminal.buffer.lines[0].getText(0, 4096), text);
+  });
+
+  test('Terminal discards overlong Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(20, 3);
+    final text = List.filled(4097, 'x').join();
+
+    terminal.write('\x1b]66;;$text\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), isEmpty);
+  });
+
   test('Terminal handles OSC 52 clipboard store and query', () async {
     final stores = <(String, String)>[];
     final output = <String>[];
@@ -3351,8 +3369,8 @@ void main() {
       onPrivateOSC: (code, args) => privateOsc.add('$code;${args.join(';')}'),
     );
 
-    terminal.write('\x1b]999;${'x' * 700}');
-    terminal.write('y' * 700);
+    terminal.write('\x1b]999;${'x' * 4100}');
+    terminal.write('y' * 4100);
     terminal.write('\x07safe');
 
     expect(privateOsc, isEmpty);
@@ -3362,7 +3380,7 @@ void main() {
   test('Terminal terminates oversized OSC discard state with split ST', () {
     final terminal = Terminal();
 
-    terminal.write('\x1b]999;${'x' * 1100}\x1b');
+    terminal.write('\x1b]999;${'x' * 8200}\x1b');
     terminal.write('\\safe');
 
     expect(terminal.buffer.lines[0].toString(), 'safe');

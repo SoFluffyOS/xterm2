@@ -17,7 +17,7 @@ class EscapeParser {
 
   static const _maxCsiParams = 32;
 
-  static const _maxOscRawLength = 1024;
+  static const _maxOscRawLength = 8192;
 
   static const _maxOscParams = 256;
 
