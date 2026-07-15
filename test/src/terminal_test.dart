@@ -685,6 +685,17 @@ void main() {
     expect(terminal.cursor.isDashedUnderline, isFalse);
   });
 
+  test('Terminal falls back unknown colon underline styles to single', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4:99munderlined');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.underline,
+      isNot(0),
+    );
+  });
+
   test('Terminal keeps semicolon underline and italic SGR distinct', () {
     final terminal = Terminal()..resize(20, 5);
 

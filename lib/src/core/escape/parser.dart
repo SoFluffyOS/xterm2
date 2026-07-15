@@ -1250,6 +1250,9 @@ class EscapeParser {
           case 5:
             handler.setCursorDashedUnderline();
             break;
+          default:
+            handler.setCursorUnderline();
+            break;
         }
         i++;
         continue;
