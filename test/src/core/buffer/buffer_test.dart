@@ -351,7 +351,7 @@ void main() {
 
     test('stops at separators across soft-wrapped lines', () {
       final terminal = Terminal()..resize(5, 3);
-      terminal.write('hello-world');
+      terminal.write('hello,world');
 
       final boundary = terminal.buffer.getWordBoundary(
         const CellOffset(1, 1),
@@ -360,6 +360,32 @@ void main() {
       expect(boundary?.begin, const CellOffset(1, 1));
       expect(boundary?.end, const CellOffset(1, 2));
       expect(terminal.buffer.getText(boundary), 'world');
+    });
+
+    test('keeps path and filename punctuation inside words', () {
+      final terminal = Terminal()..resize(30, 2);
+      terminal.write('src/foo-bar.dart');
+
+      final boundary = terminal.buffer.getWordBoundary(
+        const CellOffset(5, 0),
+      );
+
+      expect(boundary?.begin, const CellOffset(0, 0));
+      expect(boundary?.end, const CellOffset(16, 0));
+      expect(terminal.buffer.getText(boundary), 'src/foo-bar.dart');
+    });
+
+    test('breaks at shell punctuation', () {
+      final terminal = Terminal()..resize(30, 2);
+      terminal.write('echo (foo,bar)');
+
+      final boundary = terminal.buffer.getWordBoundary(
+        const CellOffset(11, 0),
+      );
+
+      expect(boundary?.begin, const CellOffset(10, 0));
+      expect(boundary?.end, const CellOffset(13, 0));
+      expect(terminal.buffer.getText(boundary), 'bar');
     });
   });
 
