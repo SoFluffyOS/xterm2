@@ -662,7 +662,7 @@ void main() {
 
     expect(
       features.map((feature) => feature.feature).toSet(),
-      containsAll(['calt', 'clig', 'kern', 'liga']),
+      containsAll(['calt', 'clig', 'dlig', 'hlig', 'kern', 'liga']),
     );
   });
 

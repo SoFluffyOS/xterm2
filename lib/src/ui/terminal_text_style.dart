@@ -35,6 +35,8 @@ const _kDefaultFontFamilyFallback = [
 const _kTerminalFontFeatures = [
   FontFeature.disable('calt'),
   FontFeature.disable('clig'),
+  FontFeature.disable('dlig'),
+  FontFeature.disable('hlig'),
   FontFeature.disable('kern'),
   FontFeature.disable('liga'),
 ];
