@@ -119,6 +119,34 @@ void main() {
       expect(output, ['\x1bOA']);
     });
 
+    test('emits xterm-compatible extended function keys', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.keyInput(TerminalKey.f13);
+      terminal.keyInput(TerminalKey.f16);
+      terminal.keyInput(TerminalKey.f17);
+      terminal.keyInput(TerminalKey.f24);
+
+      expect(output, [
+        '\x1b[1;2P',
+        '\x1b[1;2S',
+        '\x1b[15;2~',
+        '\x1b[24;2~',
+      ]);
+    });
+
+    test('leaves modified extended function keys to Kitty mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      expect(terminal.keyInput(TerminalKey.f13, shift: true), isFalse);
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.f13, shift: true);
+
+      expect(output, ['\x1b[57376;2u']);
+    });
+
     test('keeps legacy control encoding when Kitty mode is disabled', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

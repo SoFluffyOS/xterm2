@@ -31,6 +31,7 @@ const defaultInputHandler = CascadeInputHandler([
   ModifyOtherKeysInputHandler(),
   BackspaceInputHandler(),
   ApplicationKeypadInputHandler(),
+  ExtendedFunctionKeyInputHandler(),
   KeytabInputHandler(),
   CtrlInputHandler(),
   AltInputHandler(),
@@ -88,6 +89,36 @@ class ApplicationKeypadInputHandler implements TerminalInputHandler {
     if (suffix == null) return null;
 
     return '\x1bO$suffix';
+  }
+}
+
+/// Translates F13-F24 to the xterm-compatible shifted F1-F12 sequences.
+class ExtendedFunctionKeyInputHandler implements TerminalInputHandler {
+  const ExtendedFunctionKeyInputHandler();
+
+  static const _sequences = [
+    '\x1b[1;2P',
+    '\x1b[1;2Q',
+    '\x1b[1;2R',
+    '\x1b[1;2S',
+    '\x1b[15;2~',
+    '\x1b[17;2~',
+    '\x1b[18;2~',
+    '\x1b[19;2~',
+    '\x1b[20;2~',
+    '\x1b[21;2~',
+    '\x1b[23;2~',
+    '\x1b[24;2~',
+  ];
+
+  @override
+  String? call(TerminalKeyboardEvent event) {
+    if (event.type == TerminalKeyEventType.release) return null;
+    if (event.ctrl || event.alt || event.shift) return null;
+
+    final index = event.key.index - TerminalKey.f13.index;
+    if (index < 0 || index >= _sequences.length) return null;
+    return _sequences[index];
   }
 }
 
