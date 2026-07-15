@@ -136,6 +136,37 @@ void main() {
     expect(terminal.buffer.absoluteCursorY, 1);
   });
 
+  test('reflow() keeps cursor in blank cells when shrinking', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('01');
+    terminal.setCursor(5, 0);
+
+    terminal.resize(4, 2);
+
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].toString(), '01');
+    expect(terminal.buffer.lines[1].toString(), '');
+  });
+
+  test('reflow() preserves blank lines between wrapped rows', () {
+    final terminal = Terminal()..resize(4, 5);
+
+    terminal.write('0123\r\n\r\n4567');
+
+    terminal.resize(2, 5);
+
+    expect(terminal.buffer.lines[0].toString(), '01');
+    expect(terminal.buffer.lines[1].toString(), '23');
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.lines[2].toString(), '');
+    expect(terminal.buffer.lines[2].isWrapped, isFalse);
+    expect(terminal.buffer.lines[3].toString(), '45');
+    expect(terminal.buffer.lines[4].toString(), '67');
+    expect(terminal.buffer.lines[4].isWrapped, isTrue);
+  });
+
   test('lines has correct length after reflow', () {
     final terminal = Terminal();
 
