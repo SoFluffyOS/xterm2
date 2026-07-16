@@ -177,6 +177,25 @@ void main() {
     );
   });
 
+  test('Terminal hyperlink lookup remains safe after overflow reflow', () {
+    final terminal = Terminal(maxLines: 5)..resize(4, 2);
+    terminal.write(
+      '\x1b]8;;https://example.com\x1b\\'
+      'abcdefghijklmnopqrstuvwxyz'
+      '\x1b]8;;\x1b\\',
+    );
+
+    terminal.resize(8, 2);
+
+    final hyperlinks = <String?>[];
+    for (var row = 0; row < terminal.buffer.lines.length; row++) {
+      for (var column = 0; column < terminal.viewWidth; column++) {
+        hyperlinks.add(terminal.hyperlinkAt(CellOffset(column, row)));
+      }
+    }
+    expect(hyperlinks, contains('https://example.com'));
+  });
+
   test('Terminal scroll-complete erase moves viewport into scrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(4, 2);
 

@@ -346,6 +346,20 @@ void main() {
       expect(cl.length, 0);
     });
 
+    test('replace after overflow keeps every logical slot populated', () {
+      final cl = IndexAwareCircularBuffer<IndexedValue<int>>(5);
+      cl.pushAll(List.generate(7, IndexedValue<int>.new));
+      final replacement = [10.indexed, 11.indexed, 12.indexed];
+
+      cl.replaceWith(replacement);
+
+      expect(cl.toList(), replacement);
+      expect(cl.length, replacement.length);
+      for (var index = 0; index < replacement.length; index++) {
+        expect(replacement[index].index, index);
+      }
+    });
+
     test('can track index of items', () {
       final cl = IndexAwareCircularBuffer<IndexedValue<int>>(3);
       final item0 = IndexedValue(0);
