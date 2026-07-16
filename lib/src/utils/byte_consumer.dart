@@ -7,7 +7,7 @@ class ByteConsumer {
 
   var _currentOffset = 0;
 
-  var _length = 0;
+  var _remainingCodeUnits = 0;
 
   var _totalConsumed = 0;
 
@@ -15,9 +15,8 @@ class ByteConsumer {
 
   void add(String data) {
     if (data.isEmpty) return;
-    final block = _StringBlock(data, _countRunes(data));
-    _queue.addLast(block);
-    _length += block.runeLength;
+    _queue.addLast(_StringBlock(data));
+    _remainingCodeUnits += data.length;
   }
 
   int peek() {
@@ -31,8 +30,13 @@ class ByteConsumer {
     final data = _queue.first.data;
     final first = data.codeUnitAt(_currentOffset);
     final codePoint = _decodeCodePoint(data, _currentOffset, first);
-    _currentOffset += _codePointCodeUnitLength(data, _currentOffset, first);
-    _length--;
+    final codeUnitLength = _codePointCodeUnitLength(
+      data,
+      _currentOffset,
+      first,
+    );
+    _currentOffset += codeUnitLength;
+    _remainingCodeUnits -= codeUnitLength;
     _totalConsumed++;
     _rollbackAvailable++;
     return codePoint;
@@ -52,29 +56,42 @@ class ByteConsumer {
         _currentOffset = block.data.length;
       }
 
-      _currentOffset = _previousRuneOffset(
+      final previousOffset = _previousRuneOffset(
         _queue.first.data,
         _currentOffset,
       );
+      _remainingCodeUnits += _currentOffset - previousOffset;
+      _currentOffset = previousOffset;
       remaining--;
     }
     _totalConsumed -= n;
     _rollbackAvailable -= n;
-    _length += n;
   }
 
   /// Rolls back to the state when this consumer had [length] runes.
   void rollbackTo(int length) {
-    rollback(length - _length);
+    rollback(length - this.length);
   }
 
-  int get length => _length;
+  int get length {
+    var count = 0;
+    var isFirst = true;
+    for (final block in _queue) {
+      final start = switch (isFirst) {
+        true => _currentOffset,
+        false => 0,
+      };
+      count += _countRunes(block.data, start);
+      isFirst = false;
+    }
+    return count;
+  }
 
   int get totalConsumed => _totalConsumed;
 
-  bool get isEmpty => _length == 0;
+  bool get isEmpty => _remainingCodeUnits == 0;
 
-  bool get isNotEmpty => _length != 0;
+  bool get isNotEmpty => _remainingCodeUnits != 0;
 
   /// Unreferences blocks consumed before the current parsing transaction.
   void unrefConsumedBlocks() {
@@ -92,7 +109,7 @@ class ByteConsumer {
     _currentOffset = 0;
     _totalConsumed = 0;
     _rollbackAvailable = 0;
-    _length = 0;
+    _remainingCodeUnits = 0;
   }
 
   void _advancePastConsumedBlocks() {
@@ -105,16 +122,14 @@ class ByteConsumer {
 }
 
 class _StringBlock {
-  const _StringBlock(this.data, this.runeLength);
+  const _StringBlock(this.data);
 
   final String data;
-
-  final int runeLength;
 }
 
-int _countRunes(String data) {
+int _countRunes(String data, int start) {
   var count = 0;
-  var offset = 0;
+  var offset = start;
   while (offset < data.length) {
     final first = data.codeUnitAt(offset);
     offset += _codePointCodeUnitLength(data, offset, first);

@@ -80,6 +80,23 @@ void main() {
     expect(consumed, text.length);
     expect(consumer, isEmpty);
   });
+
+  test('reports remaining rune length without eager block metadata', () {
+    final consumer = ByteConsumer()
+      ..add('a😀')
+      ..add('b😁c');
+
+    expect(consumer.length, 5);
+    expect(consumer.consume(), 0x61);
+    expect(consumer.length, 4);
+    expect(consumer.consume(), 0x1f600);
+    expect(consumer.length, 3);
+
+    consumer.rollback(2);
+
+    expect(consumer.length, 5);
+    expect(_consumeAll(consumer), 'a😀b😁c'.runes);
+  });
 }
 
 List<int> _consumeAll(ByteConsumer consumer) {
