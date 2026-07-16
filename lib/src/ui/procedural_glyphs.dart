@@ -230,26 +230,236 @@ const _legacyCellDiagonalPoints = <List<(double, double)>>[
 ];
 
 const _octantMasks = <int>[
-  0x04, 0x06, 0x07, 0x08, 0x09, 0x0b, 0x0c, 0x0d, 0x0e, 0x10, 0x11, 0x12,
-  0x13, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x29, 0x2a, 0x2b, 0x2c,
-  0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
-  0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
-  0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x51, 0x52, 0x53,
-  0x54, 0x56, 0x57, 0x58, 0x59, 0x5b, 0x5c, 0x5d, 0x5e, 0x60, 0x61, 0x62,
-  0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
-  0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
-  0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-  0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93,
-  0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
-  0xa1, 0xa2, 0xa3, 0xa4, 0xa6, 0xa7, 0xa8, 0xa9, 0xab, 0xac, 0xad, 0xae,
-  0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xbb,
-  0xbc, 0xbd, 0xbe, 0xbf, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8,
-  0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4,
-  0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf, 0xe0,
-  0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec,
-  0xed, 0xee, 0xef, 0xf1, 0xf2, 0xf3, 0xf4, 0xf6, 0xf7, 0xf8, 0xf9, 0xfb,
-  0xfd, 0xfe,
+  0x04,
+  0x06,
+  0x07,
+  0x08,
+  0x09,
+  0x0b,
+  0x0c,
+  0x0d,
+  0x0e,
+  0x10,
+  0x11,
+  0x12,
+  0x13,
+  0x15,
+  0x16,
+  0x17,
+  0x18,
+  0x19,
+  0x1a,
+  0x1b,
+  0x1c,
+  0x1d,
+  0x1e,
+  0x1f,
+  0x20,
+  0x21,
+  0x22,
+  0x23,
+  0x24,
+  0x25,
+  0x26,
+  0x27,
+  0x29,
+  0x2a,
+  0x2b,
+  0x2c,
+  0x2d,
+  0x2e,
+  0x2f,
+  0x30,
+  0x31,
+  0x32,
+  0x33,
+  0x34,
+  0x35,
+  0x36,
+  0x37,
+  0x38,
+  0x39,
+  0x3a,
+  0x3b,
+  0x3c,
+  0x3d,
+  0x3e,
+  0x41,
+  0x42,
+  0x43,
+  0x44,
+  0x45,
+  0x46,
+  0x47,
+  0x48,
+  0x49,
+  0x4a,
+  0x4b,
+  0x4c,
+  0x4d,
+  0x4e,
+  0x4f,
+  0x51,
+  0x52,
+  0x53,
+  0x54,
+  0x56,
+  0x57,
+  0x58,
+  0x59,
+  0x5b,
+  0x5c,
+  0x5d,
+  0x5e,
+  0x60,
+  0x61,
+  0x62,
+  0x63,
+  0x64,
+  0x65,
+  0x66,
+  0x67,
+  0x68,
+  0x69,
+  0x6a,
+  0x6b,
+  0x6c,
+  0x6d,
+  0x6e,
+  0x6f,
+  0x70,
+  0x71,
+  0x72,
+  0x73,
+  0x74,
+  0x75,
+  0x76,
+  0x77,
+  0x78,
+  0x79,
+  0x7a,
+  0x7b,
+  0x7c,
+  0x7d,
+  0x7e,
+  0x7f,
+  0x81,
+  0x82,
+  0x83,
+  0x84,
+  0x85,
+  0x86,
+  0x87,
+  0x88,
+  0x89,
+  0x8a,
+  0x8b,
+  0x8c,
+  0x8d,
+  0x8e,
+  0x8f,
+  0x90,
+  0x91,
+  0x92,
+  0x93,
+  0x94,
+  0x95,
+  0x96,
+  0x97,
+  0x98,
+  0x99,
+  0x9a,
+  0x9b,
+  0x9c,
+  0x9d,
+  0x9e,
+  0x9f,
+  0xa1,
+  0xa2,
+  0xa3,
+  0xa4,
+  0xa6,
+  0xa7,
+  0xa8,
+  0xa9,
+  0xab,
+  0xac,
+  0xad,
+  0xae,
+  0xb0,
+  0xb1,
+  0xb2,
+  0xb3,
+  0xb4,
+  0xb5,
+  0xb6,
+  0xb7,
+  0xb8,
+  0xb9,
+  0xba,
+  0xbb,
+  0xbc,
+  0xbd,
+  0xbe,
+  0xbf,
+  0xc1,
+  0xc2,
+  0xc3,
+  0xc4,
+  0xc5,
+  0xc6,
+  0xc7,
+  0xc8,
+  0xc9,
+  0xca,
+  0xcb,
+  0xcc,
+  0xcd,
+  0xce,
+  0xcf,
+  0xd0,
+  0xd1,
+  0xd2,
+  0xd3,
+  0xd4,
+  0xd5,
+  0xd6,
+  0xd7,
+  0xd8,
+  0xd9,
+  0xda,
+  0xdb,
+  0xdc,
+  0xdd,
+  0xde,
+  0xdf,
+  0xe0,
+  0xe1,
+  0xe2,
+  0xe3,
+  0xe4,
+  0xe5,
+  0xe6,
+  0xe7,
+  0xe8,
+  0xe9,
+  0xea,
+  0xeb,
+  0xec,
+  0xed,
+  0xee,
+  0xef,
+  0xf1,
+  0xf2,
+  0xf3,
+  0xf4,
+  0xf6,
+  0xf7,
+  0xf8,
+  0xf9,
+  0xfb,
+  0xfd,
+  0xfe,
 ];
 
 bool paintProceduralGlyph(
@@ -881,6 +1091,93 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0x1cc30 && codePoint <= 0x1cc3f) {
+    const pieces = <(double, double, double, double, int)>[
+      (0, 0, 2, 2, 0),
+      (1, 0, 2, 2, 0),
+      (2, 0, 2, 2, 1),
+      (3, 0, 2, 2, 1),
+      (0, 1, 2, 2, 0),
+      (0, 0, 1, 1, 0),
+      (1, 0, 1, 1, 1),
+      (3, 1, 2, 2, 1),
+      (0, 2, 2, 2, 2),
+      (0, 1, 1, 1, 2),
+      (1, 1, 1, 1, 3),
+      (3, 2, 2, 2, 3),
+      (0, 3, 2, 2, 2),
+      (1, 3, 2, 2, 2),
+      (2, 3, 2, 2, 3),
+      (3, 3, 2, 2, 3),
+    ];
+    final piece = pieces[codePoint - 0x1cc30];
+    _paintLegacyCirclePiece(
+      canvas,
+      offset,
+      cellSize,
+      x: piece.$1,
+      y: piece.$2,
+      width: piece.$3,
+      height: piece.$4,
+      corner: piece.$5,
+      paint: paint,
+    );
+    return true;
+  }
+
+  if (codePoint == 0x1ce00 || codePoint == 0x1ce01) {
+    final positions = switch (codePoint) {
+      0x1ce00 => const [(0.0, 0.5), (1.0, 0.5)],
+      _ => const [(0.5, 0.0), (0.5, 1.0)],
+    };
+    for (final position in positions) {
+      _paintLegacyCircle(
+        canvas,
+        offset,
+        cellSize,
+        position,
+        filled: false,
+        paint: paint,
+      );
+    }
+    return true;
+  }
+
+  if (codePoint == 0x1ce0b || codePoint == 0x1ce0c) {
+    final isRight = codePoint == 0x1ce0c;
+    final xPosition = switch (isRight) {
+      true => 1.0,
+      false => 0.0,
+    };
+    final topCorner = switch (isRight) {
+      true => 1,
+      false => 0,
+    };
+    _paintLegacyCirclePiece(
+      canvas,
+      offset,
+      cellSize,
+      x: xPosition,
+      y: 0,
+      width: 1,
+      height: 0.5,
+      corner: topCorner,
+      paint: paint,
+    );
+    _paintLegacyCirclePiece(
+      canvas,
+      offset,
+      cellSize,
+      x: xPosition,
+      y: 0,
+      width: 1,
+      height: 0.5,
+      corner: topCorner + 2,
+      paint: paint,
+    );
+    return true;
+  }
+
   if (codePoint >= 0x1ce16 && codePoint <= 0x1ce19) {
     fill(Rect.fromLTRB(centerX - thin / 2, y, centerX + thin / 2, y + height));
     switch (codePoint) {
@@ -1472,7 +1769,16 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x1cc21 && codePoint <= 0x1cc2f) {
     return true;
   }
+  if (codePoint >= 0x1cc30 && codePoint <= 0x1cc3f) {
+    return true;
+  }
   if (codePoint >= 0x1cd00 && codePoint <= 0x1cde5) {
+    return true;
+  }
+  if (codePoint == 0x1ce00 || codePoint == 0x1ce01) {
+    return true;
+  }
+  if (codePoint == 0x1ce0b || codePoint == 0x1ce0c) {
     return true;
   }
   if (codePoint >= 0x1ce16 && codePoint <= 0x1ce19) {
@@ -1740,25 +2046,147 @@ void _paintLegacyEdgeShape(
     0x1fbee => (1.0, 1.0),
     _ => (0.0, 0.0),
   };
-  final center = Offset(
-    x + width * position.$1,
-    y + height * position.$2,
-  );
-  final strokeWidth = max(1.0, width * 0.12);
   final isFilled = codePoint >= 0x1fbe8;
+  _paintLegacyCircle(
+    canvas,
+    offset,
+    cellSize,
+    position,
+    filled: isFilled,
+    paint: paint,
+  );
+}
+
+void _paintLegacyCircle(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  (double, double) position, {
+  required bool filled,
+  required Paint paint,
+}) {
+  final strokeWidth = max(1.0, cellSize.width * 0.12);
   final circlePaint = Paint()
     ..color = paint.color
     ..strokeWidth = strokeWidth
-    ..style = switch (isFilled) {
+    ..style = switch (filled) {
       true => PaintingStyle.fill,
       false => PaintingStyle.stroke,
     };
-  final radius = min(width, height) / 2 -
-      switch (isFilled) {
+  final radius = min(cellSize.width, cellSize.height) / 2 -
+      switch (filled) {
         true => 0,
         false => strokeWidth / 2,
       };
+  final center = Offset(
+    offset.dx + cellSize.width * position.$1,
+    offset.dy + cellSize.height * position.$2,
+  );
   canvas.drawCircle(center, radius, circlePaint);
+}
+
+void _paintLegacyCirclePiece(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize, {
+  required double x,
+  required double y,
+  required double width,
+  required double height,
+  required int corner,
+  required Paint paint,
+}) {
+  final ellipseWidth = cellSize.width * width;
+  final ellipseHeight = cellSize.height * height;
+  final xPosition = cellSize.width * x;
+  final yPosition = cellSize.height * y;
+  const curveCoefficient = 0.5522847498307936;
+  final curveWidth = curveCoefficient * ellipseWidth;
+  final curveHeight = curveCoefficient * ellipseHeight;
+  final strokeWidth = max(1.0, cellSize.width * 0.12);
+  final halfStroke = strokeWidth / 2;
+  final path = Path();
+
+  void moveTo(double x, double y) {
+    path.moveTo(offset.dx + x, offset.dy + y);
+  }
+
+  void cubicTo(
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+    double x3,
+    double y3,
+  ) {
+    path.cubicTo(
+      offset.dx + x1,
+      offset.dy + y1,
+      offset.dx + x2,
+      offset.dy + y2,
+      offset.dx + x3,
+      offset.dy + y3,
+    );
+  }
+
+  switch (corner) {
+    case 0:
+      moveTo(ellipseWidth - xPosition, halfStroke - yPosition);
+      cubicTo(
+        ellipseWidth - curveWidth - xPosition,
+        halfStroke - yPosition,
+        halfStroke - xPosition,
+        ellipseHeight - curveHeight - yPosition,
+        halfStroke - xPosition,
+        ellipseHeight - yPosition,
+      );
+      break;
+    case 1:
+      moveTo(ellipseWidth - xPosition, halfStroke - yPosition);
+      cubicTo(
+        ellipseWidth + curveWidth - xPosition,
+        halfStroke - yPosition,
+        ellipseWidth * 2 - halfStroke - xPosition,
+        ellipseHeight - curveHeight - yPosition,
+        ellipseWidth * 2 - halfStroke - xPosition,
+        ellipseHeight - yPosition,
+      );
+      break;
+    case 2:
+      moveTo(halfStroke - xPosition, ellipseHeight - yPosition);
+      cubicTo(
+        halfStroke - xPosition,
+        ellipseHeight + curveHeight - yPosition,
+        ellipseWidth - curveWidth - xPosition,
+        ellipseHeight * 2 - halfStroke - yPosition,
+        ellipseWidth - xPosition,
+        ellipseHeight * 2 - halfStroke - yPosition,
+      );
+      break;
+    case 3:
+      moveTo(
+        ellipseWidth * 2 - halfStroke - xPosition,
+        ellipseHeight - yPosition,
+      );
+      cubicTo(
+        ellipseWidth * 2 - halfStroke - xPosition,
+        ellipseHeight + curveHeight - yPosition,
+        ellipseWidth + curveWidth - xPosition,
+        ellipseHeight * 2 - halfStroke - yPosition,
+        ellipseWidth - xPosition,
+        ellipseHeight * 2 - halfStroke - yPosition,
+      );
+      break;
+  }
+
+  canvas.drawPath(
+    path,
+    Paint()
+      ..color = paint.color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt,
+  );
 }
 
 bool _isTerminalSymbolGlyph(int codePoint) {
