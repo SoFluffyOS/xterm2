@@ -1038,7 +1038,7 @@ bool _paintProceduralGlyph(
   }
 
   final thin = max(1.0, width * 0.12);
-  final heavy = max(2.0, width * 0.22);
+  final heavy = max(2.0, width * 0.30);
   final centerX = x + width / 2;
   final centerY = y + height / 2;
 

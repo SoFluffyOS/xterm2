@@ -129,6 +129,60 @@ void main() {
     picture.dispose();
   });
 
+  test('heavy box lines are twice the light line weight', () async {
+    const sizes = [Size(8, 16), Size(10, 20), Size(12, 24), Size(20, 40)];
+    const linePairs = [(0x2500, 0x2501), (0x2502, 0x2503)];
+
+    for (final size in sizes) {
+      for (final (light, heavy) in linePairs) {
+        final recorder = PictureRecorder();
+        final canvas = Canvas(recorder);
+        final paint = Paint()..color = const Color(0xffffffff);
+        paintProceduralGlyph(canvas, Offset.zero, size, light, paint);
+        paintProceduralGlyph(
+          canvas,
+          Offset(size.width, 0),
+          size,
+          heavy,
+          paint,
+        );
+
+        final picture = recorder.endRecording();
+        final imageWidth = (size.width * 2).round();
+        final imageHeight = size.height.round();
+        final image = await picture.toImage(imageWidth, imageHeight);
+        final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+        if (bytes == null) {
+          fail('Expected heavy-line image bytes');
+        }
+
+        final cellWidth = size.width.round();
+        final lightWeight =
+            _alphaInRegion(bytes, imageWidth, 0, 0, cellWidth, imageHeight);
+        final heavyWeight = _alphaInRegion(
+          bytes,
+          imageWidth,
+          cellWidth,
+          0,
+          cellWidth,
+          imageHeight,
+        );
+        final lineLength = switch (light) {
+          0x2500 => cellWidth,
+          _ => imageHeight,
+        };
+        expect(
+          heavyWeight,
+          closeTo(lightWeight * 2, lineLength * 255),
+          reason: '${size.width}x${size.height} U+${heavy.toRadixString(16)}',
+        );
+
+        image.dispose();
+        picture.dispose();
+      }
+    }
+  });
+
   test('procedural glyphs do not bleed outside their cell', () async {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);
