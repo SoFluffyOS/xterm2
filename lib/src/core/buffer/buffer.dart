@@ -1573,6 +1573,21 @@ class Buffer {
     return createAnchor(cursorX, absoluteCursorY);
   }
 
+  /// Whether [anchor] belongs to a line in this buffer.
+  bool ownsAnchor(CellAnchor anchor) {
+    final line = anchor.line;
+    if (line == null || !line.attached) {
+      return false;
+    }
+
+    final index = line.index;
+    if (index < 0 || index >= lines.length) {
+      return false;
+    }
+
+    return identical(lines[index], line);
+  }
+
   /// Create a new empty [BufferLine] with the current [viewWidth] if [width]
   /// is not specified.
   BufferLine _newEmptyLine([int? width]) {

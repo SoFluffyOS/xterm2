@@ -35,7 +35,7 @@ class TerminalActions extends StatelessWidget {
         ),
         CopySelectionTextIntent: CallbackAction<CopySelectionTextIntent>(
           onInvoke: (intent) async {
-            final selection = controller.selection;
+            final selection = controller.selectionFor(terminal.buffer);
 
             if (selection == null) {
               return;

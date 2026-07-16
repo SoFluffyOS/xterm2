@@ -753,7 +753,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       effectLastLine,
     );
 
-    final selection = _controller.selection;
+    final selection = _controller.selectionFor(_terminal.buffer);
     if (selection != null) {
       _paintSelection(
         canvas,
@@ -1074,7 +1074,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     int lastLine,
   ) {
     for (var highlight in _controller.highlights) {
-      final range = highlight.range?.normalized;
+      final range = highlight.rangeFor(_terminal.buffer)?.normalized;
 
       if (range == null ||
           range.begin.y > lastLine ||
@@ -1104,7 +1104,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     int lastLine,
   ) {
     for (final underline in underlines) {
-      final range = underline.range?.normalized;
+      final range = underline.rangeFor(_terminal.buffer)?.normalized;
 
       if (range == null ||
           range.begin.y > lastLine ||

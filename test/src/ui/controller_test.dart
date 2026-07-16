@@ -17,6 +17,25 @@ void main() {
       expect(extent.attached, isFalse);
     });
 
+    test('selection is limited to its buffer', () {
+      final terminal = Terminal();
+      final controller = TerminalController();
+      controller.setSelection(
+        terminal.buffer.createAnchor(0, 0),
+        terminal.buffer.createAnchor(2, 0),
+      );
+
+      expect(controller.selectionFor(terminal.buffer), isNotNull);
+
+      terminal.write('\x1b[?1049h');
+
+      expect(controller.selectionFor(terminal.buffer), isNull);
+
+      terminal.write('\x1b[?1049l');
+
+      expect(controller.selectionFor(terminal.buffer), isNotNull);
+    });
+
     testWidgets('setSelectionRange works', (tester) async {
       final terminal = Terminal();
       final terminalView = TerminalController();
@@ -140,6 +159,29 @@ void main() {
 
       highlight.dispose();
       assert(controller.highlights.isEmpty);
+    });
+
+    test('highlight and underline are limited to their buffer', () {
+      final terminal = Terminal();
+      final controller = TerminalController();
+      final highlight = controller.highlight(
+        p1: terminal.buffer.createAnchor(0, 0),
+        p2: terminal.buffer.createAnchor(2, 0),
+        color: Colors.yellow,
+      );
+      final underline = controller.underline(
+        p1: terminal.buffer.createAnchor(0, 0),
+        p2: terminal.buffer.createAnchor(2, 0),
+        color: Colors.blue,
+      );
+
+      expect(highlight.rangeFor(terminal.buffer), isNotNull);
+      expect(underline.rangeFor(terminal.buffer), isNotNull);
+
+      terminal.write('\x1b[?1049h');
+
+      expect(highlight.rangeFor(terminal.buffer), isNull);
+      expect(underline.rangeFor(terminal.buffer), isNull);
     });
   });
 }

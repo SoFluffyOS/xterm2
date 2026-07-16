@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:xterm2/src/base/disposable.dart';
+import 'package:xterm2/src/core/buffer/buffer.dart';
 import 'package:xterm2/src/core/buffer/cell_offset.dart';
 import 'package:xterm2/src/core/buffer/line.dart';
 import 'package:xterm2/src/core/buffer/range.dart';
@@ -50,6 +51,22 @@ class TerminalController with ChangeNotifier {
     }
 
     if (!base.attached || !extent.attached) {
+      return null;
+    }
+
+    return _createRange(base.offset, extent.offset);
+  }
+
+  /// Returns the selection only when both anchors belong to [buffer].
+  BufferRange? selectionFor(Buffer buffer) {
+    final base = _selectionBase;
+    final extent = _selectionExtent;
+
+    if (base == null || extent == null) {
+      return null;
+    }
+
+    if (!buffer.ownsAnchor(base) || !buffer.ownsAnchor(extent)) {
       return null;
     }
 
@@ -225,6 +242,15 @@ class TerminalHighlight with Disposable {
     }
     return BufferRangeLine(p1.offset, p2.offset);
   }
+
+  /// Returns the highlight only when both anchors belong to [buffer].
+  BufferRange? rangeFor(Buffer buffer) {
+    if (!buffer.ownsAnchor(p1) || !buffer.ownsAnchor(p2)) {
+      return null;
+    }
+
+    return BufferRangeLine(p1.offset, p2.offset);
+  }
 }
 
 class TerminalUnderline with Disposable {
@@ -252,6 +278,15 @@ class TerminalUnderline with Disposable {
     if (!p1.attached || !p2.attached) {
       return null;
     }
+    return BufferRangeLine(p1.offset, p2.offset);
+  }
+
+  /// Returns the underline only when both anchors belong to [buffer].
+  BufferRange? rangeFor(Buffer buffer) {
+    if (!buffer.ownsAnchor(p1) || !buffer.ownsAnchor(p2)) {
+      return null;
+    }
+
     return BufferRangeLine(p1.offset, p2.offset);
   }
 }
