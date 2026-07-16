@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:xterm2/src/core/buffer/buffer.dart';
 import 'package:xterm2/src/core/buffer/cell_offset.dart';
 import 'package:xterm2/src/core/buffer/range.dart';
 import 'package:xterm2/src/core/buffer/segment.dart';
@@ -205,6 +206,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _lastForceScrollToBottomGeneration = 0;
 
+  Buffer? _lastTerminalBuffer;
+
   void _onScroll() {
     _stickToBottom = _scrollOffset >= _maxScrollExtent;
     markNeedsLayout();
@@ -218,6 +221,10 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
+    final bufferChanged = !identical(_terminal.buffer, _lastTerminalBuffer);
+    if (bufferChanged && _controller.selection != null) {
+      _controller.clearSelection();
+    }
     final forceScrollToBottom =
         _terminal.buffer.forceScrollToBottomGeneration !=
             _lastForceScrollToBottomGeneration;
@@ -238,6 +245,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _recordTerminalLayoutState() {
+    _lastTerminalBuffer = _terminal.buffer;
     _lastTerminalLineCount = _terminal.buffer.lines.length;
     _lastTerminalWidth = _terminal.viewWidth;
     _lastTerminalHeight = _terminal.viewHeight;

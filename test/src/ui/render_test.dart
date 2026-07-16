@@ -121,6 +121,30 @@ void main() {
     setup.focusNode.dispose();
   });
 
+  test('alternate screen switch clears the active selection', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final owner = PipelineOwner();
+    setup.controller.setSelection(
+      setup.terminal.buffer.createAnchor(0, 0),
+      setup.terminal.buffer.createAnchor(2, 0),
+    );
+
+    render.attach(owner);
+    render.layout(
+      BoxConstraints.tight(
+        Size(render.cellSize.width * 10, render.cellSize.height * 5),
+      ),
+    );
+
+    setup.terminal.write('\x1b[?1049h');
+
+    expect(setup.controller.selection, isNull);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
   test('normal output preserves user scrollback position', () {
     final offset = _TestViewportOffset();
     final setup = _createRenderTerminal(offset: offset);
