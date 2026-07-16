@@ -450,9 +450,7 @@ void main() {
     final canvas = Canvas(recorder);
     final paint = Paint()..color = const Color(0xffffffff);
     final codePoints = <int>[
-      for (var codePoint = 0x1fb00; codePoint <= 0x1fb3b; codePoint++)
-        codePoint,
-      for (var codePoint = 0x1fb68; codePoint <= 0x1fbaf; codePoint++)
+      for (var codePoint = 0x1fb00; codePoint <= 0x1fbaf; codePoint++)
         codePoint,
       for (var codePoint = 0x1cc1b; codePoint <= 0x1cc1e; codePoint++)
         codePoint,
@@ -485,6 +483,10 @@ void main() {
 
   test('procedural extended legacy glyphs paint visible pixels', () async {
     const glyphs = [
+      0x1fb3c,
+      0x1fb41,
+      0x1fb52,
+      0x1fb67,
       0x1fb68,
       0x1fb6c,
       0x1fb70,

@@ -163,6 +163,53 @@ const _sextantMasks = <int>[
   62,
 ];
 
+const _smoothMosaicMasks = <int>[
+  0x01c,
+  0x02c,
+  0x01a,
+  0x02a,
+  0x019,
+  0x32a,
+  0x12a,
+  0x32c,
+  0x12c,
+  0x328,
+  0x0ac,
+  0x070,
+  0x068,
+  0x0b0,
+  0x0a8,
+  0x130,
+  0x2a9,
+  0x0a9,
+  0x269,
+  0x069,
+  0x229,
+  0x06a,
+  0x135,
+  0x125,
+  0x133,
+  0x123,
+  0x131,
+  0x203,
+  0x103,
+  0x205,
+  0x105,
+  0x209,
+  0x185,
+  0x159,
+  0x149,
+  0x199,
+  0x189,
+  0x119,
+  0x380,
+  0x181,
+  0x340,
+  0x141,
+  0x320,
+  0x143,
+];
+
 bool paintProceduralGlyph(
   Canvas canvas,
   Offset offset,
@@ -453,6 +500,17 @@ bool _paintProceduralGlyph(
         thirdHeight,
       ));
     }
+    return true;
+  }
+
+  if (codePoint >= 0x1fb3c && codePoint <= 0x1fb67) {
+    _paintSmoothMosaic(
+      canvas,
+      offset,
+      cellSize,
+      _smoothMosaicMasks[codePoint - 0x1fb3c],
+      paint,
+    );
     return true;
   }
 
@@ -1309,10 +1367,7 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint == 0xe0d2 || codePoint == 0xe0d4) {
     return true;
   }
-  if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
-    return true;
-  }
-  if (codePoint >= 0x1fb68 && codePoint <= 0x1fbaf) {
+  if (codePoint >= 0x1fb00 && codePoint <= 0x1fbaf) {
     return true;
   }
   if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
@@ -1331,6 +1386,36 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   return false;
+}
+
+void _paintSmoothMosaic(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int mask,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final width = cellSize.width;
+  final height = cellSize.height;
+  final candidates = <Offset>[
+    Offset(x, y),
+    Offset(x, y + height / 3),
+    Offset(x, y + height * 2 / 3),
+    Offset(x, y + height),
+    Offset(x + width / 2, y + height),
+    Offset(x + width, y + height),
+    Offset(x + width, y + height * 2 / 3),
+    Offset(x + width, y + height / 3),
+    Offset(x + width, y),
+    Offset(x + width / 2, y),
+  ];
+  final points = <Offset>[
+    for (var index = 0; index < candidates.length; index++)
+      if (mask & (1 << index) != 0) candidates[index],
+  ];
+  canvas.drawPath(Path()..addPolygon(points, true), paint);
 }
 
 void _paintLegacyEdgeTriangle(
