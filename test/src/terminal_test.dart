@@ -730,7 +730,7 @@ void main() {
     expect(line.getCodePoint(2), 0x78);
   });
 
-  test('Terminal keeps Indic conjuncts in one grapheme cell', () {
+  test('Terminal renders Indic conjuncts as wide graphemes', () {
     final terminal = Terminal();
 
     terminal.write('\u0915\u094d\u0937');
@@ -738,7 +738,9 @@ void main() {
     final line = terminal.buffer.lines[0];
     expect(line.getCodePoint(0), 0x0915);
     expect(line.getCombiningCharacters(0), '\u094d\u0937');
-    expect(terminal.buffer.cursorX, 1);
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
   });
 
   test('Terminal renders explicit Indic ZWJ conjuncts as wide graphemes', () {
@@ -3987,6 +3989,20 @@ void main() {
       expect(terminal.buffer.lines[0].getCodePoint(3), 0);
       expect(terminal.buffer.lines[1].getCodePoint(1), 0x3042);
       expect(terminal.buffer.lines[1].getWidth(1), 2);
+    });
+
+    test('widening graphemes wrap before right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;4H\u0915\u094d\u0937');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      final wrappedLine = terminal.buffer.lines[1];
+      expect(wrappedLine.getCodePoint(1), 0x0915);
+      expect(wrappedLine.getCombiningCharacters(1), '\u094d\u0937');
+      expect(wrappedLine.getWidth(1), 2);
+      expect(wrappedLine.getWidth(2), 0);
+      expect(terminal.buffer.cursorX, 3);
     });
 
     test('delete characters shifts only inside horizontal margins', () {

@@ -243,7 +243,8 @@ class Buffer {
     if (desiredWidth > viewWidth) return false;
 
     if (desiredWidth == 2 && width == 1) {
-      if (index + 1 >= viewWidth) {
+      final rightLimit = _rightLimit;
+      if (index + 1 >= rightLimit) {
         if (!terminal.autoWrapMode) return false;
 
         final sourceLine = currentLine;
@@ -251,17 +252,18 @@ class Buffer {
         sourceLine.getCellData(index, cellData);
         final combining = sourceLine.getCombiningCharacters(index);
         sourceLine.eraseCell(index, terminal.cursor);
-        _cursorX = viewWidth;
+        _cursorX = rightLimit;
         _wrapInput();
-        currentLine.setCellData(0, cellData);
-        currentLine.setWidth(0, 2);
+        final destinationIndex = _marginLeft;
+        currentLine.setCellData(destinationIndex, cellData);
+        currentLine.setWidth(destinationIndex, 2);
         if (combining != null) {
           for (final codePoint in combining.runes) {
-            currentLine.addCombiningCharacter(0, codePoint);
+            currentLine.addCombiningCharacter(destinationIndex, codePoint);
           }
         }
-        currentLine.setCell(1, 0, 0, terminal.cursor);
-        _cursorX = 2;
+        currentLine.setCell(destinationIndex + 1, 0, 0, terminal.cursor);
+        _cursorX = destinationIndex + 2;
         return true;
       }
       currentLine.clearWideCellAt(index + 1, terminal.cursor);
@@ -327,7 +329,7 @@ class Buffer {
   }
 
   int _joinedPreviousGraphemeWidth(int codePoint, int cellWidth) {
-    if (cellWidth == 2) return 2;
+    if (cellWidth > 0) return 2;
 
     final index = _previousCellIndex();
     if (index == null) return 1;
