@@ -183,6 +183,62 @@ void main() {
     }
   });
 
+  test('double box lines use equal strokes and spacing', () async {
+    const sizes = [Size(8, 16), Size(10, 20), Size(12, 24), Size(20, 40)];
+    const scales = [1.0, 2.0, 3.0];
+    const glyphs = [(0x2550, true), (0x2551, false)];
+
+    for (final size in sizes) {
+      for (final scale in scales) {
+        for (final (codePoint, isHorizontal) in glyphs) {
+          final recorder = PictureRecorder();
+          final canvas = Canvas(recorder)..scale(scale);
+          final paint = Paint()..color = const Color(0xffffffff);
+          paintProceduralGlyph(canvas, Offset.zero, size, codePoint, paint);
+
+          final picture = recorder.endRecording();
+          final imageWidth = (size.width * scale).round();
+          final imageHeight = (size.height * scale).round();
+          final image = await picture.toImage(imageWidth, imageHeight);
+          final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+          if (bytes == null) {
+            fail('Expected double-line image bytes');
+          }
+
+          final runs = switch (isHorizontal) {
+            true => _alphaRunsInColumn(
+                bytes,
+                imageWidth,
+                imageHeight,
+                imageWidth ~/ 2,
+              ),
+            false => _alphaRunsInRow(
+                bytes,
+                imageWidth,
+                imageHeight ~/ 2,
+              ),
+          };
+          final dimensions = '${size.width}x${size.height} at ${scale}x';
+          final glyph = 'U+${codePoint.toRadixString(16)}';
+          expect(runs, hasLength(3), reason: '$glyph $dimensions');
+          expect(
+            runs[0],
+            closeTo(runs[1], 1),
+            reason: 'first stroke and gap for $glyph at $dimensions',
+          );
+          expect(
+            runs[2],
+            closeTo(runs[1], 1),
+            reason: 'second stroke and gap for $glyph at $dimensions',
+          );
+
+          image.dispose();
+          picture.dispose();
+        }
+      }
+    }
+  });
+
   test('procedural glyphs do not bleed outside their cell', () async {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);
@@ -1015,6 +1071,59 @@ int _alphaInRegion(
     alpha += _alphaInRow(bytes, imageWidth, row, x, width);
   }
   return alpha;
+}
+
+List<int> _alphaRunsInColumn(
+  ByteData bytes,
+  int imageWidth,
+  int imageHeight,
+  int x,
+) {
+  final runs = <int>[];
+  var currentOpaque = false;
+  var currentLength = 0;
+  for (var y = 0; y < imageHeight; y++) {
+    final opaque = bytes.getUint8((y * imageWidth + x) * 4 + 3) != 0;
+    if (opaque == currentOpaque) {
+      currentLength++;
+      continue;
+    }
+    if (currentLength > 0 && (currentOpaque || runs.isNotEmpty)) {
+      runs.add(currentLength);
+    }
+    currentOpaque = opaque;
+    currentLength = 1;
+  }
+  if (currentLength > 0 && currentOpaque) {
+    runs.add(currentLength);
+  }
+  return runs;
+}
+
+List<int> _alphaRunsInRow(
+  ByteData bytes,
+  int imageWidth,
+  int y,
+) {
+  final runs = <int>[];
+  var currentOpaque = false;
+  var currentLength = 0;
+  for (var x = 0; x < imageWidth; x++) {
+    final opaque = bytes.getUint8((y * imageWidth + x) * 4 + 3) != 0;
+    if (opaque == currentOpaque) {
+      currentLength++;
+      continue;
+    }
+    if (currentLength > 0 && (currentOpaque || runs.isNotEmpty)) {
+      runs.add(currentLength);
+    }
+    currentOpaque = opaque;
+    currentLength = 1;
+  }
+  if (currentLength > 0 && currentOpaque) {
+    runs.add(currentLength);
+  }
+  return runs;
 }
 
 bool _hasAnyAlphaInCell(

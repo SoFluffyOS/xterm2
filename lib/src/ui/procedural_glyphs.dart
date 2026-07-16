@@ -1428,7 +1428,7 @@ bool _paintProceduralGlyph(
 
   if (codePoint >= 0x2550 && codePoint <= 0x256c) {
     final arms = _doubleLineBoxArms[codePoint - 0x2550];
-    final doubleOffset = max(1.0, thin * 1.5);
+    final doubleOffset = thin + overlap * 2;
 
     void horizontalArm(double start, double end, int shift) {
       final style = (arms >> shift) & 3;
