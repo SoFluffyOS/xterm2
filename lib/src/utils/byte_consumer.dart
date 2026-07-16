@@ -1,9 +1,9 @@
 import 'dart:collection';
 
 class ByteConsumer {
-  final _queue = ListQueue<List<int>>();
+  final _queue = ListQueue<_StringBlock>();
 
-  final _consumed = ListQueue<List<int>>();
+  final _consumed = ListQueue<_StringBlock>();
 
   var _currentOffset = 0;
 
@@ -11,51 +11,59 @@ class ByteConsumer {
 
   var _totalConsumed = 0;
 
+  var _rollbackAvailable = 0;
+
   void add(String data) {
     if (data.isEmpty) return;
-    final runes = data.runes.toList(growable: false);
-    _queue.addLast(runes);
-    _length += runes.length;
+    final block = _StringBlock(data, _countRunes(data));
+    _queue.addLast(block);
+    _length += block.runeLength;
   }
 
   int peek() {
-    final data = _queue.first;
-    if (_currentOffset < data.length) {
-      return data[_currentOffset];
-    } else {
-      final result = consume();
-      rollback();
-      return result;
-    }
+    final result = consume();
+    rollback();
+    return result;
   }
 
   int consume() {
-    final data = _queue.first;
-
-    if (_currentOffset >= data.length) {
-      _consumed.add(_queue.removeFirst());
-      _currentOffset -= data.length;
-      return consume();
-    }
-
+    _advancePastConsumedBlocks();
+    final data = _queue.first.data;
+    final first = data.codeUnitAt(_currentOffset);
+    final codePoint = _decodeCodePoint(data, _currentOffset, first);
+    _currentOffset += _codePointCodeUnitLength(data, _currentOffset, first);
     _length--;
     _totalConsumed++;
-    return data[_currentOffset++];
+    _rollbackAvailable++;
+    return codePoint;
   }
 
-  /// Rolls back the last [n] call.
+  /// Rolls back the last [n] calls to [consume].
   void rollback([int n = 1]) {
-    _currentOffset -= n;
-    _totalConsumed -= n;
-    _length += n;
-    while (_currentOffset < 0) {
-      final rollback = _consumed.removeLast();
-      _queue.addFirst(rollback);
-      _currentOffset += rollback.length;
+    if (n < 0 || n > _rollbackAvailable) {
+      throw RangeError.range(n, 0, _rollbackAvailable, 'n');
     }
+
+    var remaining = n;
+    while (remaining > 0) {
+      if (_currentOffset == 0) {
+        final block = _consumed.removeLast();
+        _queue.addFirst(block);
+        _currentOffset = block.data.length;
+      }
+
+      _currentOffset = _previousRuneOffset(
+        _queue.first.data,
+        _currentOffset,
+      );
+      remaining--;
+    }
+    _totalConsumed -= n;
+    _rollbackAvailable -= n;
+    _length += n;
   }
 
-  /// Rolls back to the state when this consumer had [length] bytes.
+  /// Rolls back to the state when this consumer had [length] runes.
   void rollbackTo(int length) {
     rollback(length - _length);
   }
@@ -68,10 +76,13 @@ class ByteConsumer {
 
   bool get isNotEmpty => _length != 0;
 
-  /// Unreferences data blocks that have been consumed. After calling this
-  /// method, the consumer will not be able to roll back to consumed blocks.
+  /// Unreferences blocks consumed before the current parsing transaction.
   void unrefConsumedBlocks() {
     _consumed.clear();
+    while (_queue.isNotEmpty && _currentOffset >= _queue.first.data.length) {
+      _currentOffset -= _queue.removeFirst().data.length;
+    }
+    _rollbackAvailable = 0;
   }
 
   /// Resets the consumer to its initial state.
@@ -80,28 +91,71 @@ class ByteConsumer {
     _consumed.clear();
     _currentOffset = 0;
     _totalConsumed = 0;
+    _rollbackAvailable = 0;
     _length = 0;
+  }
+
+  void _advancePastConsumedBlocks() {
+    while (_currentOffset >= _queue.first.data.length) {
+      final block = _queue.removeFirst();
+      _consumed.addLast(block);
+      _currentOffset -= block.data.length;
+    }
   }
 }
 
-// void main() {
-//   final consumer = ByteConsumer();
-//   consumer.add(Uint8List.fromList([1, 2, 3]));
-//   consumer.add(Uint8List.fromList([4, 5, 6]));
+class _StringBlock {
+  const _StringBlock(this.data, this.runeLength);
 
-//   while (consumer.isNotEmpty) {
-//     print(consumer.consume());
-//   }
+  final String data;
 
-//   consumer.rollback(5);
+  final int runeLength;
+}
 
-//   while (consumer.isNotEmpty) {
-//     print(consumer.consume());
-//   }
+int _countRunes(String data) {
+  var count = 0;
+  var offset = 0;
+  while (offset < data.length) {
+    final first = data.codeUnitAt(offset);
+    offset += _codePointCodeUnitLength(data, offset, first);
+    count++;
+  }
+  return count;
+}
 
-//   consumer.rollbackTo(3);
+int _decodeCodePoint(String data, int offset, int first) {
+  if (!_isHighSurrogate(first) || offset + 1 >= data.length) {
+    return first;
+  }
 
-//   while (consumer.isNotEmpty) {
-//     print(consumer.consume());
-//   }
-// }
+  final second = data.codeUnitAt(offset + 1);
+  if (!_isLowSurrogate(second)) return first;
+  return 0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00);
+}
+
+int _codePointCodeUnitLength(String data, int offset, int first) {
+  if (!_isHighSurrogate(first) || offset + 1 >= data.length) return 1;
+  return switch (_isLowSurrogate(data.codeUnitAt(offset + 1))) {
+    true => 2,
+    false => 1,
+  };
+}
+
+int _previousRuneOffset(String data, int offset) {
+  final previous = offset - 1;
+  if (previous <= 0 || !_isLowSurrogate(data.codeUnitAt(previous))) {
+    return previous;
+  }
+  return switch (_isHighSurrogate(data.codeUnitAt(previous - 1))) {
+    true => previous - 1,
+    false => previous,
+  };
+}
+
+bool _isHighSurrogate(int codeUnit) {
+  return codeUnit >= 0xd800 && codeUnit <= 0xdbff;
+}
+
+bool _isLowSurrogate(int codeUnit) {
+  return codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
+}
