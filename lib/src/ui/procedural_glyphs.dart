@@ -1580,6 +1580,18 @@ bool _paintProceduralGlyph(
     case 0x25e6:
       circle(0.4);
       return true;
+    case 0x25e2:
+    case 0x25e3:
+    case 0x25e4:
+    case 0x25e5:
+      _paintCornerTriangle(canvas, offset, cellSize, codePoint, paint);
+      return true;
+    case 0x25f8:
+    case 0x25f9:
+    case 0x25fa:
+    case 0x25ff:
+      _paintCornerTriangle(canvas, offset, cellSize, codePoint, paint);
+      return true;
     case 0x2713:
       strokePath([
         Offset(x + width * 0.18, y + height * 0.56),
@@ -1748,6 +1760,15 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x2800 && codePoint <= 0x28ff) {
     return true;
   }
+  if (codePoint >= 0x25e2 && codePoint <= 0x25e5) {
+    return true;
+  }
+  if (codePoint >= 0x25f8 && codePoint <= 0x25fa) {
+    return true;
+  }
+  if (codePoint == 0x25ff) {
+    return true;
+  }
   if (codePoint >= 0xe0b0 && codePoint <= 0xe0bf) {
     return true;
   }
@@ -1821,6 +1842,55 @@ void _paintSmoothMosaic(
       if (mask & (1 << index) != 0) candidates[index],
   ];
   canvas.drawPath(Path()..addPolygon(points, true), paint);
+}
+
+void _paintCornerTriangle(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int codePoint,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final right = x + cellSize.width;
+  final bottom = y + cellSize.height;
+  final corner = switch (codePoint) {
+    0x25e4 || 0x25f8 => 0,
+    0x25e5 || 0x25f9 => 1,
+    0x25e3 || 0x25fa => 2,
+    _ => 3,
+  };
+  final points = switch (corner) {
+    0 => [Offset(x, y), Offset(x, bottom), Offset(right, y)],
+    1 => [Offset(x, y), Offset(right, bottom), Offset(right, y)],
+    2 => [Offset(x, y), Offset(x, bottom), Offset(right, bottom)],
+    _ => [Offset(x, bottom), Offset(right, bottom), Offset(right, y)],
+  };
+  final isFilled = codePoint >= 0x25e2 && codePoint <= 0x25e5;
+  if (isFilled) {
+    canvas.drawPath(Path()..addPolygon(points, true), paint);
+    return;
+  }
+
+  final strokeWidth = max(1.0, cellSize.width * 0.12);
+  final inset = strokeWidth / 2;
+  final innerPoints = <Offset>[
+    for (final point in points)
+      Offset(
+        point.dx == x ? point.dx + inset : point.dx - inset,
+        point.dy == y ? point.dy + inset : point.dy - inset,
+      ),
+  ];
+  canvas.drawPath(
+    Path()..addPolygon(innerPoints, true),
+    Paint()
+      ..color = paint.color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt
+      ..strokeJoin = StrokeJoin.miter,
+  );
 }
 
 void _paintLegacyEdgeTriangle(

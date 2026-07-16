@@ -112,6 +112,54 @@ void main() {
     recorder.endRecording().dispose();
   });
 
+  test('procedural glyph rendering covers corner triangles', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    const codePoints = [
+      0x25e2,
+      0x25e3,
+      0x25e4,
+      0x25e5,
+      0x25f8,
+      0x25f9,
+      0x25fa,
+      0x25ff,
+    ];
+
+    for (var index = 0; index < codePoints.length; index++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset(index * 20, 0),
+          const Size(20, 40),
+          codePoints[index],
+          paint,
+        ),
+        isTrue,
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(codePoints.length * 20, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected corner-triangle image bytes');
+    }
+
+    for (var index = 0; index < codePoints.length; index++) {
+      expect(
+        _hasAnyAlphaInCell(
+            bytes, codePoints.length * 20, index * 20, 0, 20, 40),
+        isTrue,
+        reason: 'U+${codePoints[index].toRadixString(16)}',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural glyph rendering covers dashed and diagonal box lines', () {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);
