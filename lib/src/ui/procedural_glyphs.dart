@@ -1712,21 +1712,27 @@ bool _paintProceduralGlyph(
     case 0x2571:
     case 0x2572:
     case 0x2573:
+      final slopeX = min(1.0, width / height);
+      final slopeY = min(1.0, height / width);
+      final overshootX = slopeX / 2;
+      final overshootY = slopeY / 2;
       final strokePaint = Paint()
         ..color = paint.color
-        ..strokeWidth = thin
-        ..style = PaintingStyle.stroke;
+        ..strokeWidth = thin + overlap * 2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.butt
+        ..isAntiAlias = true;
       if (codePoint == 0x2571 || codePoint == 0x2573) {
         canvas.drawLine(
-          Offset(x, y + height),
-          Offset(x + width, y),
+          Offset(x - overshootX, y + height + overshootY),
+          Offset(x + width + overshootX, y - overshootY),
           strokePaint,
         );
       }
       if (codePoint == 0x2572 || codePoint == 0x2573) {
         canvas.drawLine(
-          Offset(x, y),
-          Offset(x + width, y + height),
+          Offset(x - overshootX, y - overshootY),
+          Offset(x + width + overshootX, y + height + overshootY),
           strokePaint,
         );
       }

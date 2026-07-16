@@ -1,4 +1,4 @@
-import 'dart:math' show max;
+import 'dart:math' show max, sqrt;
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -87,6 +87,43 @@ void main() {
         reason: 'U+${corners[index].toRadixString(16)}',
       );
     }
+
+    image.dispose();
+    picture.dispose();
+  });
+
+  test('diagonal box lines match straight line weight', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    paintProceduralGlyph(
+      canvas,
+      Offset.zero,
+      const Size(20, 40),
+      0x2500,
+      paint,
+    );
+    paintProceduralGlyph(
+      canvas,
+      const Offset(20, 0),
+      const Size(20, 40),
+      0x2571,
+      paint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(40, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected diagonal-line image bytes');
+    }
+
+    final straightWeight = _alphaInRegion(bytes, 40, 0, 0, 20, 40) / 20;
+    final diagonalLength = sqrt(20 * 20 + 40 * 40);
+    final diagonalWeight =
+        _alphaInRegion(bytes, 40, 20, 0, 20, 40) / diagonalLength;
+    expect(diagonalWeight, closeTo(straightWeight, 255));
 
     image.dispose();
     picture.dispose();
@@ -867,6 +904,21 @@ int _alphaInRow(ByteData bytes, int imageWidth, int y, int x, int width) {
   var alpha = 0;
   for (var column = x; column < x + width; column++) {
     alpha += bytes.getUint8((y * imageWidth + column) * 4 + 3);
+  }
+  return alpha;
+}
+
+int _alphaInRegion(
+  ByteData bytes,
+  int imageWidth,
+  int x,
+  int y,
+  int width,
+  int height,
+) {
+  var alpha = 0;
+  for (var row = y; row < y + height; row++) {
+    alpha += _alphaInRow(bytes, imageWidth, row, x, width);
   }
   return alpha;
 }
