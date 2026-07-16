@@ -426,22 +426,19 @@ class Buffer {
   }
 
   bool _joinRegionalIndicator(int codePoint) {
-    if (!_isRegionalIndicator(codePoint) || _cursorX == 0) return false;
-    var index = min(_cursorX - 1, viewWidth - 1);
-    if (index > 0 && currentLine.getWidth(index) == 0) {
-      index--;
-    }
+    if (!_isRegionalIndicator(codePoint)) return false;
+    final index = _previousCellIndex();
+    if (index == null) return false;
     if (!_isRegionalIndicator(currentLine.getCodePoint(index)) ||
         currentLine.getCombiningCharacters(index) != null ||
-        currentLine.getWidth(index) != 1 ||
-        _cursorX >= viewWidth) {
+        currentLine.getWidth(index) != 1) {
       return false;
     }
 
-    currentLine.addCombiningCharacter(index, codePoint);
-    currentLine.setWidth(index, 2);
-    currentLine.setCell(_cursorX, 0, 0, terminal.cursor);
-    _cursorX++;
+    if (!_setPreviousGraphemeWidth(2)) return false;
+    final widenedIndex = _previousCellIndex();
+    if (widenedIndex == null) return false;
+    currentLine.addCombiningCharacter(widenedIndex, codePoint);
     return true;
   }
 

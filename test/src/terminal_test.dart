@@ -703,6 +703,21 @@ void main() {
     expect(terminal.buffer.cursorX, 2);
   });
 
+  test('Terminal wraps regional indicator pairs as one flag', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u{1F1FB}\u{1F1F3}');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getCodePoint(0), 0x1F1FB);
+    expect(wrappedLine.getCombiningCharacters(0), '\u{1F1F3}');
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
   test('Terminal keeps invalid ZWJ sequences from merging text', () {
     final terminal = Terminal();
 
