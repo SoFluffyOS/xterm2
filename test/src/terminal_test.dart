@@ -451,6 +451,27 @@ void main() {
     expect(line.getCodePoint(1), 0x78);
   });
 
+  test('Terminal allocates two cells for Unicode 17 emoji', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1FAEA}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal attaches Unicode 17 combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('a\u{1E5EE}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCombiningCharacters(0), '\u{1E5EE}');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
   test('Terminal VS16 expands an emoji grapheme to two cells', () {
     final terminal = Terminal()..resize(10, 2);
 
