@@ -210,6 +210,25 @@ const _smoothMosaicMasks = <int>[
   0x143,
 ];
 
+const _legacyCellDiagonalPoints = <List<(double, double)>>[
+  [(1, 0.5), (0, 1)],
+  [(1, 0), (0, 0.5)],
+  [(0, 0), (1, 0.5)],
+  [(0, 0.5), (1, 1)],
+  [(0, 0), (0.5, 1)],
+  [(0.5, 0), (1, 1)],
+  [(1, 0), (0.5, 1)],
+  [(0.5, 0), (0, 1)],
+  [(0, 0), (0.5, 0.5), (1, 0)],
+  [(1, 0), (0.5, 0.5), (1, 1)],
+  [(0, 1), (0.5, 0.5), (1, 1)],
+  [(0, 0), (0.5, 0.5), (0, 1)],
+  [(0, 0), (0.5, 1), (1, 0)],
+  [(1, 0), (0, 0.5), (1, 1)],
+  [(0, 1), (0.5, 0), (1, 1)],
+  [(0, 0), (1, 0.5), (0, 1)],
+];
+
 bool paintProceduralGlyph(
   Canvas canvas,
   Offset offset,
@@ -727,6 +746,36 @@ bool _paintProceduralGlyph(
         x, y + height / 2 - light / 2, x + width, y + height / 2 + light / 2));
     fill(Rect.fromLTRB(
         x + width / 2 - heavy / 2, y, x + width / 2 + heavy / 2, y + height));
+    return true;
+  }
+
+  if (codePoint >= 0x1fbbd && codePoint <= 0x1fbbf) {
+    _paintLegacyInverseLines(canvas, offset, cellSize, codePoint, paint);
+    return true;
+  }
+
+  if (codePoint == 0x1fbce || codePoint == 0x1fbcf) {
+    final fraction = switch (codePoint) {
+      0x1fbce => 2 / 3,
+      _ => 1 / 3,
+    };
+    fill(Rect.fromLTWH(x, y, width * fraction, height));
+    return true;
+  }
+
+  if (codePoint >= 0x1fbd0 && codePoint <= 0x1fbdf) {
+    _paintLegacyCellDiagonal(
+      canvas,
+      offset,
+      cellSize,
+      _legacyCellDiagonalPoints[codePoint - 0x1fbd0],
+      paint,
+    );
+    return true;
+  }
+
+  if (codePoint >= 0x1fbe0 && codePoint <= 0x1fbef) {
+    _paintLegacyEdgeShape(canvas, offset, cellSize, codePoint, paint);
     return true;
   }
 
@@ -1370,6 +1419,12 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fbaf) {
     return true;
   }
+  if (codePoint >= 0x1fbbd && codePoint <= 0x1fbbf) {
+    return true;
+  }
+  if (codePoint >= 0x1fbce && codePoint <= 0x1fbef) {
+    return true;
+  }
   if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
     return true;
   }
@@ -1532,6 +1587,134 @@ void _paintLegacyCornerLines(
   if (corners & 8 != 0) {
     canvas.drawLine(Offset(centerX, bottom), Offset(right, centerY), linePaint);
   }
+}
+
+void _paintLegacyInverseLines(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int codePoint,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final right = x + cellSize.width;
+  final bottom = y + cellSize.height;
+  final centerX = x + cellSize.width / 2;
+  final centerY = y + cellSize.height / 2;
+  final clearPaint = Paint()
+    ..blendMode = BlendMode.clear
+    ..strokeWidth = max(1.0, cellSize.width * 0.12)
+    ..style = PaintingStyle.stroke;
+
+  canvas.saveLayer(offset & cellSize, Paint());
+  canvas.drawRect(offset & cellSize, paint);
+  switch (codePoint) {
+    case 0x1fbbd:
+      canvas.drawLine(Offset(x, y), Offset(right, bottom), clearPaint);
+      canvas.drawLine(Offset(right, y), Offset(x, bottom), clearPaint);
+      break;
+    case 0x1fbbe:
+      canvas.drawLine(
+        Offset(centerX, bottom),
+        Offset(right, centerY),
+        clearPaint,
+      );
+      break;
+    case 0x1fbbf:
+      canvas.drawLine(Offset(centerX, y), Offset(x, centerY), clearPaint);
+      canvas.drawLine(Offset(centerX, y), Offset(right, centerY), clearPaint);
+      canvas.drawLine(Offset(centerX, bottom), Offset(x, centerY), clearPaint);
+      canvas.drawLine(
+        Offset(centerX, bottom),
+        Offset(right, centerY),
+        clearPaint,
+      );
+      break;
+  }
+  canvas.restore();
+}
+
+void _paintLegacyCellDiagonal(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  List<(double, double)> points,
+  Paint paint,
+) {
+  final path = Path();
+  for (var index = 0; index < points.length; index++) {
+    final (normalizedX, normalizedY) = points[index];
+    final x = offset.dx + cellSize.width * normalizedX;
+    final y = offset.dy + cellSize.height * normalizedY;
+    if (index == 0) {
+      path.moveTo(x, y);
+      continue;
+    }
+    path.lineTo(x, y);
+  }
+  canvas.drawPath(
+    path,
+    Paint()
+      ..color = paint.color
+      ..strokeWidth = max(1.0, cellSize.width * 0.12)
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke,
+  );
+}
+
+void _paintLegacyEdgeShape(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int codePoint,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final width = cellSize.width;
+  final height = cellSize.height;
+  if (codePoint >= 0x1fbe4 && codePoint <= 0x1fbe7) {
+    final rect = switch (codePoint) {
+      0x1fbe4 => Rect.fromLTWH(x + width / 4, y, width / 2, height / 2),
+      0x1fbe5 =>
+        Rect.fromLTWH(x + width / 4, y + height / 2, width / 2, height / 2),
+      0x1fbe6 => Rect.fromLTWH(x, y + height / 4, width / 2, height / 2),
+      _ => Rect.fromLTWH(x + width / 2, y + height / 4, width / 2, height / 2),
+    };
+    canvas.drawRect(rect, paint);
+    return;
+  }
+
+  final position = switch (codePoint) {
+    0x1fbe0 || 0x1fbe8 => (0.5, 0.0),
+    0x1fbe1 || 0x1fbe9 => (1.0, 0.5),
+    0x1fbe2 || 0x1fbea => (0.5, 1.0),
+    0x1fbe3 || 0x1fbeb => (0.0, 0.5),
+    0x1fbec => (1.0, 0.0),
+    0x1fbed => (0.0, 1.0),
+    0x1fbee => (1.0, 1.0),
+    _ => (0.0, 0.0),
+  };
+  final center = Offset(
+    x + width * position.$1,
+    y + height * position.$2,
+  );
+  final strokeWidth = max(1.0, width * 0.12);
+  final isFilled = codePoint >= 0x1fbe8;
+  final circlePaint = Paint()
+    ..color = paint.color
+    ..strokeWidth = strokeWidth
+    ..style = switch (isFilled) {
+      true => PaintingStyle.fill,
+      false => PaintingStyle.stroke,
+    };
+  final radius = min(width, height) / 2 -
+      switch (isFilled) {
+        true => 0,
+        false => strokeWidth / 2,
+      };
+  canvas.drawCircle(center, radius, circlePaint);
 }
 
 bool _isTerminalSymbolGlyph(int codePoint) {

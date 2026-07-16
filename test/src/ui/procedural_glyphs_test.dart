@@ -452,6 +452,10 @@ void main() {
     final codePoints = <int>[
       for (var codePoint = 0x1fb00; codePoint <= 0x1fbaf; codePoint++)
         codePoint,
+      for (var codePoint = 0x1fbbd; codePoint <= 0x1fbbf; codePoint++)
+        codePoint,
+      for (var codePoint = 0x1fbce; codePoint <= 0x1fbef; codePoint++)
+        codePoint,
       for (var codePoint = 0x1cc1b; codePoint <= 0x1cc1e; codePoint++)
         codePoint,
       for (var codePoint = 0x1cc21; codePoint <= 0x1cc2f; codePoint++)
@@ -498,6 +502,16 @@ void main() {
       0x1fba0,
       0x1fbae,
       0x1fbaf,
+      0x1fbbd,
+      0x1fbbf,
+      0x1fbce,
+      0x1fbcf,
+      0x1fbd0,
+      0x1fbdf,
+      0x1fbe0,
+      0x1fbe4,
+      0x1fbe8,
+      0x1fbef,
     ];
 
     for (final codePoint in glyphs) {
@@ -529,6 +543,34 @@ void main() {
       image.dispose();
       picture.dispose();
     }
+  });
+
+  test('procedural negative legacy glyphs carve transparent lines', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    paintProceduralGlyph(
+      canvas,
+      Offset.zero,
+      const Size(20, 40),
+      0x1fbbd,
+      paint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(20, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected negative legacy glyph image bytes');
+    }
+
+    int alphaAt(int x, int y) => bytes.getUint8((y * 20 + x) * 4 + 3);
+    expect(alphaAt(10, 20), 0);
+    expect(alphaAt(10, 5), greaterThan(0));
+
+    image.dispose();
+    picture.dispose();
   });
 }
 
