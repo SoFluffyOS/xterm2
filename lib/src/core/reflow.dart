@@ -57,7 +57,15 @@ class _LineReflow {
 
   final _lines = <BufferLine>[];
 
-  late final _builder = _LineBuilder(newWidth);
+  _LineBuilder? _builder;
+
+  _LineBuilder get _activeBuilder {
+    final existing = _builder;
+    if (existing != null) return existing;
+    final created = _LineBuilder(newWidth);
+    _builder = created;
+    return created;
+  }
 
   /// Adds a line to the reflow operation. This method will try to reuse the
   /// given line if possible.
@@ -72,14 +80,15 @@ class _LineReflow {
 
     // We already have some content in the buffer, so we copy the content into
     // the builder instead of reusing the line.
-    if (_lines.isNotEmpty || _builder.isNotEmpty) {
+    final builder = _builder;
+    if (_lines.isNotEmpty || (builder != null && builder.isNotEmpty)) {
       _addPart(line, from: 0, to: trimmedLength);
       return;
     }
 
     if (newWidth >= oldWidth) {
       // Reuse the line to avoid copying the content and object allocation.
-      _builder.setBuffer(line, trimmedLength);
+      _activeBuilder.setBuffer(line, trimmedLength);
     } else {
       _lines.add(line);
 
@@ -103,10 +112,11 @@ class _LineReflow {
   /// Anchors within the range will be removed from [line] and reparented to
   /// the new line(s) returned by [finish].
   void _addPart(BufferLine line, {required int from, required int to}) {
+    final builder = _activeBuilder;
     var cellsLeft = to - from;
 
     while (cellsLeft > 0) {
-      final bufferRemainingCells = newWidth - _builder.length;
+      final bufferRemainingCells = newWidth - builder.length;
 
       // How many cells we should copy in this iteration.
       var cellsToCopy = cellsLeft;
@@ -127,7 +137,7 @@ class _LineReflow {
       // A wide cell cannot be represented in a one-column terminal. Dropping
       // it matches normal input behavior and, critically, guarantees that the
       // reflow loop keeps making progress.
-      if (cellsToCopy == 0 && _builder.isEmpty) {
+      if (cellsToCopy == 0 && builder.isEmpty) {
         final wideCellWidth = line.getWidth(from);
         assert(wideCellWidth == 2);
         from += wideCellWidth;
@@ -137,25 +147,25 @@ class _LineReflow {
 
       for (var anchor in line.anchors.toList()) {
         if (anchor.x >= from && anchor.x <= from + cellsToCopy) {
-          _builder.addAnchor(anchor, anchor.x - from);
+          builder.addAnchor(anchor, anchor.x - from);
         }
       }
 
-      _builder.add(line, from, cellsToCopy);
+      builder.add(line, from, cellsToCopy);
 
       from += cellsToCopy;
       cellsLeft -= cellsToCopy;
 
       // Create a new line if the buffer is filled up.
       if (lineFilled) {
-        _lines.add(_builder.take(wrapped: _lines.isNotEmpty));
+        _lines.add(builder.take(wrapped: _lines.isNotEmpty));
       }
     }
 
     if (line.anchors.isNotEmpty) {
       for (var anchor in line.anchors.toList()) {
         if (anchor.x >= to) {
-          _builder.addAnchor(anchor, anchor.x - to);
+          builder.addAnchor(anchor, anchor.x - to);
         }
       }
     }
@@ -163,8 +173,9 @@ class _LineReflow {
 
   /// Finalizes the reflow operation and returns the result.
   List<BufferLine> finish() {
-    if (_builder.isNotEmpty) {
-      _lines.add(_builder.take(wrapped: _lines.isNotEmpty));
+    final builder = _builder;
+    if (builder != null && builder.isNotEmpty) {
+      _lines.add(builder.take(wrapped: _lines.isNotEmpty));
     }
 
     return _lines;
@@ -180,6 +191,13 @@ List<BufferLine> reflow(
 
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
+    final continuesOnNextLine = i + 1 < lines.length && lines[i + 1].isWrapped;
+    if (!line.isWrapped &&
+        !continuesOnNextLine &&
+        line.getTrimmedLength(oldWidth) <= newWidth) {
+      result.add(line);
+      continue;
+    }
 
     final reflow = _LineReflow(oldWidth, newWidth);
 

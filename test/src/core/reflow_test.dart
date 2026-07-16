@@ -183,6 +183,19 @@ void main() {
     expect(terminal.buffer.lines[4].isWrapped, isTrue);
   });
 
+  test('reflow() reuses empty and fitting lines', () {
+    final terminal = Terminal()..resize(80, 3);
+    terminal.write('content');
+    final lines = terminal.buffer.lines.toList();
+
+    terminal.resize(81, 3);
+
+    expect(terminal.buffer.lines.length, lines.length);
+    for (var index = 0; index < lines.length; index++) {
+      expect(terminal.buffer.lines[index], same(lines[index]));
+    }
+  });
+
   test('lines has correct length after reflow', () {
     final terminal = Terminal();
 
