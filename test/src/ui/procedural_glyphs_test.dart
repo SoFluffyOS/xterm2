@@ -460,6 +460,8 @@ void main() {
         codePoint,
       for (var codePoint = 0x1cc21; codePoint <= 0x1cc2f; codePoint++)
         codePoint,
+      for (var codePoint = 0x1cd00; codePoint <= 0x1cde5; codePoint++)
+        codePoint,
       for (var codePoint = 0x1ce16; codePoint <= 0x1ce19; codePoint++)
         codePoint,
       for (var codePoint = 0x1ce51; codePoint <= 0x1ce8f; codePoint++)
@@ -568,6 +570,45 @@ void main() {
     int alphaAt(int x, int y) => bytes.getUint8((y * 20 + x) * 4 + 3);
     expect(alphaAt(10, 20), 0);
     expect(alphaAt(10, 5), greaterThan(0));
+
+    image.dispose();
+    picture.dispose();
+  });
+
+  test('procedural octants follow the Unicode 17 cell grid', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    paintProceduralGlyph(
+      canvas,
+      Offset.zero,
+      const Size(20, 40),
+      0x1cd00,
+      paint,
+    );
+    paintProceduralGlyph(
+      canvas,
+      const Offset(20, 0),
+      const Size(20, 40),
+      0x1cde5,
+      paint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(40, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected octant glyph image bytes');
+    }
+
+    int alphaAt(int x, int y) => bytes.getUint8((y * 40 + x) * 4 + 3);
+    expect(alphaAt(5, 5), 0);
+    expect(alphaAt(5, 15), greaterThan(0));
+    expect(alphaAt(15, 15), 0);
+    expect(alphaAt(25, 5), 0);
+    expect(alphaAt(35, 5), greaterThan(0));
+    expect(alphaAt(25, 15), greaterThan(0));
 
     image.dispose();
     picture.dispose();
