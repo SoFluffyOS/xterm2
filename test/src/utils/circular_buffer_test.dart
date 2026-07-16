@@ -312,6 +312,22 @@ void main() {
       expect(cl[9], 9.indexed);
     });
 
+    test('insert all crossing capacity retains inserted order', () {
+      final cl = IndexAwareCircularBuffer<IndexedValue<int>>(9);
+      cl.pushAll(List.generate(7, IndexedValue<int>.new));
+      final inserted = [10.indexed, 11.indexed, 12.indexed];
+
+      cl.insertAll(1, inserted);
+
+      expect(
+        cl.toList().map((item) => item.value),
+        [10, 11, 12, 1, 2, 3, 4, 5, 6],
+      );
+      for (var index = 0; index < cl.length; index++) {
+        expect(cl[index].index, index);
+      }
+    });
+
     test("trim start works", () {
       final cl = IndexAwareCircularBuffer<IndexedValue<int>>(10);
       cl.pushAll(

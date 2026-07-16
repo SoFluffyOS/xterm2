@@ -212,10 +212,11 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
   /// Inserts [items] at [index] in order.
   void insertAll(int index, List<T> items) {
     for (var i = items.length - 1; i >= 0; i--) {
+      final wasFull = isFull;
       insert(index, items[i]);
       // when the list is full then we have to move the index down
       // as newly inserted values remove values with a lower index
-      if (_length >= _array.length) {
+      if (wasFull) {
         index--;
         if (index < 0) {
           return;
