@@ -715,6 +715,21 @@ void main() {
     expect(terminal.buffer.cursorX, 2);
   });
 
+  test('Terminal keeps Unicode 17 emoji ZWJ sequences in one grapheme', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F9D1}\u200D\u{1FAEF}\u200D\u{1F9D1}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(
+      line.getCombiningCharacters(0),
+      '\u200D\u{1FAEF}\u200D\u{1F9D1}',
+    );
+    expect(line.getCodePoint(2), 0x78);
+  });
+
   test('Terminal keeps Indic conjuncts in one grapheme cell', () {
     final terminal = Terminal();
 
