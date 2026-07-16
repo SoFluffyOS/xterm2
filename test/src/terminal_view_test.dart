@@ -1076,7 +1076,7 @@ void main() {
       binding.testTextInput.enterText('你好');
       await binding.idle();
 
-      expect(terminalOutput, ['\x1b[233;1;233u', '你好']);
+      expect(terminalOutput, ['\x1b[233;;233u', '你好']);
     });
 
     testWidgets('falls back to shifted printable symbols', (tester) async {
@@ -1123,6 +1123,27 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
 
       expect(terminalOutput, isEmpty);
+    });
+
+    testWidgets('forwards the platform command modifier to Kitty input', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[=1u');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.digit2);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.digit2);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+
+      expect(terminalOutput, contains('\x1b[50;9u'));
     });
   });
 

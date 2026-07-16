@@ -293,6 +293,21 @@ void main() {
       expect(output, ['\x1b[57376u', '\x1b[57399;3u', '\x1b[57416u']);
     });
 
+    test('reports Kitty super and keyboard lock modifiers', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=1u');
+      terminal.keyInput(TerminalKey.keyA, superKey: true, text: 'a');
+      terminal.keyInput(
+        TerminalKey.f13,
+        capsLock: true,
+        numLock: true,
+      );
+
+      expect(output, ['\x1b[97;9u', '\x1b[57376;193u']);
+    });
+
     test('reports Kitty repeat and release events', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);

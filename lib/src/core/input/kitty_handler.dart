@@ -84,12 +84,12 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       if (mode & _reportAllKeysAsEscapeCodes != 0) {
         return true;
       }
-      return event.ctrl || event.alt || event.shift;
+      return event.ctrl || event.alt || event.shift || event.superKey;
     }
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;
     }
-    return event.ctrl || event.alt || event.shift;
+    return event.ctrl || event.alt || event.shift || event.superKey;
   }
 
   bool _shouldEncodeCharacter(TerminalKeyboardEvent event, int mode) {
@@ -103,7 +103,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (mode & _disambiguateEscapeCodes == 0) {
       return false;
     }
-    return event.ctrl || event.alt;
+    return event.ctrl || event.alt || event.superKey;
   }
 
   bool _shouldUseLegacyControlCode(TerminalKeyboardEvent event, int mode) {
@@ -116,7 +116,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (mode & _reportAllKeysAsEscapeCodes != 0) {
       return false;
     }
-    if (event.ctrl || event.alt || event.shift) {
+    if (event.ctrl || event.alt || event.shift || event.superKey) {
       return false;
     }
     return true;
@@ -169,6 +169,15 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     }
     if (event.ctrl) {
       modifiers += 4;
+    }
+    if (event.superKey) {
+      modifiers += 8;
+    }
+    if (event.capsLock) {
+      modifiers += 64;
+    }
+    if (event.numLock) {
+      modifiers += 128;
     }
     return modifiers;
   }
@@ -247,7 +256,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
         event.type == TerminalKeyEventType.release) {
       return null;
     }
-    if (event.ctrl || event.alt) {
+    if (event.ctrl || event.alt || event.superKey) {
       return null;
     }
     final text = event.text;

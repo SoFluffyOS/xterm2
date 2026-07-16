@@ -697,12 +697,17 @@ class TerminalViewState extends State<TerminalView> {
       _ => TerminalKeyEventType.press,
     };
     final terminalKey = key ?? TerminalKey.none;
+    final hardwareKeyboard = HardwareKeyboard.instance;
+    final lockModes = hardwareKeyboard.lockModesEnabled;
 
     final handled = widget.terminal.keyInput(
       terminalKey,
-      ctrl: HardwareKeyboard.instance.isControlPressed,
-      alt: HardwareKeyboard.instance.isAltPressed,
-      shift: HardwareKeyboard.instance.isShiftPressed,
+      ctrl: hardwareKeyboard.isControlPressed,
+      alt: hardwareKeyboard.isAltPressed,
+      shift: hardwareKeyboard.isShiftPressed,
+      superKey: hardwareKeyboard.isMetaPressed,
+      capsLock: lockModes.contains(KeyboardLockMode.capsLock),
+      numLock: lockModes.contains(KeyboardLockMode.numLock),
       type: eventType,
       text: switch (eventType) {
         TerminalKeyEventType.release => null,

@@ -17,6 +17,12 @@ class TerminalKeyboardEvent {
 
   final bool alt;
 
+  final bool superKey;
+
+  final bool capsLock;
+
+  final bool numLock;
+
   final TerminalState state;
 
   final bool altBuffer;
@@ -32,6 +38,9 @@ class TerminalKeyboardEvent {
     required this.shift,
     required this.ctrl,
     required this.alt,
+    this.superKey = false,
+    this.capsLock = false,
+    this.numLock = false,
     required this.state,
     required this.altBuffer,
     required this.platform,
@@ -44,6 +53,9 @@ class TerminalKeyboardEvent {
     bool? shift,
     bool? ctrl,
     bool? alt,
+    bool? superKey,
+    bool? capsLock,
+    bool? numLock,
     TerminalState? state,
     bool? altBuffer,
     TerminalTargetPlatform? platform,
@@ -55,6 +67,9 @@ class TerminalKeyboardEvent {
       shift: shift ?? this.shift,
       ctrl: ctrl ?? this.ctrl,
       alt: alt ?? this.alt,
+      superKey: superKey ?? this.superKey,
+      capsLock: capsLock ?? this.capsLock,
+      numLock: numLock ?? this.numLock,
       state: state ?? this.state,
       altBuffer: altBuffer ?? this.altBuffer,
       platform: platform ?? this.platform,
@@ -65,7 +80,7 @@ class TerminalKeyboardEvent {
 
   @override
   String toString() {
-    return 'TerminalKeyboardEvent(key: $key, shift: $shift, ctrl: $ctrl, alt: $alt, state: $state, altBuffer: $altBuffer, platform: $platform, type: $type, text: $text)';
+    return 'TerminalKeyboardEvent(key: $key, shift: $shift, ctrl: $ctrl, alt: $alt, superKey: $superKey, capsLock: $capsLock, numLock: $numLock, state: $state, altBuffer: $altBuffer, platform: $platform, type: $type, text: $text)';
   }
 }
 
