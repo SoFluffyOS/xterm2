@@ -1668,6 +1668,14 @@ bool _paintProceduralGlyph(
     case 0x2570:
       final isRight = codePoint == 0x256d || codePoint == 0x2570;
       final isDown = codePoint == 0x256d || codePoint == 0x256e;
+      final horizontalDirection = switch (isRight) {
+        true => 1.0,
+        false => -1.0,
+      };
+      final verticalDirection = switch (isDown) {
+        true => 1.0,
+        false => -1.0,
+      };
       final horizontalX = switch (isRight) {
         true => x + width,
         false => x,
@@ -1676,17 +1684,29 @@ bool _paintProceduralGlyph(
         true => y + height,
         false => y,
       };
-      final horizontalEnd = Offset(horizontalX, centerY);
-      final verticalEnd = Offset(centerX, verticalY);
+      final radius = min(width, height) / 2;
+      const controlPointScale = 0.25;
       final arcPath = Path()
-        ..moveTo(horizontalEnd.dx, horizontalEnd.dy)
-        ..quadraticBezierTo(centerX, centerY, verticalEnd.dx, verticalEnd.dy);
+        ..moveTo(centerX, verticalY)
+        ..lineTo(centerX, centerY + verticalDirection * radius)
+        ..cubicTo(
+          centerX,
+          centerY + verticalDirection * controlPointScale * radius,
+          centerX + horizontalDirection * controlPointScale * radius,
+          centerY,
+          centerX + horizontalDirection * radius,
+          centerY,
+        )
+        ..lineTo(horizontalX, centerY);
       canvas.drawPath(
         arcPath,
         Paint()
           ..color = paint.color
-          ..strokeWidth = thin
-          ..style = PaintingStyle.stroke,
+          ..strokeWidth = thin + overlap * 2
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.butt
+          ..strokeJoin = StrokeJoin.round
+          ..isAntiAlias = true,
       );
       return true;
     case 0x2571:

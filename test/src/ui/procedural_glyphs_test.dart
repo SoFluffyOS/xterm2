@@ -42,6 +42,56 @@ void main() {
     picture.dispose();
   });
 
+  test('rounded box corners match adjoining line weight', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+    const corners = [0x256d, 0x256e, 0x256f, 0x2570];
+
+    for (var index = 0; index < corners.length; index++) {
+      final x = index * 20.0;
+      paintProceduralGlyph(
+        canvas,
+        Offset(x, 0),
+        const Size(20, 40),
+        corners[index],
+        paint,
+      );
+      paintProceduralGlyph(
+        canvas,
+        Offset(x, 40),
+        const Size(20, 40),
+        0x2502,
+        paint,
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(80, 80);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected rounded-corner image bytes');
+    }
+
+    for (var index = 0; index < corners.length; index++) {
+      final cornerY = switch (corners[index]) {
+        0x256d || 0x256e => 35,
+        _ => 5,
+      };
+      final x = index * 20;
+      final cornerWeight = _alphaInRow(bytes, 80, cornerY, x, 20);
+      final lineWeight = _alphaInRow(bytes, 80, 60, x, 20);
+      expect(
+        cornerWeight,
+        closeTo(lineWeight, 255),
+        reason: 'U+${corners[index].toRadixString(16)}',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural glyphs do not bleed outside their cell', () async {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);
@@ -811,6 +861,14 @@ bool _hasAnyAlpha(ByteData bytes, int width, int height) {
     }
   }
   return false;
+}
+
+int _alphaInRow(ByteData bytes, int imageWidth, int y, int x, int width) {
+  var alpha = 0;
+  for (var column = x; column < x + width; column++) {
+    alpha += bytes.getUint8((y * imageWidth + column) * 4 + 3);
+  }
+  return alpha;
 }
 
 bool _hasAnyAlphaInCell(
