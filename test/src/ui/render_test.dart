@@ -175,6 +175,30 @@ void main() {
     setup.focusNode.dispose();
   });
 
+  test('selection updates repaint without scheduling layout', () {
+    final setup = _createRenderTerminal();
+    final render = setup.render;
+    final owner = PipelineOwner();
+
+    render.attach(owner);
+    render.layout(
+      BoxConstraints.tight(
+        Size(render.cellSize.width * 10, render.cellSize.height * 5),
+      ),
+    );
+
+    setup.controller.setSelection(
+      setup.terminal.buffer.createAnchor(0, 0),
+      setup.terminal.buffer.createAnchor(2, 0),
+    );
+
+    expect(render.debugNeedsLayout, isFalse);
+    expect(render.debugNeedsPaint, isTrue);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
   test('character selection expands forward endpoint across rows', () {
     final setup = _createRenderTerminal();
     final render = setup.render;
