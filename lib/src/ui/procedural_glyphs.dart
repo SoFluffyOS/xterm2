@@ -456,6 +456,39 @@ bool _paintProceduralGlyph(
     return true;
   }
 
+  if (codePoint >= 0x1fb68 && codePoint <= 0x1fb6f) {
+    _paintLegacyEdgeTriangle(
+      canvas,
+      offset,
+      cellSize,
+      codePoint - 0x1fb68,
+      paint,
+    );
+    return true;
+  }
+
+  if (codePoint >= 0x1fb70 && codePoint <= 0x1fb75) {
+    final eighth = codePoint - 0x1fb70 + 1;
+    fill(Rect.fromLTWH(
+      x + width * eighth / 8,
+      y,
+      width / 8,
+      height,
+    ));
+    return true;
+  }
+
+  if (codePoint >= 0x1fb76 && codePoint <= 0x1fb7b) {
+    final eighth = codePoint - 0x1fb76 + 1;
+    fill(Rect.fromLTWH(
+      x,
+      y + height * eighth / 8,
+      width,
+      height / 8,
+    ));
+    return true;
+  }
+
   if (codePoint >= 0x1fb82 && codePoint <= 0x1fb86) {
     const eighths = [2, 3, 5, 6, 7];
     final fraction = eighths[codePoint - 0x1fb82] / 8;
@@ -583,6 +616,60 @@ bool _paintProceduralGlyph(
         ));
         return true;
     }
+  }
+
+  if (codePoint == 0x1fb98 || codePoint == 0x1fb99) {
+    _paintLegacyDiagonalFill(
+      canvas,
+      offset,
+      cellSize,
+      descending: codePoint == 0x1fb98,
+      paint: paint,
+    );
+    return true;
+  }
+
+  if (codePoint == 0x1fb9a || codePoint == 0x1fb9b) {
+    final firstEdge = switch (codePoint) {
+      0x1fb9a => 1,
+      _ => 0,
+    };
+    _paintLegacyEdgeTriangle(canvas, offset, cellSize, firstEdge + 4, paint);
+    _paintLegacyEdgeTriangle(canvas, offset, cellSize, firstEdge + 6, paint);
+    return true;
+  }
+
+  if (codePoint >= 0x1fb9c && codePoint <= 0x1fb9f) {
+    _paintLegacyCornerShade(
+      canvas,
+      offset,
+      cellSize,
+      codePoint - 0x1fb9c,
+      paint,
+    );
+    return true;
+  }
+
+  if (codePoint >= 0x1fba0 && codePoint <= 0x1fbae) {
+    const cornerMasks = [1, 2, 4, 8, 5, 10, 12, 3, 9, 6, 14, 13, 11, 7, 15];
+    _paintLegacyCornerLines(
+      canvas,
+      offset,
+      cellSize,
+      cornerMasks[codePoint - 0x1fba0],
+      paint,
+    );
+    return true;
+  }
+
+  if (codePoint == 0x1fbaf) {
+    final light = max(1.0, width * 0.12);
+    final heavy = max(2.0, width * 0.22);
+    fill(Rect.fromLTRB(
+        x, y + height / 2 - light / 2, x + width, y + height / 2 + light / 2));
+    fill(Rect.fromLTRB(
+        x + width / 2 - heavy / 2, y, x + width / 2 + heavy / 2, y + height));
+    return true;
   }
 
   final thin = max(1.0, width * 0.12);
@@ -1225,7 +1312,7 @@ bool _isProceduralGlyph(int codePoint) {
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fb3b) {
     return true;
   }
-  if (codePoint >= 0x1fb7c && codePoint <= 0x1fb97) {
+  if (codePoint >= 0x1fb68 && codePoint <= 0x1fbaf) {
     return true;
   }
   if (codePoint >= 0x1cc1b && codePoint <= 0x1cc1e) {
@@ -1244,6 +1331,122 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   return false;
+}
+
+void _paintLegacyEdgeTriangle(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int index,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final right = x + cellSize.width;
+  final bottom = y + cellSize.height;
+  final center = Offset(x + cellSize.width / 2, y + cellSize.height / 2);
+  final edge = index & 3;
+  final edgePoints = switch (edge) {
+    0 => [Offset(x, y), Offset(x, bottom)],
+    1 => [Offset(right, y), Offset(x, y)],
+    2 => [Offset(right, bottom), Offset(right, y)],
+    _ => [Offset(x, bottom), Offset(right, bottom)],
+  };
+  final triangle = [center, ...edgePoints];
+  if (index >= 4) {
+    canvas.drawPath(Path()..addPolygon(triangle, true), paint);
+    return;
+  }
+
+  final path = Path()
+    ..fillType = PathFillType.evenOdd
+    ..addRect(offset & cellSize)
+    ..addPolygon(triangle, true);
+  canvas.drawPath(path, paint);
+}
+
+void _paintLegacyDiagonalFill(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize, {
+  required bool descending,
+  required Paint paint,
+}) {
+  final strokeWidth = max(1.0, cellSize.width * 0.12);
+  final stride = max(strokeWidth * 2.5, cellSize.width / 3);
+  final linePaint = Paint()
+    ..color = paint.color
+    ..strokeWidth = strokeWidth
+    ..style = PaintingStyle.stroke;
+  for (var shift = -cellSize.width; shift <= cellSize.width; shift += stride) {
+    final startX = switch (descending) {
+      true => offset.dx + shift,
+      false => offset.dx + cellSize.width + shift,
+    };
+    final endX = switch (descending) {
+      true => startX + cellSize.width,
+      false => startX - cellSize.width,
+    };
+    canvas.drawLine(
+      Offset(startX, offset.dy),
+      Offset(endX, offset.dy + cellSize.height),
+      linePaint,
+    );
+  }
+}
+
+void _paintLegacyCornerShade(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int corner,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final right = x + cellSize.width;
+  final bottom = y + cellSize.height;
+  final points = switch (corner) {
+    0 => [Offset(x, y), Offset(right, y), Offset(x, bottom)],
+    1 => [Offset(x, y), Offset(right, y), Offset(right, bottom)],
+    2 => [Offset(right, y), Offset(right, bottom), Offset(x, bottom)],
+    _ => [Offset(x, y), Offset(x, bottom), Offset(right, bottom)],
+  };
+  canvas.drawPath(
+    Path()..addPolygon(points, true),
+    Paint()..color = paint.color.withValues(alpha: paint.color.a * 0.5),
+  );
+}
+
+void _paintLegacyCornerLines(
+  Canvas canvas,
+  Offset offset,
+  Size cellSize,
+  int corners,
+  Paint paint,
+) {
+  final x = offset.dx;
+  final y = offset.dy;
+  final right = x + cellSize.width;
+  final bottom = y + cellSize.height;
+  final centerX = x + cellSize.width / 2;
+  final centerY = y + cellSize.height / 2;
+  final linePaint = Paint()
+    ..color = paint.color
+    ..strokeWidth = max(1.0, cellSize.width * 0.12)
+    ..style = PaintingStyle.stroke;
+  if (corners & 1 != 0) {
+    canvas.drawLine(Offset(centerX, y), Offset(x, centerY), linePaint);
+  }
+  if (corners & 2 != 0) {
+    canvas.drawLine(Offset(centerX, y), Offset(right, centerY), linePaint);
+  }
+  if (corners & 4 != 0) {
+    canvas.drawLine(Offset(centerX, bottom), Offset(x, centerY), linePaint);
+  }
+  if (corners & 8 != 0) {
+    canvas.drawLine(Offset(centerX, bottom), Offset(right, centerY), linePaint);
+  }
 }
 
 bool _isTerminalSymbolGlyph(int codePoint) {

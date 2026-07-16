@@ -452,7 +452,7 @@ void main() {
     final codePoints = <int>[
       for (var codePoint = 0x1fb00; codePoint <= 0x1fb3b; codePoint++)
         codePoint,
-      for (var codePoint = 0x1fb7c; codePoint <= 0x1fb97; codePoint++)
+      for (var codePoint = 0x1fb68; codePoint <= 0x1fbaf; codePoint++)
         codePoint,
       for (var codePoint = 0x1cc1b; codePoint <= 0x1cc1e; codePoint++)
         codePoint,
@@ -481,6 +481,52 @@ void main() {
     }
 
     recorder.endRecording().dispose();
+  });
+
+  test('procedural extended legacy glyphs paint visible pixels', () async {
+    const glyphs = [
+      0x1fb68,
+      0x1fb6c,
+      0x1fb70,
+      0x1fb76,
+      0x1fb98,
+      0x1fb99,
+      0x1fb9a,
+      0x1fb9c,
+      0x1fba0,
+      0x1fbae,
+      0x1fbaf,
+    ];
+
+    for (final codePoint in glyphs) {
+      final recorder = PictureRecorder();
+      final canvas = Canvas(recorder);
+      final paint = Paint()..color = const Color(0xffffffff);
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset.zero,
+          const Size(20, 40),
+          codePoint,
+          paint,
+        ),
+        isTrue,
+      );
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(20, 40);
+      final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+      if (bytes == null) {
+        fail('Expected legacy glyph image bytes');
+      }
+      expect(
+        _hasAnyAlpha(bytes, 20, 40),
+        isTrue,
+        reason: 'U+${codePoint.toRadixString(16)}',
+      );
+      image.dispose();
+      picture.dispose();
+    }
   });
 }
 
