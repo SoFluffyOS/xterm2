@@ -213,6 +213,46 @@ void main() {
     picture.dispose();
   });
 
+  test('adjacent block elements have no subpixel seams', () async {
+    const scale = 2.0;
+    const cellSize = Size(9.3, 18.6);
+    const cellCount = 3;
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder)..scale(scale);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    for (var column = 0; column < cellCount; column++) {
+      paintProceduralGlyph(
+        canvas,
+        Offset(column * cellSize.width, 0),
+        cellSize,
+        0x2580,
+        paint,
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final imageWidth = (cellSize.width * cellCount * scale).ceil();
+    final imageHeight = (cellSize.height * scale).ceil();
+    final image = await picture.toImage(imageWidth, imageHeight);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected adjacent-block image bytes');
+    }
+
+    final sampleY = (cellSize.height * scale / 4).floor();
+    for (var sampleX = 1; sampleX < imageWidth - 1; sampleX++) {
+      expect(
+        bytes.getUint8((sampleY * imageWidth + sampleX) * 4 + 3),
+        255,
+        reason: 'pixel $sampleX between adjacent U+2580 cells',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural glyph rendering falls back for regular text', () {
     final recorder = PictureRecorder();
     final canvas = Canvas(recorder);

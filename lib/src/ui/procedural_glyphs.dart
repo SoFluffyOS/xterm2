@@ -476,7 +476,7 @@ bool paintProceduralGlyph(
   }
 
   canvas.save();
-  canvas.clipRect(offset & cellSize);
+  canvas.clipRect(offset & cellSize, doAntiAlias: false);
   final painted = _paintProceduralGlyph(
     canvas,
     offset,
