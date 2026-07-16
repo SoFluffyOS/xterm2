@@ -196,6 +196,19 @@ void main() {
     expect(hyperlinks, contains('https://example.com'));
   });
 
+  test('Terminal edits the last cell after a pending wrap', () {
+    for (final sequence in ['\x1b[@', '\x1b[P', '\x1b[X', '\x1b[K']) {
+      final terminal = Terminal()..resize(4, 2);
+
+      terminal.write('abcd$sequence');
+
+      expect(terminal.buffer.lines[0].getText(0, 4), 'abc');
+      terminal.write('Z');
+      expect(terminal.buffer.lines[0].getText(0, 4), 'abcZ');
+      expect(terminal.buffer.cursorY, 0);
+    }
+  });
+
   test('Terminal scroll-complete erase moves viewport into scrollback', () {
     final terminal = Terminal(maxLines: 10)..resize(4, 2);
 

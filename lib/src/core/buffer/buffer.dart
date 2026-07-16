@@ -538,6 +538,7 @@ class Buffer {
 
   /// Erases the whole viewport.
   void eraseDisplay({bool respectProtected = false}) {
+    _cancelPendingWrap();
     for (var i = 0; i < viewHeight; i++) {
       final line = lines[i + scrollBack];
       line.isWrapped = false;
@@ -554,6 +555,7 @@ class Buffer {
   /// Erases the line from the cursor to the end of the line, including the
   /// cursor position.
   void eraseLineFromCursor({bool respectProtected = false}) {
+    _cancelPendingWrap();
     currentLine.isWrapped = false;
     currentLine.eraseRange(
       _cursorX,
@@ -566,6 +568,7 @@ class Buffer {
   /// Erases the line from the start of the line to the cursor, including the
   /// cursor.
   void eraseLineToCursor({bool respectProtected = false}) {
+    _cancelPendingWrap();
     currentLine.isWrapped = false;
     currentLine.eraseRange(
       0,
@@ -577,6 +580,7 @@ class Buffer {
 
   /// Erases the line at the current cursor position.
   void eraseLine({bool respectProtected = false}) {
+    _cancelPendingWrap();
     currentLine.isWrapped = false;
     currentLine.eraseRange(
       0,
@@ -588,6 +592,7 @@ class Buffer {
 
   /// Erases [count] cells starting at the cursor position.
   void eraseChars(int count, {bool respectProtected = false}) {
+    _cancelPendingWrap();
     final start = _cursorX;
     count = min(count, viewWidth - start);
     currentLine.eraseRange(
@@ -1076,6 +1081,11 @@ class Buffer {
     return _cursorX == _rightLimit;
   }
 
+  void _cancelPendingWrap() {
+    if (!_isPendingWrap) return;
+    _cursorX = _rightLimit - 1;
+  }
+
   _CursorLeftWrapMode get _cursorLeftWrapMode {
     if (!terminal.autoWrapMode) return _CursorLeftWrapMode.none;
     if (terminal.reverseWrapExtendedMode) {
@@ -1229,12 +1239,14 @@ class Buffer {
   }
 
   void deleteChars(int count) {
-    final start = _cursorX.clamp(0, viewWidth);
+    _cancelPendingWrap();
+    final start = _cursorX.clamp(0, viewWidth - 1);
     count = min(count, _rightLimit - start);
     currentLine.removeCells(start, count, _blankCellStyle, _rightLimit);
   }
 
   void insertColumns(int count) {
+    _cancelPendingWrap();
     if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
@@ -1247,6 +1259,7 @@ class Buffer {
   }
 
   void deleteColumns(int count) {
+    _cancelPendingWrap();
     if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
@@ -1390,6 +1403,7 @@ class Buffer {
   }
 
   void insertBlankChars(int count) {
+    _cancelPendingWrap();
     count = min(count, _rightLimit - _cursorX);
     currentLine.insertCells(_cursorX, count, _blankCellStyle, _rightLimit);
   }
@@ -1405,6 +1419,7 @@ class Buffer {
   }
 
   void insertLines(int count) {
+    _cancelPendingWrap();
     if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
@@ -1457,6 +1472,7 @@ class Buffer {
   /// the removed lines are shifted up. This only affects the scrollable region.
   /// Lines outside the scrollable region are not affected.
   void deleteLines(int count) {
+    _cancelPendingWrap();
     if (!isInVerticalMargin || !isInHorizontalMargin) {
       return;
     }
