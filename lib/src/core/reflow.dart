@@ -2,13 +2,19 @@ import 'package:xterm2/src/core/buffer/line.dart';
 import 'package:xterm2/src/utils/circular_buffer.dart';
 
 class _LineBuilder {
-  _LineBuilder([this._capacity = 80]) {
-    _result = BufferLine(_capacity);
-  }
+  _LineBuilder([this._capacity = 80]);
 
   final int _capacity;
 
-  late BufferLine _result;
+  BufferLine? _result;
+
+  BufferLine get _activeResult {
+    final existing = _result;
+    if (existing != null) return existing;
+    final created = BufferLine(_capacity);
+    _result = created;
+    return created;
+  }
 
   int _length = 0;
 
@@ -21,7 +27,7 @@ class _LineBuilder {
   /// Adds a range of cells from [src] to the builder. Anchors within the range
   /// will be reparented to the new line returned by [take].
   void add(BufferLine src, int start, int length) {
-    _result.copyFrom(src, start, _length, length);
+    _activeResult.copyFrom(src, start, _length, length);
     _length += length;
   }
 
@@ -32,15 +38,18 @@ class _LineBuilder {
   }
 
   void addAnchor(CellAnchor anchor, int offset) {
-    anchor.reparent(_result, _length + offset);
+    anchor.reparent(_activeResult, _length + offset);
   }
 
   BufferLine take({required bool wrapped}) {
     final result = _result;
+    if (result == null) {
+      throw StateError('Cannot take an empty line builder');
+    }
     result.isWrapped = wrapped;
     // result.resize(_length);
 
-    _result = BufferLine(_capacity);
+    _result = null;
     _length = 0;
 
     return result;
