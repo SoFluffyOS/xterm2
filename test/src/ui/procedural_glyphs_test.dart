@@ -331,6 +331,98 @@ void main() {
     recorder.endRecording().dispose();
   });
 
+  test('procedural glyph rendering covers branch graph sprites', () async {
+    const firstCodePoint = 0xf5d0;
+    const lastCodePoint = 0xf60d;
+    const cellWidth = 20;
+    const cellHeight = 40;
+    const glyphCount = lastCodePoint - firstCodePoint + 1;
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    for (var index = 0; index < glyphCount; index++) {
+      expect(
+        paintProceduralGlyph(
+          canvas,
+          Offset((index * cellWidth).toDouble(), 0),
+          const Size(20, 40),
+          firstCodePoint + index,
+          paint,
+        ),
+        isTrue,
+      );
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(glyphCount * cellWidth, cellHeight);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected branch graph image bytes');
+    }
+
+    for (var index = 0; index < glyphCount; index++) {
+      expect(
+        _hasAnyAlphaInCell(
+          bytes,
+          glyphCount * cellWidth,
+          index * cellWidth,
+          0,
+          cellWidth,
+          cellHeight,
+        ),
+        isTrue,
+        reason: 'U+${(firstCodePoint + index).toRadixString(16)}',
+      );
+    }
+
+    image.dispose();
+    picture.dispose();
+  });
+
+  test('procedural branch graph sprites fade and distinguish nodes', () async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..color = const Color(0xffffffff);
+
+    paintProceduralGlyph(
+      canvas,
+      Offset.zero,
+      const Size(20, 40),
+      0xf5d2,
+      paint,
+    );
+    paintProceduralGlyph(
+      canvas,
+      const Offset(20, 0),
+      const Size(20, 40),
+      0xf5ee,
+      paint,
+    );
+    paintProceduralGlyph(
+      canvas,
+      const Offset(40, 0),
+      const Size(20, 40),
+      0xf5ef,
+      paint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 40);
+    final bytes = await image.toByteData(format: ImageByteFormat.rawRgba);
+    if (bytes == null) {
+      fail('Expected branch graph detail image bytes');
+    }
+
+    int alphaAt(int x, int y) => bytes.getUint8((y * 60 + x) * 4 + 3);
+    expect(alphaAt(1, 20), greaterThan(alphaAt(18, 20)));
+    expect(alphaAt(30, 20), greaterThan(0));
+    expect(alphaAt(50, 20), 0);
+
+    image.dispose();
+    picture.dispose();
+  });
+
   test('procedural powerline triangle separators paint visible pixels',
       () async {
     final recorder = PictureRecorder();

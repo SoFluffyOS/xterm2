@@ -1,6 +1,8 @@
 import 'dart:math' show max, min;
 import 'dart:ui';
 
+import 'package:xterm2/src/ui/branch_glyphs.dart';
+
 const _singleLineBoxArms = <int>[
   0x44,
   0x48,
@@ -593,6 +595,11 @@ bool _paintProceduralGlyph(
         paint,
       );
     }
+    return true;
+  }
+
+  if (codePoint >= 0xf5d0 && codePoint <= 0xf60d) {
+    paintBranchGlyph(canvas, offset, cellSize, codePoint, paint);
     return true;
   }
 
@@ -1773,6 +1780,9 @@ bool _isProceduralGlyph(int codePoint) {
     return true;
   }
   if (codePoint == 0xe0d2 || codePoint == 0xe0d4) {
+    return true;
+  }
+  if (codePoint >= 0xf5d0 && codePoint <= 0xf60d) {
     return true;
   }
   if (codePoint >= 0x1fb00 && codePoint <= 0x1fbaf) {
