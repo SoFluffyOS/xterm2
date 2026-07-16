@@ -146,6 +146,28 @@ void main() {
     painter.dispose();
   });
 
+  test('TerminalPainter bounds its paragraph cache', () {
+    final painter = TerminalPainter(
+      theme: TerminalThemes.whiteOnBlack,
+      textStyle: const TerminalStyle(fontSize: 20, height: 1),
+      textScaler: TextScaler.noScaling,
+      paragraphCacheSize: 2,
+    );
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    final cell = CellData.empty()
+      ..content = 0x41 | (1 << CellContent.widthShift);
+
+    for (var color = 1; color <= 3; color++) {
+      cell.foreground = CellColor.rgb | color;
+      painter.paintCellForeground(canvas, Offset.zero, cell);
+    }
+
+    expect(painter.paragraphCacheLength, 2);
+    recorder.endRecording().dispose();
+    painter.dispose();
+  });
+
   test('paintLine reuses glyph layout across background colors', () {
     final painter = TerminalPainter(
       theme: TerminalThemes.whiteOnBlack,

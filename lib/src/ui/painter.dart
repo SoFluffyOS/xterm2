@@ -13,6 +13,7 @@ const _specialUnderlineColor = 1;
 const _specialBlinkColor = 2;
 const _specialReverseColor = 3;
 const _specialItalicColor = 4;
+const _defaultParagraphCacheSize = 2048;
 
 /// Encapsulates the logic for painting various terminal elements.
 class TerminalPainter {
@@ -20,9 +21,11 @@ class TerminalPainter {
     required TerminalTheme theme,
     required TerminalStyle textStyle,
     required TextScaler textScaler,
+    int paragraphCacheSize = _defaultParagraphCacheSize,
   })  : _textStyle = textStyle,
         _theme = theme,
-        _textScaler = textScaler;
+        _textScaler = textScaler,
+        _paragraphCache = ParagraphCache(paragraphCacheSize);
 
   /// A lookup table from terminal colors to Flutter colors.
   late var _colorPalette = PaletteBuilder(_theme).build();
@@ -33,7 +36,7 @@ class TerminalPainter {
   /// The cached for cells in the terminal. Should be cleared when the same
   /// cell no longer produces the same visual output. For example, when
   /// [_textStyle] is changed, or when the system font changes.
-  final _paragraphCache = ParagraphCache(10240);
+  final ParagraphCache _paragraphCache;
 
   /// Reused during cell painting to avoid allocating objects per visible cell.
   final _foregroundPaint = Paint();
