@@ -61,7 +61,7 @@ under a new pub package name.
 ```yml
 dependencies:
   ...
-  xterm2: ^1.0.0
+  xterm2: ^5.1.0
 ```
 
 **2.** Create the terminal:

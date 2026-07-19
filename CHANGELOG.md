@@ -1,3 +1,13 @@
+## [5.1.0] - 2026-07-19
+
+* Add Unicode 17 width handling and broader emoji grapheme support.
+* Add Kitty keyboard modifiers and expanded VT/xterm protocol compatibility.
+* Improve OSC 8 hyperlinks, selection isolation, clear behavior, and inline TUI scrolling.
+* Expand procedural rendering for box drawing, blocks, mosaics, branch graphs, and legacy symbols.
+* Improve glyph fallback, wide-character rendering, contrast, and decoration accuracy.
+* Reduce parser, resize, repaint, and paragraph-cache overhead under sustained output.
+* Harden resize reflow and buffer editing across wrapped and wide lines.
+
 ## [5.0.0] - 2026-07-11
 
 * Rename package to `xterm2` for the maintained fork.
