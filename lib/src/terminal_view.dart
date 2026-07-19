@@ -455,7 +455,14 @@ class TerminalViewState extends State<TerminalView> {
       terminalController: _controller,
       simulateScroll: widget.simulateScroll,
       readOnly: widget.readOnly,
-      getCellOffset: (offset) => renderTerminal.getCellOffset(offset),
+      sendMouseEvent: (button, state, offset, {required modifiers}) {
+        return renderTerminal.mouseEvent(
+          button,
+          state,
+          offset,
+          modifiers: modifiers,
+        );
+      },
       getLineHeight: () => renderTerminal.lineHeight,
       child: child,
     );

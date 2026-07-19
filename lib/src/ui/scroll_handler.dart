@@ -5,16 +5,21 @@ import 'package:xterm2/src/ui/controller.dart';
 import 'package:xterm2/src/ui/infinite_scroll_view.dart';
 import 'package:xterm2/src/ui/pointer_input.dart';
 
-/// Handles scrolling gestures in the alternate screen buffer. In alternate
-/// screen buffer, the terminal don't have a scrollback buffer, instead, the
-/// scroll gestures are converted to escape sequences based on the current
-/// report mode declared by the application.
+typedef TerminalMouseEventCallback = bool Function(
+  TerminalMouseButton button,
+  TerminalMouseButtonState state,
+  Offset offset, {
+  required TerminalMouseModifiers modifiers,
+});
+
+/// Routes scrolling gestures either to terminal scrollback or to the running
+/// application based on the current terminal modes.
 class TerminalScrollGestureHandler extends StatefulWidget {
   const TerminalScrollGestureHandler({
     super.key,
     required this.terminal,
     required this.terminalController,
-    required this.getCellOffset,
+    required this.sendMouseEvent,
     required this.getLineHeight,
     this.simulateScroll = true,
     this.readOnly = false,
@@ -25,8 +30,7 @@ class TerminalScrollGestureHandler extends StatefulWidget {
 
   final TerminalController terminalController;
 
-  /// Returns the cell offset for the pixel offset.
-  final CellOffset Function(Offset) getCellOffset;
+  final TerminalMouseEventCallback sendMouseEvent;
 
   /// Returns the pixel height of lines in the terminal.
   final double Function() getLineHeight;
@@ -47,9 +51,7 @@ class TerminalScrollGestureHandler extends StatefulWidget {
 
 class _TerminalScrollGestureHandlerState
     extends State<TerminalScrollGestureHandler> {
-  /// Whether the application is in alternate screen buffer. If false, then this
-  /// widget does nothing.
-  var isAltBuffer = false;
+  var handlesApplicationScroll = false;
 
   /// The variable that tracks the line offset in last scroll event. Used to
   /// determine how many the scroll events should be sent to the terminal.
@@ -62,7 +64,7 @@ class _TerminalScrollGestureHandlerState
   @override
   void initState() {
     widget.terminal.addListener(_onTerminalUpdated);
-    isAltBuffer = widget.terminal.isUsingAltBuffer;
+    handlesApplicationScroll = _shouldHandleApplicationScroll();
     super.initState();
   }
 
@@ -77,16 +79,24 @@ class _TerminalScrollGestureHandlerState
     if (oldWidget.terminal != widget.terminal) {
       oldWidget.terminal.removeListener(_onTerminalUpdated);
       widget.terminal.addListener(_onTerminalUpdated);
-      isAltBuffer = widget.terminal.isUsingAltBuffer;
+      handlesApplicationScroll = _shouldHandleApplicationScroll();
+      lastLineOffset = 0;
     }
     super.didUpdateWidget(oldWidget);
   }
 
   void _onTerminalUpdated() {
-    if (isAltBuffer != widget.terminal.isUsingAltBuffer) {
-      isAltBuffer = widget.terminal.isUsingAltBuffer;
-      setState(() {});
-    }
+    final shouldHandleApplicationScroll = _shouldHandleApplicationScroll();
+    if (handlesApplicationScroll == shouldHandleApplicationScroll) return;
+
+    handlesApplicationScroll = shouldHandleApplicationScroll;
+    lastLineOffset = 0;
+    setState(() {});
+  }
+
+  bool _shouldHandleApplicationScroll() {
+    return widget.terminal.isUsingAltBuffer ||
+        widget.terminal.mouseMode.reportScroll;
   }
 
   /// Send a single scroll event to the terminal. If [simulateScroll] is true,
@@ -99,21 +109,14 @@ class _TerminalScrollGestureHandlerState
       return;
     }
 
-    final position = widget.getCellOffset(lastPointerPosition);
-    final pixelPosition = CellOffset(
-      lastPointerPosition.dx.floor(),
-      lastPointerPosition.dy.floor(),
-    );
-
-    final handled = widget.terminal.mouseInput(
+    final handled = widget.sendMouseEvent(
       up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
       TerminalMouseButtonState.down,
-      position,
+      lastPointerPosition,
       modifiers: _currentModifiers(),
-      pixelPosition: pixelPosition,
     );
 
-    if (!handled && widget.simulateScroll) {
+    if (!handled && widget.simulateScroll && widget.terminal.isUsingAltBuffer) {
       widget.terminal.keyInput(
         up ? TerminalKey.arrowUp : TerminalKey.arrowDown,
       );
@@ -146,10 +149,13 @@ class _TerminalScrollGestureHandlerState
 
   @override
   Widget build(BuildContext context) {
-    if (!isAltBuffer) {
+    if (!handlesApplicationScroll) {
       return widget.child;
     }
 
+    final scrollbackBehavior = ScrollConfiguration.of(context).copyWith(
+      physics: const NeverScrollableScrollPhysics(),
+    );
     return Listener(
       onPointerSignal: (event) {
         lastPointerPosition = event.localPosition;
@@ -158,8 +164,12 @@ class _TerminalScrollGestureHandlerState
         lastPointerPosition = event.localPosition;
       },
       child: InfiniteScrollView(
+        key: ValueKey(widget.terminal),
         onScroll: _onScroll,
-        child: widget.child,
+        child: ScrollConfiguration(
+          behavior: scrollbackBehavior,
+          child: widget.child,
+        ),
       ),
     );
   }

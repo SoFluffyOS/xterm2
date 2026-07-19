@@ -679,6 +679,115 @@ void main() {
       expect(output, isNotEmpty);
       expect(output.last, '\x1b[<65;1;1M');
     });
+
+    testWidgets('reports scroll from the main buffer', (tester) async {
+      final output = <String>[];
+      final terminal = Terminal(maxLines: 100, onOutput: output.add);
+      final scrollController = ScrollController();
+      terminal.write(List.generate(100, (index) => '$index\r\n').join());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 200,
+              child: TerminalView(
+                terminal,
+                scrollController: scrollController,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      terminal.write('\x1b[?1000h\x1b[?1006h');
+      await tester.pump();
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+      final scrollOffsetBefore = scrollController.offset;
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: position,
+          scrollDelta: Offset(0, -state.renderTerminal.lineHeight),
+        ),
+      );
+      await tester.pump();
+
+      expect(output, contains('\x1b[<64;1;1M'));
+      expect(scrollController.offset, scrollOffsetBefore);
+    });
+
+    testWidgets('restores main-buffer scrollback after mouse reporting', (
+      tester,
+    ) async {
+      final output = <String>[];
+      final terminal = Terminal(maxLines: 100, onOutput: output.add);
+      final scrollController = ScrollController();
+      terminal.write(List.generate(100, (index) => '$index\r\n').join());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 200,
+              child: TerminalView(
+                terminal,
+                scrollController: scrollController,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      terminal.write('\x1b[?1000h\x1b[?1006h');
+      await tester.pump();
+      terminal.write('\x1b[?1000l');
+      await tester.pump();
+
+      final scrollOffsetBefore = scrollController.offset;
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: position,
+          scrollDelta: Offset(0, -state.renderTerminal.lineHeight),
+        ),
+      );
+      await tester.pump();
+
+      expect(scrollController.offset, lessThan(scrollOffsetBefore));
+      expect(output, isEmpty);
+    });
+
+    testWidgets('accumulates precision scroll deltas', (tester) async {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      terminal.write('\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+      final partialDelta = state.renderTerminal.lineHeight * 0.6;
+      for (var index = 0; index < 2; index++) {
+        await tester.sendEventToBinding(
+          PointerScrollEvent(
+            position: position,
+            scrollDelta: Offset(0, partialDelta),
+          ),
+        );
+        await tester.pump();
+      }
+
+      expect(output, ['\x1b[<65;1;1M']);
+    });
   });
 
   group('TerminalView.autofocus', () {
