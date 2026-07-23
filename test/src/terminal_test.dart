@@ -2301,6 +2301,20 @@ void main() {
       expect(output, ['\x1b[?2026;2\x24y']);
     });
 
+    test('same-size resize disables synchronized update mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      terminal.resize(terminal.viewWidth, terminal.viewHeight);
+      terminal.write('\x1b[?2026\x24p');
+
+      expect(redraws, 2);
+      expect(output, ['\x1b[?2026;2\x24y']);
+    });
+
     test('reports synchronized update mode state', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
@@ -3385,6 +3399,30 @@ void main() {
       '\x1b[48;24;80;432;720t',
       '\x1b[48;30;100;600;1000t',
     ]);
+  });
+
+  test('Terminal reports in-band geometry for same-size resizes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[?2048h');
+    terminal.resize(80, 24, 9, 18);
+
+    expect(output, [
+      '\x1b[48;24;80;432;720t',
+      '\x1b[48;24;80;432;720t',
+    ]);
+  });
+
+  test('Terminal resets tab stops when the column count changes', () {
+    final terminal = Terminal()..resize(20, 5);
+    terminal.write('\x1b[3g\x1b[5G\x1bH\r\t');
+    expect(terminal.buffer.cursorX, 4);
+
+    terminal.resize(24, 5);
+    terminal.write('\r\t');
+
+    expect(terminal.buffer.cursorX, 8);
   });
 
   test('Terminal skips no-op resizes', () {

@@ -916,19 +916,25 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
     final nextCellPixelWidth = pixelWidth ?? _cellPixelWidth;
     final nextCellPixelHeight = pixelHeight ?? _cellPixelHeight;
-    if (newWidth == _viewWidth &&
-        newHeight == _viewHeight &&
-        nextCellPixelWidth == _cellPixelWidth &&
-        nextCellPixelHeight == _cellPixelHeight) {
-      return;
-    }
-
     final wasSynchronizedUpdateMode = _synchronizedUpdateMode;
     if (wasSynchronizedUpdateMode) {
       _synchronizedUpdateTimer?.cancel();
       _synchronizedUpdateTimer = null;
       _synchronizedUpdateMode = false;
     }
+
+    if (newWidth == _viewWidth &&
+        newHeight == _viewHeight &&
+        nextCellPixelWidth == _cellPixelWidth &&
+        nextCellPixelHeight == _cellPixelHeight) {
+      if (wasSynchronizedUpdateMode) notifyListeners();
+      if (_inBandSizeReportMode && pixelWidth != null && pixelHeight != null) {
+        _sendInBandSizeReport();
+      }
+      return;
+    }
+
+    final widthChanged = newWidth != _viewWidth;
 
     onResize?.call(newWidth, newHeight, pixelWidth ?? 0, pixelHeight ?? 0);
     if (pixelWidth != null) {
@@ -944,6 +950,10 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
     _viewWidth = newWidth;
     _viewHeight = newHeight;
+
+    if (widthChanged) {
+      _tabStops.reset();
+    }
 
     if (buffer == _altBuffer) {
       buffer.clearScrollback();

@@ -1,3 +1,7 @@
+## [Unreleased]
+
+* Harden resize behavior for synchronized output, tab stops, and size reports.
+
 ## [5.1.0] - 2026-07-19
 
 * Add Unicode 17 width handling and broader emoji grapheme support.
