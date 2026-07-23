@@ -2,6 +2,7 @@
 
 * Harden resize behavior for synchronized output, tab stops, and size reports.
 * Reduce parser, allocation, and cell-copy overhead during dense TUI output.
+* Allocate scrollback cell metadata lazily to reduce idle memory use.
 
 ## [5.1.0] - 2026-07-19
 
