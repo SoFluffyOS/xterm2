@@ -1210,6 +1210,33 @@ void main() {
       expect(terminalOutput, ['@']);
     });
 
+    testWidgets('preserves macOS Option-composed text when Alt escape is off', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(
+        onOutput: terminalOutput.add,
+        platform: TerminalTargetPlatform.macos,
+      );
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.keyE,
+        character: 'é',
+        physicalKey: PhysicalKeyboardKey.keyE,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+
+      expect(terminalOutput, ['é']);
+    });
+
     testWidgets('does not fall back to printable symbols for shortcuts', (
       tester,
     ) async {

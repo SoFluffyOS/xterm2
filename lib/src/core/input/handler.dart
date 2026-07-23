@@ -245,7 +245,7 @@ class CtrlInputHandler implements TerminalInputHandler {
     if (event.type == TerminalKeyEventType.release) {
       return null;
     }
-    if (!event.ctrl || event.alt) {
+    if (!event.ctrl) {
       return null;
     }
 
@@ -254,7 +254,7 @@ class CtrlInputHandler implements TerminalInputHandler {
         key.index >= TerminalKey.keyA.index &&
         key.index <= TerminalKey.keyZ.index) {
       final input = key.index - TerminalKey.keyA.index + 1;
-      return String.fromCharCode(input);
+      return _withAltPrefix(input, event.alt);
     }
 
     final text = event.text;
@@ -277,11 +277,19 @@ class CtrlInputHandler implements TerminalInputHandler {
       _ => null,
     };
     if (control == null) return null;
-    return String.fromCharCode(control);
+    return _withAltPrefix(control, event.alt);
+  }
+
+  String _withAltPrefix(int control, bool alt) {
+    final value = String.fromCharCode(control);
+    return switch (alt) {
+      true => '\x1b$value',
+      false => value,
+    };
   }
 }
 
-/// Translates Alt plus a letter into an escape-prefixed character.
+/// Translates Alt plus printable text into legacy terminal input.
 class AltInputHandler implements TerminalInputHandler {
   const AltInputHandler();
 
@@ -290,7 +298,7 @@ class AltInputHandler implements TerminalInputHandler {
     if (event.type == TerminalKeyEventType.release) {
       return null;
     }
-    if (!event.alt || event.ctrl || event.shift) {
+    if (!event.alt || event.ctrl || event.superKey) {
       return null;
     }
     if (event.platform == TerminalTargetPlatform.macos) {
@@ -299,12 +307,35 @@ class AltInputHandler implements TerminalInputHandler {
       if (!event.state.altEscPrefixMode) return null;
     }
 
+    final text = _legacyText(event);
+    if (text == null) return null;
+
+    final codePoint = text.runes.single;
+    if (codePoint > 0x7f) return text;
+    return '\x1b$text';
+  }
+
+  String? _legacyText(TerminalKeyboardEvent event) {
+    final text = event.text;
+    if (text != null && text.runes.length == 1) {
+      final codePoint = text.runes.first;
+      if (codePoint >= 0x20 && codePoint != 0x7f) {
+        if (event.platform != TerminalTargetPlatform.macos ||
+            codePoint <= 0x7f) {
+          return text;
+        }
+      }
+    }
+
     final key = event.key;
     if (key.index < TerminalKey.keyA.index ||
         key.index > TerminalKey.keyZ.index) {
       return null;
     }
-    final charCode = key.index - TerminalKey.keyA.index + 65;
-    return String.fromCharCodes([0x1b, charCode]);
+    final base = switch (event.shift) {
+      true => 0x41,
+      false => 0x61,
+    };
+    return String.fromCharCode(key.index - TerminalKey.keyA.index + base);
   }
 }

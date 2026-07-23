@@ -9,6 +9,7 @@ import 'package:xterm2/src/core/buffer/cell_offset.dart';
 import 'package:xterm2/src/core/color_scheme.dart';
 import 'package:xterm2/src/core/input/event.dart';
 import 'package:xterm2/src/core/input/keys.dart';
+import 'package:xterm2/src/core/platform.dart';
 import 'package:xterm2/src/terminal.dart';
 import 'package:xterm2/src/ui/controller.dart';
 import 'package:xterm2/src/ui/cursor_type.dart';
@@ -745,7 +746,12 @@ class TerminalViewState extends State<TerminalView> {
       return false;
     }
     if (HardwareKeyboard.instance.isAltPressed) {
-      return false;
+      final terminal = widget.terminal;
+      final altPrefixesEscape = switch (terminal.platform) {
+        TerminalTargetPlatform.macos => terminal.altSendsEscapeMode,
+        _ => terminal.altEscPrefixMode,
+      };
+      if (altPrefixesEscape) return false;
     }
     if (HardwareKeyboard.instance.isMetaPressed) {
       return false;

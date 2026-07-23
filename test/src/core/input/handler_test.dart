@@ -66,7 +66,7 @@ void main() {
       terminal.write('\x1b[?1036h');
       terminal.keyInput(TerminalKey.keyA, alt: true);
 
-      expect(output, ['\x1bA', '\x1bA']);
+      expect(output, ['\x1ba', '\x1ba']);
     });
 
     test('supports macOS alt sends escape mode', () {
@@ -82,7 +82,26 @@ void main() {
       terminal.write('\x1b[?1039l');
       terminal.keyInput(TerminalKey.keyA, alt: true);
 
-      expect(output, ['\x1bA']);
+      expect(output, ['\x1ba']);
+    });
+
+    test('supports shifted, punctuated, and non-ASCII Alt text', () {
+      final output = <String>[];
+      final terminal = Terminal(
+        onOutput: output.add,
+        platform: TerminalTargetPlatform.linux,
+      );
+
+      terminal.keyInput(
+        TerminalKey.keyA,
+        alt: true,
+        shift: true,
+        text: 'A',
+      );
+      terminal.keyInput(TerminalKey.slash, alt: true, shift: true, text: '?');
+      terminal.keyInput(TerminalKey.none, alt: true, text: 'ф');
+
+      expect(output, ['\x1bA', '\x1b?', 'ф']);
     });
 
     test('supports DEC backarrow key mode', () {
@@ -152,8 +171,9 @@ void main() {
       final terminal = Terminal(onOutput: output.add);
 
       terminal.keyInput(TerminalKey.keyA, ctrl: true);
+      terminal.keyInput(TerminalKey.keyC, ctrl: true, alt: true);
 
-      expect(output, ['\x01']);
+      expect(output, ['\x01', '\x1b\x03']);
     });
 
     test('supports legacy control punctuation chords', () {
