@@ -97,6 +97,28 @@ void main() {
     expect(consumer.length, 5);
     expect(_consumeAll(consumer), 'a😀b😁c'.runes);
   });
+
+  test('consumes printable ASCII runs without crossing controls or blocks', () {
+    final consumer = ByteConsumer()
+      ..add('abc\x1b')
+      ..add('def');
+
+    expect(consumer.printableAsciiRunLength, 3);
+    expect(consumer.currentBlock, 'abc\x1b');
+    expect(consumer.currentCodeUnitOffset, 0);
+
+    consumer.consumeAsciiCodeUnits(3);
+    expect(consumer.totalConsumed, 3);
+    expect(consumer.consume(), 0x1b);
+    expect(consumer.printableAsciiRunLength, 3);
+
+    consumer.consumeAsciiCodeUnits(3);
+    expect(consumer.totalConsumed, 7);
+    expect(consumer, isEmpty);
+
+    consumer.rollback(3);
+    expect(_consumeAll(consumer), 'def'.runes);
+  });
 }
 
 List<int> _consumeAll(ByteConsumer consumer) {

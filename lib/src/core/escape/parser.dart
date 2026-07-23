@@ -93,6 +93,18 @@ class EscapeParser {
         continue;
       }
 
+      if (handler case final EscapeTextHandler textHandler) {
+        final runLength = _queue.printableAsciiRunLength;
+        if (runLength > 0) {
+          tokenBegin = _queue.totalConsumed;
+          final data = _queue.currentBlock;
+          final start = _queue.currentCodeUnitOffset;
+          _queue.consumeAsciiCodeUnits(runLength);
+          textHandler.writeText(data, start, start + runLength);
+          continue;
+        }
+      }
+
       tokenBegin = _queue.totalConsumed;
       final char = _queue.consume();
 

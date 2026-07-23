@@ -4,6 +4,19 @@ import 'package:test/test.dart';
 import 'package:xterm2/core.dart';
 
 void main() {
+  test('Terminal batches printable ASCII parser runs', () {
+    final terminal = _TrackingTerminal();
+
+    terminal.write('plain\x1b[31mred😀tail');
+
+    expect(terminal.bulkWrites, 3);
+    expect(terminal.buffer.lines[0].getText(), 'plainred😀tail');
+    expect(
+      terminal.buffer.lines[0].getForeground(5),
+      CellColor.named | NamedColor.red,
+    );
+  });
+
   test('Terminal sets a horizontal tab stop at the cursor', () {
     final terminal = Terminal()..resize(20, 5);
 
@@ -4510,6 +4523,16 @@ void main() {
     );
     expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
   });
+}
+
+class _TrackingTerminal extends Terminal {
+  var bulkWrites = 0;
+
+  @override
+  void writeText(String text, int start, int end) {
+    bulkWrites++;
+    super.writeText(text, start, end);
+  }
 }
 
 String _hexEncode(String value) {

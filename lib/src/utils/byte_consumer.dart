@@ -93,6 +93,40 @@ class ByteConsumer {
 
   bool get isNotEmpty => _remainingCodeUnits != 0;
 
+  String get currentBlock {
+    _advancePastConsumedBlocks();
+    return _queue.first.data;
+  }
+
+  int get currentCodeUnitOffset {
+    _advancePastConsumedBlocks();
+    return _currentOffset;
+  }
+
+  int get printableAsciiRunLength {
+    _advancePastConsumedBlocks();
+    final data = _queue.first.data;
+    var offset = _currentOffset;
+    while (offset < data.length) {
+      final codeUnit = data.codeUnitAt(offset);
+      if (codeUnit < 0x20 || codeUnit > 0x7e) break;
+      offset++;
+    }
+    return offset - _currentOffset;
+  }
+
+  void consumeAsciiCodeUnits(int count) {
+    _advancePastConsumedBlocks();
+    final available = _queue.first.data.length - _currentOffset;
+    if (count < 0 || count > available) {
+      throw RangeError.range(count, 0, available, 'count');
+    }
+    _currentOffset += count;
+    _remainingCodeUnits -= count;
+    _totalConsumed += count;
+    _rollbackAvailable += count;
+  }
+
   /// Unreferences blocks consumed before the current parsing transaction.
   void unrefConsumedBlocks() {
     _consumed.clear();

@@ -522,3 +522,7 @@ abstract class EscapeHandler {
 
   void unknownOSC(String code, List<String> args);
 }
+
+abstract interface class EscapeTextHandler {
+  void writeText(String text, int start, int end);
+}

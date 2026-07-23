@@ -88,7 +88,9 @@ final class TerminalSemanticPromptState {
 /// [buffer] and events such as [onTitleChange] or [onBell], as well as
 /// translating user input into escape sequences that the application can
 /// understand.
-class Terminal with Observable implements TerminalState, EscapeHandler {
+class Terminal
+    with Observable
+    implements TerminalState, EscapeHandler, EscapeTextHandler {
   static const _maxHyperlinks = 4096;
   static const _maxHyperlinkId =
       CellAttr.hyperlinkMask >> CellAttr.hyperlinkShift;
@@ -999,6 +1001,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
       _precedingCodepoint = char;
     }
     _buffer.writeChar(char);
+  }
+
+  @override
+  void writeText(String text, int start, int end) {
+    if (start >= end) return;
+    _clipboardCaptureBuffer?.write(text.substring(start, end));
+    for (var index = start; index < end; index++) {
+      _buffer.writeChar(text.codeUnitAt(index));
+    }
+    _precedingCodepoint = text.codeUnitAt(end - 1);
   }
 
   /* SBC */
