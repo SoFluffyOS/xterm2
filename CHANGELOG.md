@@ -5,6 +5,7 @@
 * Allocate scrollback cell metadata lazily to reduce idle memory use.
 * Match modern terminal handling for Alt-modified text input.
 * Expose complete OSC 3008 hierarchical context metadata.
+* Add bounded Unicode-aware scrollback search across soft wraps.
 
 ## [5.1.0] - 2026-07-19
 

@@ -22,3 +22,4 @@ export 'src/core/mouse/modifiers.dart';
 export 'src/core/platform.dart';
 export 'src/core/state.dart';
 export 'src/terminal.dart';
+export 'src/terminal_search.dart';

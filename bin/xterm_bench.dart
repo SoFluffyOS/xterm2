@@ -1,4 +1,5 @@
 import 'package:xterm2/src/terminal.dart';
+import 'package:xterm2/src/terminal_search.dart';
 
 void main(List<String> args) async {
   final lines = 1000;
@@ -11,17 +12,9 @@ void main(List<String> args) async {
     }
   });
 
-  final regexp = RegExp(
-    r'[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)',
-  );
-
   bench('search $lines line', () {
-    var count = 0;
-    for (var line in terminal.lines.toList()) {
-      final matches = regexp.allMatches(line.toString());
-      count += matches.length;
-    }
-    print('count: $count');
+    final matches = terminal.search('github.com');
+    print('count: ${matches.length}');
   });
 }
 
