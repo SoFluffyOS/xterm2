@@ -281,9 +281,7 @@ class BufferLine with IndexedItem {
       final moveStart = start * _cellSize;
       final moveEnd = (end - count) * _cellSize;
       final moveOffset = count * _cellSize;
-      for (var i = moveStart; i < moveEnd; i++) {
-        _data[i] = _data[i + moveOffset];
-      }
+      _data.setRange(moveStart, moveEnd, _data, moveStart + moveOffset);
     }
 
     for (var i = end - count; i < end; i++) {
@@ -389,9 +387,12 @@ class BufferLine with IndexedItem {
       final moveStart = start * _cellSize;
       final moveEnd = (end - count) * _cellSize;
       final moveOffset = count * _cellSize;
-      for (var i = moveEnd - 1; i >= moveStart; i--) {
-        _data[i + moveOffset] = _data[i];
-      }
+      _data.setRange(
+        moveStart + moveOffset,
+        moveEnd + moveOffset,
+        _data,
+        moveStart,
+      );
     }
 
     final eraseEnd = min(start + count, end);
@@ -543,12 +544,14 @@ class BufferLine with IndexedItem {
     //   Uint32List.sublistView(src.data, srcCol * _cellSize, len * _cellSize),
     // );
 
-    var srcOffset = srcCol * _cellSize;
-    var dstOffset = dstCol * _cellSize;
-
-    for (var i = 0; i < len * _cellSize; i++) {
-      _data[dstOffset++] = src._data[srcOffset++];
-    }
+    final srcOffset = srcCol * _cellSize;
+    final dstOffset = dstCol * _cellSize;
+    _data.setRange(
+      dstOffset,
+      dstOffset + len * _cellSize,
+      src._data,
+      srcOffset,
+    );
 
     _combiningCharacters.removeWhere(
       (index, _) => index >= dstCol && index < dstCol + len,
