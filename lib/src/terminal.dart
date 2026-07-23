@@ -54,6 +54,121 @@ enum TerminalSemanticPromptRedraw {
   last,
 }
 
+enum TerminalContextSignalAction {
+  start,
+  end,
+}
+
+enum TerminalContextType {
+  boot,
+  container,
+  vm,
+  elevate,
+  chpriv,
+  subcontext,
+  remote,
+  shell,
+  command,
+  app,
+  service,
+  session,
+}
+
+enum TerminalContextExitStatus {
+  success,
+  failure,
+  crash,
+  interrupt,
+}
+
+/// A hierarchical context update reported through OSC 3008.
+final class TerminalContextSignal {
+  TerminalContextSignal._({
+    required this.action,
+    required this.id,
+    required Map<String, String> metadata,
+  }) : metadata = Map.unmodifiable(metadata);
+
+  final TerminalContextSignalAction action;
+
+  /// The printable ASCII context identifier.
+  final String id;
+
+  /// All well-formed metadata fields, including fields unknown to xterm2.
+  final Map<String, String> metadata;
+
+  TerminalContextType? get type => switch (_value('type')) {
+        'boot' => TerminalContextType.boot,
+        'container' => TerminalContextType.container,
+        'vm' => TerminalContextType.vm,
+        'elevate' => TerminalContextType.elevate,
+        'chpriv' => TerminalContextType.chpriv,
+        'subcontext' => TerminalContextType.subcontext,
+        'remote' => TerminalContextType.remote,
+        'shell' => TerminalContextType.shell,
+        'command' => TerminalContextType.command,
+        'app' => TerminalContextType.app,
+        'service' => TerminalContextType.service,
+        'session' => TerminalContextType.session,
+        _ => null,
+      };
+
+  String? get user => _value('user');
+
+  String? get hostname => _value('hostname');
+
+  String? get machineId => _value('machineid');
+
+  String? get bootId => _value('bootid');
+
+  int? get pid => _unsignedValue('pid');
+
+  int? get pidfdId => _unsignedValue('pidfdid');
+
+  String? get command => _value('comm');
+
+  String? get currentDirectory => _value('cwd');
+
+  String? get commandLine => _value('cmdline');
+
+  String? get virtualMachine => _value('vm');
+
+  String? get container => _value('container');
+
+  String? get targetUser => _value('targetuser');
+
+  String? get targetHost => _value('targethost');
+
+  String? get sessionId => _value('sessionid');
+
+  TerminalContextExitStatus? get exitStatus => switch (_value('exit')) {
+        'success' => TerminalContextExitStatus.success,
+        'failure' => TerminalContextExitStatus.failure,
+        'crash' => TerminalContextExitStatus.crash,
+        'interrupt' => TerminalContextExitStatus.interrupt,
+        _ => null,
+      };
+
+  int? get status => _unsignedValue('status');
+
+  String? get signal => _value('signal');
+
+  String? _value(String key) {
+    final value = metadata[key];
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  int? _unsignedValue(String key) {
+    final value = _value(key);
+    if (value == null) return null;
+    for (final codeUnit in value.codeUnits) {
+      if (codeUnit < 0x30 || codeUnit > 0x39) return null;
+    }
+    return int.tryParse(value);
+  }
+}
+
 final class TerminalSemanticPromptState {
   const TerminalSemanticPromptState({
     required this.content,
@@ -163,6 +278,10 @@ class Terminal
   /// OSC 133.
   void Function(TerminalSemanticPromptState state)? onSemanticPrompt;
 
+  /// Called when the application reports a hierarchical context update using
+  /// OSC 3008.
+  void Function(TerminalContextSignal signal)? onContextSignal;
+
   /// Resolves the currently displayed color for OSC color queries. [code] is
   /// 4 for an indexed color, 5 for a special attribute color, or 10–12 for
   /// dynamic colors; [index] is provided only for code 4 or 5. The return value
@@ -240,6 +359,7 @@ class Terminal
     this.onMouseShapeChange,
     this.onProgressReport,
     this.onSemanticPrompt,
+    this.onContextSignal,
     this.onColorQuery,
     this.onColorSchemeQuery,
     this.onXtVersionQuery,
@@ -3690,17 +3810,37 @@ class Terminal
 
   void _handleContextSignalOsc(String ps, List<String> pt) {
     if (ps != '3008' || pt.isEmpty) return;
-    final action = pt.first;
-    if (!action.startsWith('start=')) return;
+    final actionField = pt.first;
+    final action = switch (actionField) {
+      final value when value.startsWith('start=') =>
+        TerminalContextSignalAction.start,
+      final value when value.startsWith('end=') =>
+        TerminalContextSignalAction.end,
+      _ => null,
+    };
+    if (action == null) return;
 
-    final contextId = action.substring(6);
+    final contextId = actionField.substring(
+      switch (action) {
+        TerminalContextSignalAction.start => 6,
+        TerminalContextSignalAction.end => 4,
+      },
+    );
     if (!_isValidContextSignalId(contextId)) return;
 
-    final options = _parseSemanticPromptOptions(pt);
-    final currentDirectory = options['cwd'];
-    if (currentDirectory == null || currentDirectory.isEmpty) return;
+    final signal = TerminalContextSignal._(
+      action: action,
+      id: contextId,
+      metadata: _parseContextSignalMetadata(pt),
+    );
+    if (action == TerminalContextSignalAction.start) {
+      final currentDirectory = signal.currentDirectory;
+      if (currentDirectory != null) {
+        setCurrentDirectory(currentDirectory);
+      }
+    }
 
-    setCurrentDirectory(currentDirectory);
+    onContextSignal?.call(signal);
   }
 
   void _handleSemanticPromptOsc(String ps, List<String> pt) {
@@ -3824,6 +3964,19 @@ Map<String, String> _parseSemanticPromptOptions(List<String> pt) {
     options[key] = value;
   }
   return options;
+}
+
+Map<String, String> _parseContextSignalMetadata(List<String> pt) {
+  final metadata = <String, String>{};
+  for (var index = 1; index < pt.length; index++) {
+    final part = pt[index];
+    final separator = part.indexOf('=');
+    if (separator <= 0) continue;
+    final key = part.substring(0, separator);
+    if (metadata.containsKey(key)) continue;
+    metadata[key] = part.substring(separator + 1);
+  }
+  return metadata;
 }
 
 int? _parseSemanticPromptExitCode(List<String> pt) {

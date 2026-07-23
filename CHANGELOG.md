@@ -4,6 +4,7 @@
 * Reduce parser, allocation, and cell-copy overhead during dense TUI output.
 * Allocate scrollback cell metadata lazily to reduce idle memory use.
 * Match modern terminal handling for Alt-modified text input.
+* Expose complete OSC 3008 hierarchical context metadata.
 
 ## [5.1.0] - 2026-07-19
 

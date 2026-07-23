@@ -1631,19 +1631,85 @@ void main() {
     expect(notifications, [(title: '', body: '9')]);
   });
 
-  test('Terminal reports OSC 3008 context current directory', () {
+  test('Terminal reports OSC 3008 start context metadata', () {
     String? currentDirectory;
+    final signals = <TerminalContextSignal>[];
     final terminal = Terminal(
       onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+      onContextSignal: signals.add,
     );
 
     terminal.write(
-      '\x1b]3008;start=cmd1;type=command;cwd=/tmp/my project;cmdline=ls\x1b\\',
+      '\x1b]3008;start=cmd1;type=command;user=simon;hostname=dev;'
+      'machineid=machine;bootid=boot;pid=42;pidfdid=43;comm=dart;'
+      'cwd=/tmp/my project;cmdline=dart run;vm=qemu;container=devbox;'
+      'targetuser=root;targethost=server;sessionid=session;'
+      'unknown=value;user=ignored\x1b\\',
     );
+
+    final signal = signals.single;
+    expect(signal.action, TerminalContextSignalAction.start);
+    expect(signal.id, 'cmd1');
+    expect(signal.type, TerminalContextType.command);
+    expect(signal.user, 'simon');
+    expect(signal.hostname, 'dev');
+    expect(signal.machineId, 'machine');
+    expect(signal.bootId, 'boot');
+    expect(signal.pid, 42);
+    expect(signal.pidfdId, 43);
+    expect(signal.command, 'dart');
+    expect(signal.currentDirectory, '/tmp/my project');
+    expect(signal.commandLine, 'dart run');
+    expect(signal.virtualMachine, 'qemu');
+    expect(signal.container, 'devbox');
+    expect(signal.targetUser, 'root');
+    expect(signal.targetHost, 'server');
+    expect(signal.sessionId, 'session');
+    expect(signal.metadata['unknown'], 'value');
+    expect(signal.metadata['user'], 'simon');
+    expect(
+      () => signal.metadata['new'] = 'value',
+      throwsUnsupportedError,
+    );
+    expect(currentDirectory, '/tmp/my project');
+  });
+
+  test('Terminal reports OSC 3008 end context metadata', () {
+    final signals = <TerminalContextSignal>[];
+    final terminal = Terminal(onContextSignal: signals.add);
+
+    terminal.write(
+      '\x1b]3008;end=cmd1;exit=failure;status=7;signal=SIGTERM\x1b\\',
+    );
+
+    final signal = signals.single;
+    expect(signal.action, TerminalContextSignalAction.end);
+    expect(signal.id, 'cmd1');
+    expect(signal.exitStatus, TerminalContextExitStatus.failure);
+    expect(signal.status, 7);
+    expect(signal.signal, 'SIGTERM');
+  });
+
+  test('Terminal rejects malformed OSC 3008 contexts and metadata', () {
+    final signals = <TerminalContextSignal>[];
+    String? currentDirectory;
+    final terminal = Terminal(
+      onContextSignal: signals.add,
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
     terminal.write('\x1b]3008;end=cmd1;cwd=/tmp/ignored\x1b\\');
     terminal.write('\x1b]3008;start=;cwd=/tmp/invalid\x1b\\');
+    terminal.write('\x1b]3008;invalid=cmd1;cwd=/tmp/invalid\x1b\\');
+    terminal.write('\x1b]3008;start=cmd2;pid=-1;status=abc;=bad\x1b\\');
 
-    expect(currentDirectory, '/tmp/my project');
+    expect(signals, hasLength(2));
+    expect(signals.first.currentDirectory, '/tmp/ignored');
+    expect(signals.first.action, TerminalContextSignalAction.end);
+    expect(signals.last.pid, isNull);
+    expect(signals.last.status, isNull);
+    expect(signals.last.metadata, isNot(contains('')));
+    expect(currentDirectory, isNull);
   });
 
   test('Terminal reports OSC 9 and OSC 777 notifications', () {
