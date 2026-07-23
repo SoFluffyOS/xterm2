@@ -300,6 +300,15 @@ void main() {
     expect(line.anchors, isEmpty);
   });
 
+  test('BufferLine keeps existing anchor list views live', () {
+    final line = BufferLine(10);
+    final anchors = line.anchors;
+
+    final anchor = line.createAnchor(2);
+
+    expect(anchors, [anchor]);
+  });
+
   test('createCellData returns a non-destructive cell snapshot', () {
     final line = BufferLine(2);
     final style = CursorStyle()

@@ -35,13 +35,13 @@ class BufferLine with IndexedItem {
 
   int get length => _length;
 
-  List<CellAnchor>? _anchors;
+  final _anchors = <CellAnchor>[];
 
   Map<int, String>? _combiningCharacters;
 
   Map<int, int>? _underlineColors;
 
-  List<CellAnchor> get anchors => _anchors ?? const [];
+  List<CellAnchor> get anchors => _anchors;
 
   bool get hasCombiningCharacters => _combiningCharacters?.isNotEmpty ?? false;
 
@@ -51,10 +51,6 @@ class BufferLine with IndexedItem {
 
   Map<int, int> get _mutableUnderlineColors {
     return _underlineColors ??= <int, int>{};
-  }
-
-  List<CellAnchor> get _mutableAnchors {
-    return _anchors ??= <CellAnchor>[];
   }
 
   int getForeground(int index) {
@@ -408,8 +404,8 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, remove anchors that are inside the removed range.
-    if (_anchors case final anchors? when anchors.isNotEmpty) {
-      for (final anchor in anchors.toList()) {
+    if (_anchors.isNotEmpty) {
+      for (final anchor in _anchors.toList()) {
         if (anchor.x >= start) {
           if (anchor.x < start + count) {
             anchor.dispose();
@@ -510,8 +506,8 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, move anchors that are after the inserted range.
-    if (_anchors case final anchors? when anchors.isNotEmpty) {
-      for (final anchor in anchors.toList()) {
+    if (_anchors.isNotEmpty) {
+      for (final anchor in _anchors.toList()) {
         if (anchor.x >= end - count && anchor.x < end) {
           anchor.dispose();
           continue;
@@ -543,12 +539,10 @@ class BufferLine with IndexedItem {
 
     _length = length;
 
-    if (_anchors case final anchors?) {
-      for (var i = 0; i < anchors.length; i++) {
-        final anchor = anchors[i];
-        if (anchor.x > _length) {
-          anchor.reposition(_length);
-        }
+    for (var i = 0; i < _anchors.length; i++) {
+      final anchor = _anchors[i];
+      if (anchor.x > _length) {
+        anchor.reposition(_length);
       }
     }
   }
@@ -708,15 +702,13 @@ class BufferLine with IndexedItem {
 
   CellAnchor createAnchor(int offset) {
     final anchor = CellAnchor(offset, owner: this);
-    _mutableAnchors.add(anchor);
+    _anchors.add(anchor);
     return anchor;
   }
 
   void dispose() {
-    if (_anchors case final anchors?) {
-      for (final anchor in anchors.toList()) {
-        anchor.dispose();
-      }
+    for (final anchor in _anchors.toList()) {
+      anchor.dispose();
     }
   }
 
@@ -757,9 +749,9 @@ class CellAnchor {
   bool get attached => _owner?.attached ?? false;
 
   void reparent(BufferLine owner, int offset) {
-    _owner?._anchors?.remove(this);
+    _owner?._anchors.remove(this);
     _owner = owner;
-    _owner?._mutableAnchors.add(this);
+    _owner?._anchors.add(this);
     _offset = offset;
   }
 
@@ -768,7 +760,7 @@ class CellAnchor {
   }
 
   void dispose() {
-    _owner?._anchors?.remove(this);
+    _owner?._anchors.remove(this);
     _owner = null;
   }
 
