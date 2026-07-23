@@ -86,8 +86,8 @@ final class TerminalContextSignal {
   TerminalContextSignal._({
     required this.action,
     required this.id,
-    required Map<String, String> metadata,
-  }) : metadata = Map.unmodifiable(metadata);
+    required Iterable<String> metadataFields,
+  }) : _metadataFields = List.unmodifiable(metadataFields);
 
   final TerminalContextSignalAction action;
 
@@ -95,7 +95,23 @@ final class TerminalContextSignal {
   final String id;
 
   /// All well-formed metadata fields, including fields unknown to xterm2.
-  final Map<String, String> metadata;
+  Map<String, String> get metadata {
+    final existing = _metadata;
+    if (existing != null) return existing;
+
+    final result = <String, String>{};
+    for (final field in _metadataFields) {
+      final separator = field.indexOf('=');
+      if (separator <= 0) continue;
+      final key = field.substring(0, separator);
+      if (result.containsKey(key)) continue;
+      result[key] = field.substring(separator + 1);
+    }
+    return _metadata = Map.unmodifiable(result);
+  }
+
+  final List<String> _metadataFields;
+  Map<String, String>? _metadata;
 
   TerminalContextType? get type => switch (_value('type')) {
         'boot' => TerminalContextType.boot,
@@ -154,9 +170,16 @@ final class TerminalContextSignal {
   String? get signal => _value('signal');
 
   String? _value(String key) {
-    final value = metadata[key];
-    if (value == null || value.isEmpty) return null;
-    return value;
+    for (final field in _metadataFields) {
+      if (!field.startsWith(key)) continue;
+      if (field.length <= key.length || field.codeUnitAt(key.length) != 0x3d) {
+        continue;
+      }
+      final value = field.substring(key.length + 1);
+      if (value.isEmpty) return null;
+      return value;
+    }
+    return null;
   }
 
   int? _unsignedValue(String key) {
@@ -3828,10 +3851,20 @@ class Terminal
     );
     if (!_isValidContextSignalId(contextId)) return;
 
+    final callback = onContextSignal;
+    if (callback == null) {
+      if (action != TerminalContextSignalAction.start) return;
+      final currentDirectory = _contextSignalValue(pt, 'cwd');
+      if (currentDirectory != null) {
+        setCurrentDirectory(currentDirectory);
+      }
+      return;
+    }
+
     final signal = TerminalContextSignal._(
       action: action,
       id: contextId,
-      metadata: _parseContextSignalMetadata(pt),
+      metadataFields: pt.skip(1),
     );
     if (action == TerminalContextSignalAction.start) {
       final currentDirectory = signal.currentDirectory;
@@ -3840,7 +3873,7 @@ class Terminal
       }
     }
 
-    onContextSignal?.call(signal);
+    callback(signal);
   }
 
   void _handleSemanticPromptOsc(String ps, List<String> pt) {
@@ -3966,17 +3999,18 @@ Map<String, String> _parseSemanticPromptOptions(List<String> pt) {
   return options;
 }
 
-Map<String, String> _parseContextSignalMetadata(List<String> pt) {
-  final metadata = <String, String>{};
+String? _contextSignalValue(List<String> pt, String key) {
   for (var index = 1; index < pt.length; index++) {
     final part = pt[index];
-    final separator = part.indexOf('=');
-    if (separator <= 0) continue;
-    final key = part.substring(0, separator);
-    if (metadata.containsKey(key)) continue;
-    metadata[key] = part.substring(separator + 1);
+    if (!part.startsWith(key)) continue;
+    if (part.length <= key.length || part.codeUnitAt(key.length) != 0x3d) {
+      continue;
+    }
+    final value = part.substring(key.length + 1);
+    if (value.isEmpty) return null;
+    return value;
   }
-  return metadata;
+  return null;
 }
 
 int? _parseSemanticPromptExitCode(List<String> pt) {

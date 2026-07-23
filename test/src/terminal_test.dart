@@ -1690,6 +1690,19 @@ void main() {
     expect(signal.signal, 'SIGTERM');
   });
 
+  test('Terminal applies OSC 3008 cwd without a context listener', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write(
+      '\x1b]3008;start=cmd1;cwdExtra=/tmp/wrong;cwd=/tmp/right\x1b\\',
+    );
+
+    expect(currentDirectory, '/tmp/right');
+  });
+
   test('Terminal rejects malformed OSC 3008 contexts and metadata', () {
     final signals = <TerminalContextSignal>[];
     String? currentDirectory;
