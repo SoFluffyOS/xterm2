@@ -16,6 +16,9 @@ class Charset {
 
   var _cached = asciiTranslator;
 
+  bool get isAscii =>
+      identical(_cached, asciiTranslator) && _singleShiftIndex == null;
+
   void _updateCache() {
     _cached = _charsetMap[_currentIndex] ?? asciiTranslator;
   }

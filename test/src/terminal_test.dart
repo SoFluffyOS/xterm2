@@ -17,6 +17,38 @@ void main() {
     );
   });
 
+  test('Terminal batches ASCII across wraps and preserves styled metadata', () {
+    final terminal = Terminal()..resize(4, 3);
+
+    terminal.write('\x1b[4;58;2;1;2;3mabcdef');
+
+    expect(terminal.buffer.lines[0].getText(), 'abcd');
+    expect(terminal.buffer.lines[1].getText(), 'ef');
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.cursorX, 2);
+    expect(terminal.buffer.cursorY, 1);
+    expect(terminal.buffer.lines[0].getUnderlineColor(3), isNot(0));
+    expect(terminal.buffer.lines[1].getUnderlineColor(0), isNot(0));
+  });
+
+  test('Terminal keeps DEC charset translation on ASCII parser runs', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b(0lqk\x1b(Babc');
+
+    expect(terminal.buffer.lines[0].getText(), '┌─┐abc');
+  });
+
+  test('Terminal preserves no-wrap and insert modes for ASCII runs', () {
+    final noWrapTerminal = Terminal()..resize(4, 1);
+    noWrapTerminal.write('\x1b[?7lABCDE');
+    expect(noWrapTerminal.buffer.lines[0].getText(), 'ABCE');
+
+    final insertTerminal = Terminal()..resize(4, 1);
+    insertTerminal.write('abcd\r\x1b[4hXY');
+    expect(insertTerminal.buffer.lines[0].getText(), 'XYab');
+  });
+
   test('Terminal sets a horizontal tab stop at the cursor', () {
     final terminal = Terminal()..resize(20, 5);
 

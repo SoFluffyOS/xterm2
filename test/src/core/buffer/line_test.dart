@@ -207,6 +207,24 @@ void main() {
     expect(anchor.x, 2);
   });
 
+  test('ASCII cell runs clear split wide cells and stale metadata', () {
+    final terminal = Terminal()..resize(6, 1);
+    terminal.write('\x1b[58;2;1;2;3me\u0301好Z');
+    final line = terminal.buffer.lines[0];
+
+    line.setAsciiCells(1, 'abc', 0, 3, CursorStyle.empty);
+
+    expect(line.getText(), 'e\u0301abc');
+    expect(line.getWidth(0), 1);
+    expect(line.getWidth(1), 1);
+    expect(line.getWidth(2), 1);
+    expect(line.getWidth(3), 1);
+    expect(line.getCombiningCharacters(1), isNull);
+    expect(line.getUnderlineColor(1), 0);
+    expect(line.getUnderlineColor(2), 0);
+    expect(line.getUnderlineColor(3), 0);
+  });
+
   group('BufferLine anchors', () {
     test('move with content shifted by inserted cells', () {
       final terminal = Terminal()..resize(5, 1);

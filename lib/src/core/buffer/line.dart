@@ -166,6 +166,54 @@ class BufferLine with IndexedItem {
     _combiningCharacters.remove(index);
   }
 
+  void setAsciiCells(
+    int start,
+    String text,
+    int textStart,
+    int count,
+    CursorStyle style,
+  ) {
+    assert(start >= 0 && start + count <= _length);
+    assert(textStart >= 0 && textStart + count <= text.length);
+    if (count <= 0) return;
+
+    clearWideCellAt(start, style);
+    clearWideCellAt(start + count - 1, style);
+
+    final foreground = style.foreground;
+    final background = style.background;
+    final attributes =
+        style.attrs | (style.hyperlinkId << CellAttr.hyperlinkShift);
+    for (var offset = 0; offset < count; offset++) {
+      final cellOffset = (start + offset) * _cellSize;
+      final codeUnit = text.codeUnitAt(textStart + offset);
+      assert(codeUnit >= 0x20 && codeUnit <= 0x7e);
+      _data[cellOffset + _cellForeground] = foreground;
+      _data[cellOffset + _cellBackground] = background;
+      _data[cellOffset + _cellAttributes] = attributes;
+      _data[cellOffset + _cellContent] =
+          codeUnit | (1 << CellContent.widthShift);
+    }
+
+    final end = start + count;
+    if (_combiningCharacters.isNotEmpty) {
+      _combiningCharacters.removeWhere(
+        (index, _) => index >= start && index < end,
+      );
+    }
+    if (style.underlineColor == 0) {
+      if (_underlineColors.isNotEmpty) {
+        _underlineColors.removeWhere(
+          (index, _) => index >= start && index < end,
+        );
+      }
+      return;
+    }
+    for (var index = start; index < end; index++) {
+      _underlineColors[index] = style.underlineColor;
+    }
+  }
+
   void clearWideCellAt(int index, CursorStyle style) {
     if (index < 0 || index >= _length) return;
 

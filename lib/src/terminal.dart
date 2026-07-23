@@ -1007,9 +1007,7 @@ class Terminal
   void writeText(String text, int start, int end) {
     if (start >= end) return;
     _clipboardCaptureBuffer?.write(text.substring(start, end));
-    for (var index = start; index < end; index++) {
-      _buffer.writeChar(text.codeUnitAt(index));
-    }
+    _buffer.writeAscii(text, start, end);
     _precedingCodepoint = text.codeUnitAt(end - 1);
   }
 

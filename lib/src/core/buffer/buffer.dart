@@ -125,6 +125,33 @@ class Buffer {
     }
   }
 
+  void writeAscii(String text, int start, int end) {
+    if (terminal.insertMode || !terminal.autoWrapMode || !charset.isAscii) {
+      for (var index = start; index < end; index++) {
+        writeChar(text.codeUnitAt(index));
+      }
+      return;
+    }
+
+    while (start < end) {
+      final rightLimit = _rightLimit;
+      if (_cursorX >= rightLimit) {
+        _wrapInput();
+      }
+
+      final count = min(end - start, _rightLimit - _cursorX);
+      currentLine.setAsciiCells(
+        _cursorX,
+        text,
+        start,
+        count,
+        terminal.cursor,
+      );
+      _cursorX += count;
+      start += count;
+    }
+  }
+
   /// Writes a single character to the _terminal. Escape sequences or special
   /// characters are not interpreted and directly added to the buffer.
   ///
