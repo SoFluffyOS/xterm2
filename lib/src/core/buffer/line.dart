@@ -263,9 +263,17 @@ class BufferLine with IndexedItem {
     assert(end >= start && end <= _length);
     assert(count >= 0 && start + count <= end);
 
+    if (count == 0) return;
+
     style ??= CursorStyle.empty;
-    final combiningCharacters = Map<int, String>.of(_combiningCharacters);
-    final underlineColors = Map<int, int>.of(_underlineColors);
+    final combiningCharacters = switch (_combiningCharacters.isEmpty) {
+      true => const <int, String>{},
+      false => Map<int, String>.of(_combiningCharacters),
+    };
+    final underlineColors = switch (_underlineColors.isEmpty) {
+      true => const <int, int>{},
+      false => Map<int, int>.of(_underlineColors),
+    };
     final rightBoundarySplitsWideCell =
         end < _length && end > 0 && getWidth(end - 1) == 2;
 
@@ -339,12 +347,14 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, remove anchors that are inside the removed range.
-    for (final anchor in _anchors.toList()) {
-      if (anchor.x >= start) {
-        if (anchor.x < start + count) {
-          anchor.dispose();
-        } else if (anchor.x < end) {
-          anchor.reposition(anchor.x - count);
+    if (_anchors.isNotEmpty) {
+      for (final anchor in _anchors.toList()) {
+        if (anchor.x >= start) {
+          if (anchor.x < start + count) {
+            anchor.dispose();
+          } else if (anchor.x < end) {
+            anchor.reposition(anchor.x - count);
+          }
         }
       }
     }
@@ -357,9 +367,17 @@ class BufferLine with IndexedItem {
     assert(end >= start && end <= _length);
     assert(count >= 0 && start + count <= end);
 
+    if (count == 0) return;
+
     style ??= CursorStyle.empty;
-    final combiningCharacters = Map<int, String>.of(_combiningCharacters);
-    final underlineColors = Map<int, int>.of(_underlineColors);
+    final combiningCharacters = switch (_combiningCharacters.isEmpty) {
+      true => const <int, String>{},
+      false => Map<int, String>.of(_combiningCharacters),
+    };
+    final underlineColors = switch (_underlineColors.isEmpty) {
+      true => const <int, int>{},
+      false => Map<int, int>.of(_underlineColors),
+    };
     final rightBoundarySplitsWideCell =
         end < _length && end > 0 && getWidth(end - 1) == 2;
 
@@ -428,14 +446,16 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, move anchors that are after the inserted range.
-    for (final anchor in _anchors.toList()) {
-      if (anchor.x >= end - count && anchor.x < end) {
-        anchor.dispose();
-        continue;
-      }
+    if (_anchors.isNotEmpty) {
+      for (final anchor in _anchors.toList()) {
+        if (anchor.x >= end - count && anchor.x < end) {
+          anchor.dispose();
+          continue;
+        }
 
-      if (anchor.x >= start && anchor.x < end - count) {
-        anchor.reposition(anchor.x + count);
+        if (anchor.x >= start && anchor.x < end - count) {
+          anchor.reposition(anchor.x + count);
+        }
       }
     }
   }

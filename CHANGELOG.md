@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 * Harden resize behavior for synchronized output, tab stops, and size reports.
+* Reduce allocation overhead during dense TUI cell edits.
 
 ## [5.1.0] - 2026-07-19
 

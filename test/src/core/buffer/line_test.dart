@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:test/test.dart';
 import 'package:xterm2/xterm.dart';
 
@@ -186,6 +188,23 @@ void main() {
 
       expect(line.getCombiningCharacters(0), isNull);
     });
+  });
+
+  test('zero-count cell edits preserve content and metadata', () {
+    final terminal = Terminal()..resize(5, 1);
+    terminal.write('\x1b[58;2;1;2;3me\u0301好');
+    final line = terminal.buffer.lines[0];
+    final anchor = line.createAnchor(2);
+    final before = Uint32List.fromList(line.data);
+
+    line.insertCells(1, 0, CursorStyle.empty, 3);
+    line.removeCells(1, 0, CursorStyle.empty, 3);
+
+    expect(line.data, orderedEquals(before));
+    expect(line.getCombiningCharacters(0), '\u0301');
+    expect(line.getUnderlineColor(0), isNot(0));
+    expect(anchor.attached, isTrue);
+    expect(anchor.x, 2);
   });
 
   group('BufferLine anchors', () {
