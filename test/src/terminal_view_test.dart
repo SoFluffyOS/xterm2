@@ -356,6 +356,152 @@ void main() {
     focusNode.dispose();
   });
 
+  testWidgets('TerminalView uses custom cursor blink timing', (tester) async {
+    final terminal = Terminal()..write('\x1b[1 q');
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+          cursorBlinkInterval: const Duration(milliseconds: 100),
+          cursorBlinkTimeout: const Duration(milliseconds: 250),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isFalse);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
+  testWidgets('TerminalView cursorBlink null follows terminal mode', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+          cursorBlinkInterval: const Duration(milliseconds: 100),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    terminal.write('\x1b[1 q');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
+  testWidgets('TerminalView cursorBlink true overrides terminal mode', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+          cursorBlink: true,
+          cursorBlinkInterval: const Duration(milliseconds: 100),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
+  testWidgets('TerminalView cursorBlink false overrides terminal mode', (
+    tester,
+  ) async {
+    final terminal = Terminal()..setCursorBlinkMode(true);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+          cursorBlink: false,
+          cursorBlinkInterval: const Duration(milliseconds: 100),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
+  testWidgets('TerminalView cursor blink timeout can be disabled', (
+    tester,
+  ) async {
+    final terminal = Terminal()..setCursorBlinkMode(true);
+    final focusNode = FocusNode();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal,
+          focusNode: focusNode,
+          autofocus: true,
+          cursorBlinkInterval: const Duration(milliseconds: 100),
+          cursorBlinkTimeout: null,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+    await tester.pump(const Duration(seconds: 5));
+    final wasVisible = state.renderTerminal.isCursorBlinkVisible;
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.renderTerminal.isCursorBlinkVisible, isNot(wasVisible));
+
+    await tester.pumpWidget(const SizedBox());
+    focusNode.dispose();
+  });
+
   testWidgets('TerminalView activates OSC 8 hyperlinks with modifier', (
     tester,
   ) async {

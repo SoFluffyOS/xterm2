@@ -118,6 +118,9 @@ class TerminalView extends StatefulWidget {
     this.keyboardType = TextInputType.emailAddress,
     this.keyboardAppearance = Brightness.dark,
     this.cursorType = TerminalCursorType.block,
+    this.cursorBlink,
+    this.cursorBlinkInterval = const Duration(milliseconds: 750),
+    this.cursorBlinkTimeout = const Duration(seconds: 5),
     this.alwaysShowCursor = false,
     this.deleteDetection = false,
     this.shortcuts,
@@ -125,7 +128,8 @@ class TerminalView extends StatefulWidget {
     this.readOnly = false,
     this.hardwareKeyboardOnly = false,
     this.simulateScroll = true,
-  });
+  })  : assert(cursorBlinkInterval > Duration.zero),
+        assert(cursorBlinkTimeout == null || cursorBlinkTimeout > Duration.zero);
 
   /// The underlying terminal that this widget renders.
   final Terminal terminal;
@@ -195,6 +199,22 @@ class TerminalView extends StatefulWidget {
 
   /// The type of cursor to use. [TerminalCursorType.block] by default.
   final TerminalCursorType cursorType;
+
+  /// Overrides whether the cursor blinks.
+  ///
+  /// When null, the terminal application's cursor blink mode is used.
+  final bool? cursorBlink;
+
+  /// The interval between cursor visibility changes.
+  ///
+  /// Defaults to 750 milliseconds.
+  final Duration cursorBlinkInterval;
+
+  /// How long the cursor blinks before remaining visible.
+  ///
+  /// Defaults to five seconds. Set to null to keep blinking while the terminal
+  /// has focus and cursor blinking is enabled.
+  final Duration? cursorBlinkTimeout;
 
   /// Whether to always show the cursor. This is useful for debugging.
   /// [false] by default.
@@ -447,6 +467,9 @@ class TerminalViewState extends State<TerminalView> {
           theme: widget.theme,
           focusNode: _focusNode,
           cursorType: widget.cursorType,
+          cursorBlink: widget.cursorBlink,
+          cursorBlinkInterval: widget.cursorBlinkInterval,
+          cursorBlinkTimeout: widget.cursorBlinkTimeout,
           alwaysShowCursor: widget.alwaysShowCursor,
           activeHyperlinkId: _activeHyperlinkId,
           onEditableRect: _onEditableRect,
@@ -872,6 +895,9 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.theme,
     required this.focusNode,
     required this.cursorType,
+    required this.cursorBlink,
+    required this.cursorBlinkInterval,
+    required this.cursorBlinkTimeout,
     required this.alwaysShowCursor,
     this.activeHyperlinkId,
     this.onEditableRect,
@@ -900,6 +926,12 @@ class _TerminalView extends LeafRenderObjectWidget {
 
   final TerminalCursorType cursorType;
 
+  final bool? cursorBlink;
+
+  final Duration cursorBlinkInterval;
+
+  final Duration? cursorBlinkTimeout;
+
   final bool alwaysShowCursor;
 
   final int? activeHyperlinkId;
@@ -922,6 +954,9 @@ class _TerminalView extends LeafRenderObjectWidget {
       theme: theme,
       focusNode: focusNode,
       cursorType: cursorType,
+      cursorBlink: cursorBlink,
+      cursorBlinkInterval: cursorBlinkInterval,
+      cursorBlinkTimeout: cursorBlinkTimeout,
       alwaysShowCursor: alwaysShowCursor,
       activeHyperlinkId: activeHyperlinkId,
       onEditableRect: onEditableRect,
@@ -943,6 +978,9 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..theme = theme
       ..focusNode = focusNode
       ..cursorType = cursorType
+      ..cursorBlink = cursorBlink
+      ..cursorBlinkInterval = cursorBlinkInterval
+      ..cursorBlinkTimeout = cursorBlinkTimeout
       ..alwaysShowCursor = alwaysShowCursor
       ..activeHyperlinkId = activeHyperlinkId
       ..onEditableRect = onEditableRect

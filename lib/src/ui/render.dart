@@ -37,6 +37,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalTheme theme,
     required FocusNode focusNode,
     required TerminalCursorType cursorType,
+    bool? cursorBlink,
+    Duration cursorBlinkInterval = const Duration(milliseconds: 750),
+    Duration? cursorBlinkTimeout = const Duration(seconds: 5),
     required bool alwaysShowCursor,
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
@@ -49,6 +52,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _backgroundOpacity = backgroundOpacity,
         _focusNode = focusNode,
         _cursorType = cursorType,
+        _cursorBlink = cursorBlink,
+        _cursorBlinkInterval = cursorBlinkInterval,
+        _cursorBlinkTimeoutDuration = cursorBlinkTimeout,
         _alwaysShowCursor = alwaysShowCursor,
         _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
@@ -143,6 +149,30 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     markNeedsPaint();
   }
 
+  bool? _cursorBlink;
+  set cursorBlink(bool? value) {
+    if (value == _cursorBlink) return;
+    _cursorBlink = value;
+    _updateCursorBlinking(force: true);
+    markNeedsPaint();
+  }
+
+  Duration _cursorBlinkInterval;
+  set cursorBlinkInterval(Duration value) {
+    assert(value > Duration.zero);
+    if (value == _cursorBlinkInterval) return;
+    _cursorBlinkInterval = value;
+    _updateCursorBlinking(force: true);
+  }
+
+  Duration? _cursorBlinkTimeoutDuration;
+  set cursorBlinkTimeout(Duration? value) {
+    assert(value == null || value > Duration.zero);
+    if (value == _cursorBlinkTimeoutDuration) return;
+    _cursorBlinkTimeoutDuration = value;
+    _updateCursorBlinking(force: true);
+  }
+
   bool _alwaysShowCursor;
   set alwaysShowCursor(bool value) {
     if (value == _alwaysShowCursor) return;
@@ -180,7 +210,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   Timer? _cursorBlinkTimer;
 
-  Timer? _cursorBlinkTimeout;
+  Timer? _cursorBlinkTimeoutTimer;
 
   Timer? _textBlinkTimer;
 
@@ -191,6 +221,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool _textBlinkVisible = true;
 
   bool get isCursorBlinkVisible => _cursorBlinkVisible;
+
+  bool get _cursorBlinkEnabled =>
+      _cursorBlink ?? _terminal.cursorBlinkMode;
 
   Color? debugBackgroundFillColor() {
     _updatePainterColorState();
@@ -292,7 +325,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _updateCursorBlinking({bool force = false}) {
-    final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
+    final enabled = _cursorBlinkEnabled && _focusNode.hasFocus;
     final blinkTimerActive = _cursorBlinkTimer != null;
     if (!force &&
         enabled == _cursorBlinkWasEnabled &&
@@ -306,25 +339,27 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     if (!enabled || !attached) return;
 
     _cursorBlinkTimer = Timer.periodic(
-      const Duration(milliseconds: 750),
+      _cursorBlinkInterval,
       (_) {
         _cursorBlinkVisible = !_cursorBlinkVisible;
         markNeedsPaint();
       },
     );
-    _cursorBlinkTimeout = Timer(const Duration(seconds: 5), () {
-      _cursorBlinkTimer?.cancel();
-      _cursorBlinkTimer = null;
-      _cursorBlinkVisible = true;
-      markNeedsPaint();
-    });
+    if (_cursorBlinkTimeoutDuration case final timeout?) {
+      _cursorBlinkTimeoutTimer = Timer(timeout, () {
+        _cursorBlinkTimer?.cancel();
+        _cursorBlinkTimer = null;
+        _cursorBlinkVisible = true;
+        markNeedsPaint();
+      });
+    }
   }
 
   void _stopCursorBlinking() {
     _cursorBlinkTimer?.cancel();
-    _cursorBlinkTimeout?.cancel();
+    _cursorBlinkTimeoutTimer?.cancel();
     _cursorBlinkTimer = null;
-    _cursorBlinkTimeout = null;
+    _cursorBlinkTimeoutTimer = null;
     _cursorBlinkVisible = true;
   }
 
@@ -640,7 +675,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool get _shouldShowCursor {
     if (_alwaysShowCursor || _isComposingText) return true;
     if (!_terminal.cursorVisibleMode) return false;
-    if (!_terminal.cursorBlinkMode || !_focusNode.hasFocus) return true;
+    if (!_cursorBlinkEnabled || !_focusNode.hasFocus) {
+      return true;
+    }
     return _cursorBlinkVisible;
   }
 
