@@ -44,7 +44,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
     String? composingText,
-  })  : _terminal = terminal,
+  })  : assert(cursorBlinkInterval > Duration.zero),
+        assert(cursorBlinkTimeout == null || cursorBlinkTimeout > Duration.zero),
+        _terminal = terminal,
         _controller = controller,
         _offset = offset,
         _padding = padding,
@@ -163,6 +165,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     if (value == _cursorBlinkInterval) return;
     _cursorBlinkInterval = value;
     _updateCursorBlinking(force: true);
+    markNeedsPaint();
   }
 
   Duration? _cursorBlinkTimeoutDuration;
@@ -171,6 +174,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     if (value == _cursorBlinkTimeoutDuration) return;
     _cursorBlinkTimeoutDuration = value;
     _updateCursorBlinking(force: true);
+    markNeedsPaint();
   }
 
   bool _alwaysShowCursor;
@@ -222,8 +226,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   bool get isCursorBlinkVisible => _cursorBlinkVisible;
 
-  bool get _cursorBlinkEnabled =>
-      _cursorBlink ?? _terminal.cursorBlinkMode;
+  bool get _cursorBlinkEnabled => _cursorBlink ?? _terminal.cursorBlinkMode;
 
   Color? debugBackgroundFillColor() {
     _updatePainterColorState();
