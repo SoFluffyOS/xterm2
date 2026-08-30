@@ -330,6 +330,7 @@ class Terminal
   /// Leave this unset to deny clipboard writes.
   void Function(String selector, String text)? onClipboardStore;
 
+
   /// Called when the application requests clipboard contents through OSC 52.
   ///
   /// Return null to deny the request. The result may be asynchronous.
@@ -397,6 +398,8 @@ class Terminal
     this.mouseHandler = defaultMouseHandler,
     this.onPrivateOSC,
     this.reflowEnabled = true,
+    this.reflowWithHiddenCursor = true,
+    this.preserveOrphanCombiningMarks = false,
     this.wordSeparators,
   });
 
@@ -777,6 +780,15 @@ class Terminal
   /// simply truncates lines. true by default.
   @override
   bool reflowEnabled;
+
+  /// Disable only for live TUIs that redraw their viewport with a hidden cursor.
+  /// Restored history must keep reflow enabled because no application redraws it.
+  @override
+  bool reflowWithHiddenCursor;
+
+  /// Keep legacy spacing cells for combining marks without a preceding glyph.
+  @override
+  final bool preserveOrphanCombiningMarks;
 
   /// Writes the data from the underlying program to the terminal. Calling this
   /// updates the states of the terminal and emits events such as [onBell] or

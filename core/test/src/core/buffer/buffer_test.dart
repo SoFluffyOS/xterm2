@@ -70,7 +70,7 @@ void main() {
       terminal.write('界\r\x1b[CX');
 
       final line = terminal.buffer.lines[0];
-      expect(line.toString(), 'X');
+      expect(line.toString(), ' X');
       expect(line.getCodePoint(0), 0);
       expect(line.getWidth(0), 0);
       expect(line.getCodePoint(1), 'X'.codeUnitAt(0));
@@ -82,7 +82,7 @@ void main() {
       terminal.write('a界d\r界');
 
       final line = terminal.buffer.lines[0];
-      expect(line.toString(), '界d');
+      expect(line.toString(), '界 d');
       expect(line.getWidth(0), 2);
       expect(line.getWidth(1), 0);
       expect(line.getCodePoint(2), 0);
@@ -519,7 +519,7 @@ void main() {
       terminal.setCursor(2, 0);
       terminal.buffer.eraseLineToCursor();
 
-      expect(terminal.buffer.lines[0].toString(), 'de');
+      expect(terminal.buffer.lines[0].toString(), '   de');
       expect(terminal.buffer.lines[0].getCodePoint(2), 0);
     });
   });
@@ -534,7 +534,7 @@ void main() {
       terminal.buffer.eraseDisplayToCursor();
 
       expect(terminal.buffer.lines[0].toString(), '');
-      expect(terminal.buffer.lines[1].toString(), '6');
+      expect(terminal.buffer.lines[1].toString(), '  6');
       expect(terminal.buffer.lines[1].getCodePoint(1), 0);
       expect(terminal.buffer.lines[2].toString(), '789');
     });

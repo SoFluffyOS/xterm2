@@ -1,4 +1,4 @@
-import 'dart:math' show min;
+import 'dart:math' show max, min;
 import 'dart:typed_data';
 
 import 'package:xterm2_core/src/core/buffer/cell_offset.dart';
@@ -6,6 +6,8 @@ import 'package:xterm2_core/src/core/cell.dart';
 import 'package:xterm2_core/src/core/cursor.dart';
 import 'package:xterm2_core/src/utils/circular_buffer.dart';
 import 'package:xterm2_core/src/utils/unicode_v11.dart';
+
+part 'line_compaction.dart';
 
 const _cellSize = 4;
 
@@ -53,16 +55,18 @@ class BufferLine with IndexedItem {
     return _underlineColors ??= <int, int>{};
   }
 
+  int _word(int offset) => offset < _data.length ? _data[offset] : 0;
+
   int getForeground(int index) {
-    return _data[index * _cellSize + _cellForeground];
+    return _word(index * _cellSize + _cellForeground);
   }
 
   int getBackground(int index) {
-    return _data[index * _cellSize + _cellBackground];
+    return _word(index * _cellSize + _cellBackground);
   }
 
   int getAttributes(int index) {
-    return _data[index * _cellSize + _cellAttributes];
+    return _word(index * _cellSize + _cellAttributes);
   }
 
   int getHyperlinkId(int index) {
@@ -87,15 +91,15 @@ class BufferLine with IndexedItem {
   }
 
   int getContent(int index) {
-    return _data[index * _cellSize + _cellContent];
+    return _word(index * _cellSize + _cellContent);
   }
 
   int getCodePoint(int index) {
-    return _data[index * _cellSize + _cellContent] & CellContent.codepointMask;
+    return _word(index * _cellSize + _cellContent) & CellContent.codepointMask;
   }
 
   int getWidth(int index) {
-    return _data[index * _cellSize + _cellContent] >> CellContent.widthShift;
+    return _word(index * _cellSize + _cellContent) >> CellContent.widthShift;
   }
 
   String? getCombiningCharacters(int index) {
@@ -132,14 +136,14 @@ class BufferLine with IndexedItem {
     bool includeUnderlineColor = true,
   }) {
     final offset = index * _cellSize;
-    cellData.foreground = _data[offset + _cellForeground];
-    cellData.background = _data[offset + _cellBackground];
+    cellData.foreground = _word(offset + _cellForeground);
+    cellData.background = _word(offset + _cellBackground);
     cellData.underlineColor = switch (includeUnderlineColor) {
       true => _underlineColors?[index] ?? 0,
       false => 0,
     };
-    cellData.flags = _data[offset + _cellAttributes];
-    cellData.content = _data[offset + _cellContent];
+    cellData.flags = _word(offset + _cellAttributes);
+    cellData.content = _word(offset + _cellContent);
   }
 
   CellData createCellData(int index) {
@@ -302,6 +306,18 @@ class BufferLine with IndexedItem {
     CursorStyle style, {
     bool respectProtected = false,
   }) {
+    start = max(0, start);
+    if (end > _length) {
+      if (style.foreground != 0 ||
+          style.background != 0 ||
+          style.attrs != 0 ||
+          style.underlineColor != 0) {
+        resize(end, clearNewCells: true);
+      } else {
+        end = _length;
+      }
+    }
+    if (start >= end) return;
     // reset cell one to the left if start is second cell of a wide char
     if (start > 0 &&
         getWidth(start - 1) == 2 &&
@@ -534,13 +550,14 @@ class BufferLine with IndexedItem {
     }
   }
 
-  void resize(int length) {
+  void resize(int length, {bool clearNewCells = false}) {
     assert(length >= 0);
 
     if (length == _length) {
       return;
     }
 
+    final oldLength = _length;
     if (length > _length) {
       final newBufferSize = _calcCapacity(length) * _cellSize;
 
@@ -552,6 +569,11 @@ class BufferLine with IndexedItem {
     }
 
     _length = length;
+    if (clearNewCells && length > oldLength) {
+      for (var i = oldLength; i < length; i++) {
+        resetCell(i);
+      }
+    }
 
     for (var i = 0; i < _anchors.length; i++) {
       final anchor = _anchors[i];
@@ -626,12 +648,12 @@ class BufferLine with IndexedItem {
 
     final srcOffset = srcCol * _cellSize;
     final dstOffset = dstCol * _cellSize;
-    _data.setRange(
-      dstOffset,
-      dstOffset + len * _cellSize,
-      src._data,
-      srcOffset,
-    );
+    final copiedWords =
+        min(len * _cellSize, max(0, src._data.length - srcOffset));
+    if (copiedWords > 0) {
+      _data.setRange(dstOffset, dstOffset + copiedWords, src._data, srcOffset);
+    }
+    _data.fillRange(dstOffset + copiedWords, dstOffset + len * _cellSize, 0);
 
     if (_combiningCharacters case final combiningCharacters?) {
       combiningCharacters.removeWhere(
@@ -698,11 +720,18 @@ class BufferLine with IndexedItem {
       to++;
     }
 
+    to = min(to, getTrimmedLength(to));
     final builder = StringBuffer();
+    var tabPadding = false;
     for (var i = from; i < to; i++) {
       final codePoint = getCodePoint(i);
       final width = getWidth(i);
-      if (codePoint != 0 && i + width <= to) {
+      if (codePoint == 0) {
+        if (tabPadding) continue;
+        if (i > 0 && getWidth(i - 1) == 2) continue;
+        builder.writeCharCode(0x20);
+      } else if (i + width <= to) {
+        tabPadding = codePoint == 0x09;
         builder.writeCharCode(codePoint);
         final combining = _combiningCharacters?[i];
         if (combining != null) {

@@ -10,6 +10,10 @@ abstract class TerminalState {
 
   bool get reflowEnabled;
 
+  bool get reflowWithHiddenCursor;
+
+  bool get preserveOrphanCombiningMarks;
+
   /* Modes */
 
   bool get insertMode;

@@ -14,6 +14,8 @@ import 'package:xterm2_core/src/core/state.dart';
 import 'package:xterm2_core/src/utils/circular_buffer.dart';
 import 'package:xterm2_core/src/utils/unicode_v11.dart';
 
+part 'buffer_resize.dart';
+
 class Buffer {
   final TerminalState terminal;
 
@@ -161,7 +163,7 @@ class Buffer {
   int writeChar(int codePoint) {
     codePoint = charset.translate(codePoint);
 
-    final cellWidth = unicodeV11.wcwidth(codePoint);
+    var cellWidth = unicodeV11.wcwidth(codePoint);
     if (terminal.graphemeClusterMode &&
         (codePoint == 0xFE0E || codePoint == 0xFE0F)) {
       if (_previousSupportsEmojiVariation(codePoint) &&
@@ -171,10 +173,18 @@ class Buffer {
       return cellWidth;
     }
     if (cellWidth == 0) {
-      if (!terminal.graphemeClusterMode || _joinsPreviousGrapheme(codePoint)) {
-        _addCombiningCharacter(codePoint);
+      final previous = _previousCellIndex();
+      if (terminal.preserveOrphanCombiningMarks &&
+          (previous == null || currentLine.getCodePoint(previous) == 0)) {
+        // Preserve isolated marks rather than silently dropping copied text.
+        cellWidth = 1;
+      } else {
+        if (!terminal.graphemeClusterMode ||
+            _joinsPreviousGrapheme(codePoint)) {
+          _addCombiningCharacter(codePoint);
+        }
+        return cellWidth;
       }
-      return cellWidth;
     }
     if (cellWidth < 0) return cellWidth;
     if (terminal.graphemeClusterMode && _joinRegionalIndicator(codePoint)) {
@@ -525,7 +535,9 @@ class Buffer {
 
   /// The line at the current cursor position.
   BufferLine get currentLine {
-    return lines[absoluteCursorY];
+    final line = lines[absoluteCursorY];
+    if (line.length < viewWidth) line.resize(viewWidth);
+    return line;
   }
 
   void backspace() {
@@ -870,6 +882,7 @@ class Buffer {
   }
 
   void scrollDown(int count) {
+    count = count.clamp(0, _marginBottom - _marginTop + 1);
     if (_usesFullHorizontalMargins) {
       _scrollDownFullWidth(count);
       return;
@@ -891,6 +904,7 @@ class Buffer {
   }
 
   void scrollUp(int count) {
+    count = count.clamp(0, _marginBottom - _marginTop + 1);
     if (_usesFullHorizontalMargins) {
       _scrollUpFullWidth(count);
       return;
@@ -914,7 +928,7 @@ class Buffer {
   void _scrollDownFullWidth(int count) {
     for (var i = absoluteMarginBottom; i >= absoluteMarginTop; i--) {
       if (i >= absoluteMarginTop + count) {
-        lines[i] = lines[i - count];
+        lines[i] = lines.swap(i - count, _newEmptyLine());
       } else {
         lines[i] = _newEmptyLine();
       }
@@ -926,13 +940,14 @@ class Buffer {
       final linesToPush = min(count, viewHeight);
       for (var i = 0; i < linesToPush; i++) {
         lines.push(_newEmptyLine());
+        _compactScrolledOutLine();
       }
       return;
     }
 
     for (var i = absoluteMarginTop; i <= absoluteMarginBottom; i++) {
       if (i <= absoluteMarginBottom - count) {
-        lines[i] = lines[i + count];
+        lines[i] = lines.swap(i + count, _newEmptyLine());
       } else {
         lines[i] = _newEmptyLine();
       }
@@ -958,6 +973,7 @@ class Buffer {
       if (_cursorY == _marginBottom) {
         if (marginTop == 0 && !isAltBuffer) {
           lines.insert(absoluteMarginBottom + 1, _newEmptyLine());
+          _compactScrolledOutLine();
         } else {
           scrollUp(1);
         }
@@ -974,6 +990,7 @@ class Buffer {
         scrollUp(1);
       } else {
         lines.push(_newEmptyLine());
+        _compactScrolledOutLine();
       }
     } else {
       // there're still lines so we simply move cursor down.
@@ -1194,8 +1211,9 @@ class Buffer {
 
   /// Restore cursor position, charmap and text attributes.
   bool restoreCursor() {
-    _cursorX = _savedCursorX;
-    _cursorY = _savedCursorY;
+    _cursorX =
+        _savedCursorX.clamp(0, _savedPendingWrap ? viewWidth : viewWidth - 1);
+    _cursorY = _savedCursorY.clamp(0, viewHeight - 1);
     terminal.cursor.foreground = _savedCursorStyle.foreground;
     terminal.cursor.background = _savedCursorStyle.background;
     terminal.cursor.underlineColor = _savedCursorStyle.underlineColor;
@@ -1328,6 +1346,7 @@ class Buffer {
     final lineCount = _visibleContentLineCount();
     for (var i = 0; i < lineCount; i++) {
       lines.push(_newEmptyLine());
+      _compactScrolledOutLine();
     }
     _forceScrollToBottomGeneration++;
   }
@@ -1380,6 +1399,7 @@ class Buffer {
         continue;
       }
       lines.push(_newEmptyLine());
+      _compactScrolledOutLine();
     }
 
     _cursorY = min(promptTop + promptLines.length - 1, viewHeight - 1);
@@ -1390,6 +1410,7 @@ class Buffer {
     lines.clear();
     for (var i = 0; i < viewHeight; i++) {
       lines.push(_newEmptyLine());
+      _compactScrolledOutLine();
     }
     _forceScrollToBottomGeneration++;
   }
@@ -1547,7 +1568,7 @@ class Buffer {
 
     for (var i = 0; i < linesToMove; i++) {
       final index = absoluteCursorY + i;
-      lines[index] = lines[index + count];
+      lines[index] = lines.swap(index + count, _newEmptyLine());
     }
 
     for (var i = 0; i < count; i++) {
@@ -1556,112 +1577,12 @@ class Buffer {
   }
 
   void resize(int oldWidth, int oldHeight, int newWidth, int newHeight) {
-    if (newHeight > lines.maxLength) {
-      lines.maxLength = newHeight;
-    }
-
-    // 1. Adjust the height.
-    if (newHeight > oldHeight) {
-      // Grow larger
-      for (var i = 0; i < newHeight - oldHeight; i++) {
-        if (newHeight > lines.length) {
-          lines.push(_newEmptyLine(newWidth));
-        } else {
-          _cursorY++;
-          _savedCursorY++;
-        }
-      }
-    } else {
-      // Shrink smaller
-      for (var i = 0; i < oldHeight - newHeight; i++) {
-        if (_cursorY > newHeight - 1) {
-          _cursorY--;
-        } else {
-          lines.pop();
-        }
-      }
-    }
-
-    // Ensure cursor row is within the screen. The column is clamped after
-    // width handling so reflow can preserve its logical offset.
-    _cursorY = _cursorY.clamp(0, newHeight - 1);
-    _savedCursorY = _savedCursorY.clamp(0, newHeight - 1);
-
-    // 2. Adjust the width.
-    if (newWidth != oldWidth) {
-      if (terminal.reflowEnabled && !isAltBuffer) {
-        final cursorScrollBack = max(lines.length - newHeight, 0);
-        final cursorLine = _cursorY + cursorScrollBack;
-        final cursorPendingWrap = _cursorX >= _rightLimit;
-        final cursorAnchorX = switch (cursorPendingWrap) {
-          true => max(0, _cursorX - 1),
-          false => _cursorX,
-        };
-        final cursorAnchor = lines[cursorLine].createAnchor(cursorAnchorX);
-        final savedCursorLine = _savedCursorY + cursorScrollBack;
-        final savedCursorAnchorX = switch (_savedPendingWrap) {
-          true => max(0, _savedCursorX - 1),
-          false => _savedCursorX,
-        };
-        final savedCursorAnchor =
-            lines[savedCursorLine].createAnchor(savedCursorAnchorX);
-        final reflowResult = reflow(lines, oldWidth, newWidth);
-
-        while (reflowResult.length < newHeight) {
-          reflowResult.add(_newEmptyLine(newWidth));
-        }
-
-        lines.replaceWith(reflowResult);
-        if (cursorAnchor.attached) {
-          final newScrollBack = max(lines.length - newHeight, 0);
-          _cursorX = _reflowedCursorX(
-            cursorAnchor,
-            pendingWrap: cursorPendingWrap,
-            newWidth: newWidth,
-          );
-          _cursorY = (cursorAnchor.y - newScrollBack).clamp(0, newHeight - 1);
-        }
-        if (savedCursorAnchor.attached) {
-          final newScrollBack = max(lines.length - newHeight, 0);
-          final savedCursorAtRightEdge = savedCursorAnchor.x == newWidth - 1;
-          _savedCursorX = _reflowedCursorX(
-            savedCursorAnchor,
-            pendingWrap: _savedPendingWrap,
-            newWidth: newWidth,
-          );
-          _savedCursorY =
-              (savedCursorAnchor.y - newScrollBack).clamp(0, newHeight - 1);
-          _savedPendingWrap = _savedPendingWrap && savedCursorAtRightEdge;
-        } else {
-          _savedCursorX = _savedCursorX.clamp(0, newWidth - 1);
-          _savedPendingWrap = false;
-        }
-        cursorAnchor.dispose();
-        savedCursorAnchor.dispose();
-      } else {
-        lines.forEach((item) => item.resize(newWidth));
-        _cursorX = _cursorX.clamp(0, newWidth - 1);
-        _savedCursorX = _savedCursorX.clamp(0, newWidth - 1);
-        _savedPendingWrap = false;
-      }
-    }
-
-    _cursorX = _cursorX.clamp(0, newWidth);
-    _marginLeft = 0;
-    _marginRight = newWidth - 1;
+    _resizeViewport(oldWidth, oldHeight, newWidth, newHeight);
   }
 
-  int _reflowedCursorX(
-    CellAnchor anchor, {
-    required bool pendingWrap,
-    required int newWidth,
-  }) {
-    if (pendingWrap && anchor.x == newWidth - 1) return newWidth;
-    final offset = switch (pendingWrap) {
-      true => 1,
-      false => 0,
-    };
-    return (anchor.x + offset).clamp(0, newWidth - 1);
+  void _compactScrolledOutLine() {
+    final index = scrollBack - 1;
+    if (index >= 0) lines[index].compact();
   }
 
   /// Create a new [CellAnchor] at the specified [x] and [y] coordinates.
