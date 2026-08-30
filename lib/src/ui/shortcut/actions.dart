@@ -36,6 +36,8 @@ class TerminalActions extends StatelessWidget {
     required this.getScrollPosition,
     required this.getLineHeight,
     required this.child,
+    this.onPaste,
+    this.onCopy,
   });
 
   final Terminal terminal;
@@ -48,12 +50,20 @@ class TerminalActions extends StatelessWidget {
 
   final Widget child;
 
+  final Future<void> Function()? onPaste;
+  final Future<void> Function(String text)? onCopy;
+
   @override
   Widget build(BuildContext context) {
     return Actions(
       actions: {
         PasteTextIntent: CallbackAction<PasteTextIntent>(
           onInvoke: (intent) async {
+            if (onPaste != null) {
+              await onPaste!();
+              controller.clearSelection();
+              return null;
+            }
             final data = await Clipboard.getData(Clipboard.kTextPlain);
             final text = data?.text;
             if (text != null) {
@@ -73,7 +83,11 @@ class TerminalActions extends StatelessWidget {
 
             final text = terminal.buffer.getText(selection, true);
 
-            await Clipboard.setData(ClipboardData(text: text));
+            if (onCopy != null) {
+              await onCopy!(text);
+            } else {
+              await Clipboard.setData(ClipboardData(text: text));
+            }
 
             return null;
           },

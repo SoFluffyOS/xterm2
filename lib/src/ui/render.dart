@@ -27,6 +27,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalTheme theme,
     required FocusNode focusNode,
     required TerminalCursorType cursorType,
+    bool? cursorBlink,
     required bool alwaysShowCursor,
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
@@ -39,6 +40,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _backgroundOpacity = backgroundOpacity,
         _focusNode = focusNode,
         _cursorType = cursorType,
+        _cursorBlink = cursorBlink,
         _alwaysShowCursor = alwaysShowCursor,
         _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
@@ -168,6 +170,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _stickToBottom = true;
 
+  bool? _cursorBlink;
+  set cursorBlink(bool? value) {
+    if (_cursorBlink == value) return;
+    _cursorBlink = value;
+    _updateCursorBlinking(force: true);
+    markNeedsPaint();
+  }
+
   Timer? _cursorBlinkTimer;
 
   Timer? _cursorBlinkTimeout;
@@ -289,7 +299,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _updateCursorBlinking({bool force = false}) {
-    final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
+    final enabled =
+        (_cursorBlink ?? _terminal.cursorBlinkMode) && _focusNode.hasFocus;
     final blinkTimerActive = _cursorBlinkTimer != null;
     if (!force &&
         enabled == _cursorBlinkWasEnabled &&
@@ -654,7 +665,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool get _shouldShowCursor {
     if (_alwaysShowCursor || _isComposingText) return true;
     if (!_terminal.cursorVisibleMode) return false;
-    if (!_terminal.cursorBlinkMode || !_focusNode.hasFocus) return true;
+    if (!(_cursorBlink ?? _terminal.cursorBlinkMode) || !_focusNode.hasFocus)
+      return true;
     return _cursorBlinkVisible;
   }
 

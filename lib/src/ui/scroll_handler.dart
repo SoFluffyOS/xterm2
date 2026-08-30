@@ -25,6 +25,8 @@ class TerminalScrollGestureHandler extends StatefulWidget {
     required this.getLineHeight,
     required this.getCellWidth,
     this.simulateScroll = true,
+    this.mouseWheelSensitivity = 1,
+    this.shiftOverridesMouseReporting = false,
     this.readOnly = false,
     required this.child,
   });
@@ -48,6 +50,9 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   /// doesn't declare it supports mouse wheel events. true by default as it
   /// is the default behavior of most terminals.
   final bool simulateScroll;
+
+  final int mouseWheelSensitivity;
+  final bool shiftOverridesMouseReporting;
 
   final bool readOnly;
 
@@ -125,7 +130,9 @@ class _TerminalScrollGestureHandlerState
 
     final modifiers = _currentModifiers();
     var handled = false;
-    if (!modifiers.shift || widget.terminal.mouseShiftCaptureMode) {
+    if (!modifiers.shift ||
+        (!widget.shiftOverridesMouseReporting &&
+            widget.terminal.mouseShiftCaptureMode)) {
       handled = widget.sendMouseEvent(
         up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
         TerminalMouseButtonState.down,
@@ -134,7 +141,17 @@ class _TerminalScrollGestureHandlerState
       );
     }
 
-    if (handled) return;
+    if (handled) {
+      for (var i = 1; i < widget.mouseWheelSensitivity.clamp(1, 10); i++) {
+        widget.sendMouseEvent(
+          up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
+          TerminalMouseButtonState.down,
+          lastPointerPosition,
+          modifiers: modifiers,
+        );
+      }
+      return;
+    }
 
     if (!widget.terminal.isUsingAltBuffer) {
       _scrollMainBuffer(up);
@@ -177,7 +194,9 @@ class _TerminalScrollGestureHandlerState
 
     final modifiers = _currentModifiers();
     var handled = false;
-    if (!modifiers.shift || widget.terminal.mouseShiftCaptureMode) {
+    if (!modifiers.shift ||
+        (!widget.shiftOverridesMouseReporting &&
+            widget.terminal.mouseShiftCaptureMode)) {
       handled = widget.sendMouseEvent(
         switch (left) {
           true => TerminalMouseButton.wheelLeft,
