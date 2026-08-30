@@ -488,6 +488,26 @@ class TerminalPainter {
     if (cellFlags & CellFlags.invisible != 0) return;
     if (cellFlags & CellFlags.blink != 0 && !blinkVisible) return;
 
+    final plainAscii = charCode >= 0x21 &&
+        charCode <= 0x7e &&
+        cellFlags == 0 &&
+        cellData.foreground == CellColor.normal &&
+        cellData.background == CellColor.normal &&
+        cellData.underlineColor == 0 &&
+        combiningCharacters == null &&
+        foregroundOverride == null &&
+        !ensureSelectionContrast;
+    if (plainAscii) {
+      // Ordinary log text needs no color/decorations work once laid out. The
+      // cache is invalidated on font, scale, theme and reverse-display changes.
+      final cached = _paragraphCache.getLayoutFromCache(cellData.content);
+      if (cached != null &&
+          cached.maxIntrinsicWidth <= _cellSize.width &&
+          cached.height <= _cellSize.height) {
+        canvas.drawParagraph(cached, offset);
+        return;
+      }
+    }
     final isActiveHyperlink =
         cellData.hyperlinkId != 0 && cellData.hyperlinkId == activeHyperlinkId;
     final isBlankBraille = charCode == 0x2800;
@@ -559,14 +579,16 @@ class TerminalPainter {
       true => CellAttr.hyperlinkMarker,
       false => 0,
     };
-    final cacheKey = (
-      color,
-      decorationColor,
-      visualFlags | hyperlinkFlag,
-      cellData.content,
-      _textScaler,
-      combiningCharacters,
-    );
+    final Object cacheKey = plainAscii
+        ? cellData.content
+        : (
+            color,
+            decorationColor,
+            visualFlags | hyperlinkFlag,
+            cellData.content,
+            _textScaler,
+            combiningCharacters,
+          );
     var paragraph = _paragraphCache.getLayoutFromCache(cacheKey);
 
     if (paragraph == null) {
