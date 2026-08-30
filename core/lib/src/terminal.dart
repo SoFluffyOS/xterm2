@@ -337,6 +337,9 @@ class Terminal
   /// Disable to keep OSC 1337 from sharing the OSC 52 clipboard callback.
   final bool allowITerm2ClipboardCapture;
 
+  /// Disable to keep OSC 5522 from sharing the OSC 52 clipboard callback.
+  final bool allowKittyClipboard;
+
   /// Called when the application requests clipboard contents through OSC 52.
   ///
   /// Return null to deny the request. The result may be asynchronous.
@@ -398,6 +401,7 @@ class Terminal
     this.onClipboardStore,
     this.clipboardDecoder,
     this.allowITerm2ClipboardCapture = true,
+    this.allowKittyClipboard = true,
     this.onClipboardQuery,
     this.onOutput,
     this.onResize,
@@ -411,7 +415,8 @@ class Terminal
     this.wordSeparators,
   });
 
-  late final _parser = EscapeParser(this);
+  late final _parser =
+      EscapeParser(this, allowKittyClipboard: allowKittyClipboard);
 
   final _emitter = const EscapeEmitter();
 

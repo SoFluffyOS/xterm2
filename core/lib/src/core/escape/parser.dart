@@ -19,6 +19,8 @@ class EscapeParser {
 
   static const _maxOscRawLength = 8192;
 
+  static const _maxOsc52PayloadLength = 128 * 1024;
+
   static const _maxOscParams = 256;
 
   static const _maxDcsRawLength = 8192;
@@ -29,7 +31,9 @@ class EscapeParser {
 
   final EscapeHandler handler;
 
-  EscapeParser(this.handler);
+  final bool allowKittyClipboard;
+
+  EscapeParser(this.handler, {this.allowKittyClipboard = true});
 
   bool _isByteValue(int value) {
     return value >= 0 && value <= 0xff;
@@ -2334,7 +2338,7 @@ class EscapeParser {
           handler.setMouseShape(_osc.sublist(1).join(';'));
           return true;
         case '52':
-          if (_osc.length < 3) return true;
+          if (_osc.length != 3) return true;
           final data = _osc[2];
           if (data == '?') {
             handler.queryClipboard(_osc[1]);
@@ -2398,7 +2402,7 @@ class EscapeParser {
   }
 
   void _handleKittyClipboardProtocol() {
-    if (_osc.length < 3) return;
+    if (!allowKittyClipboard || _osc.length < 3) return;
 
     final metadata = _osc[1];
     final type = _kittyClipboardOption(metadata, 'type')?.toLowerCase();
@@ -2779,6 +2783,7 @@ class EscapeParser {
     _oscOverflowed = false;
     final param = StringBuffer();
     var rawLength = 0;
+    var maxRawLength = _maxOscRawLength;
 
     while (true) {
       if (_queue.isEmpty) {
@@ -2788,11 +2793,13 @@ class EscapeParser {
       final char = _queue.consume();
       rawLength++;
 
-      if (rawLength > _maxOscRawLength) {
+      if (rawLength > maxRawLength) {
         _osc.clear();
         _oscOverflowed = true;
         _discardingOsc = true;
-        _discardOscSawEscape = char == Ascii.ESC;
+        // Let discard consume the overflow character, which may be BEL or ST.
+        _queue.rollback(1);
+        _discardOscSawEscape = false;
         _discardOscInput();
         return true;
       }
@@ -2846,6 +2853,11 @@ class EscapeParser {
         if (_osc.length < _maxOscParams - 1) {
           _osc.add(param.toString());
           param.clear();
+          if (_osc.length == 2 && _osc.first == '52') {
+            // Bound the header normally, then allow the encoded clipboard
+            // payload and its terminator without raising other OSC limits.
+            maxRawLength = rawLength + _maxOsc52PayloadLength + 1;
+          }
           continue;
         }
         param.writeCharCode(char);
