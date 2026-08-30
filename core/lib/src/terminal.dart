@@ -453,6 +453,8 @@ class Terminal
 
   int _nextHyperlinkId = 1;
 
+  int _hyperlinkPruneCooldown = 0;
+
   int get colorRevision => _colorRevision;
 
   TerminalSemanticPromptState get semanticPromptState => _semanticPromptState;
@@ -836,6 +838,7 @@ class Terminal
     _clearSemanticPromptAnchors();
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
+    _hyperlinkPruneCooldown = 0;
   }
 
   /// Sends a key event to the underlying program.
@@ -1414,6 +1417,7 @@ class Terminal
     _hyperlinks.clear();
     _explicitHyperlinkIds.clear();
     _nextHyperlinkId = 1;
+    _hyperlinkPruneCooldown = 0;
     _tabStops.reset();
     _mainBuffer.reset();
     _altBuffer.reset();
@@ -3624,7 +3628,15 @@ class Terminal
       return;
     }
     if (_hyperlinks.length >= _maxHyperlinks) {
+      // A full scrollback can retain every ID. Bound repeated scans even when
+      // each scan reclaims just one slot; reclamation may lag by 256 requests.
+      if (_hyperlinkPruneCooldown > 0) {
+        _hyperlinkPruneCooldown--;
+        _cursorStyle.hyperlinkId = 0;
+        return;
+      }
       _pruneUnusedHyperlinks();
+      _hyperlinkPruneCooldown = 256;
       if (_hyperlinks.length >= _maxHyperlinks) {
         _cursorStyle.hyperlinkId = 0;
         return;
