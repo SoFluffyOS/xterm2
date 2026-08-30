@@ -330,6 +330,12 @@ class Terminal
   /// Leave this unset to deny clipboard writes.
   void Function(String selector, String text)? onClipboardStore;
 
+  /// Optional application policy for decoding an OSC 52 write. Null rejects it.
+  /// Receives the original selector and encoded payload before normalization.
+  final String? Function(String selector, String data)? clipboardDecoder;
+
+  /// Disable to keep OSC 1337 from sharing the OSC 52 clipboard callback.
+  final bool allowITerm2ClipboardCapture;
 
   /// Called when the application requests clipboard contents through OSC 52.
   ///
@@ -390,6 +396,8 @@ class Terminal
     this.onXtVersionQuery,
     this.onEnquiry,
     this.onClipboardStore,
+    this.clipboardDecoder,
+    this.allowITerm2ClipboardCapture = true,
     this.onClipboardQuery,
     this.onOutput,
     this.onResize,
@@ -3865,6 +3873,7 @@ class Terminal
 
   @override
   void startITerm2ClipboardCapture(String selector) {
+    if (!allowITerm2ClipboardCapture) return;
     _clipboardCaptureSelector = _resolveITerm2ClipboardSelector(selector);
     _clipboardCaptureBuffer = StringBuffer();
     _clipboardCaptureOverflowed = false;
@@ -3918,6 +3927,11 @@ class Terminal
 
   @override
   void storeClipboard(String selector, String data) {
+    if (clipboardDecoder case final decode?) {
+      final text = decode(selector, data);
+      if (text != null) onClipboardStore?.call(selector, text);
+      return;
+    }
     final clipboardSelector = _resolveClipboardSelector(selector);
     if (clipboardSelector == null) return;
 
