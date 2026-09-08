@@ -124,6 +124,7 @@ class TerminalView extends StatefulWidget {
     this.onPaste,
     this.onCopy,
     this.cursorBlink,
+    this.applicationScrollWhenCursorHidden = false,
   });
 
   /// The underlying terminal that this widget renders.
@@ -235,6 +236,10 @@ class TerminalView extends StatefulWidget {
   /// keys to the application. This is standard behavior for most terminal
   /// emulators. True by default.
   final bool simulateScroll;
+
+  /// Treat a hidden cursor as a full-screen application for scroll routing,
+  /// including when [readOnly] is true. Off by default.
+  final bool applicationScrollWhenCursorHidden;
 
   @override
   State<TerminalView> createState() => TerminalViewState();
@@ -472,6 +477,8 @@ class TerminalViewState extends State<TerminalView> {
       mouseWheelSensitivity: widget.mouseWheelSensitivity,
       shiftOverridesMouseReporting: widget.shiftOverridesMouseReporting,
       readOnly: widget.readOnly,
+      applicationScrollWhenCursorHidden:
+          widget.applicationScrollWhenCursorHidden,
       sendMouseEvent: (button, state, offset, {required modifiers}) {
         return renderTerminal.mouseEvent(
           button,
@@ -534,20 +541,19 @@ class TerminalViewState extends State<TerminalView> {
       child: child,
     );
 
-    child = KeyboardVisibilty(
-      onKeyboardShow: _onKeyboardShow,
-      child: child,
-    );
+    child = KeyboardVisibilty(onKeyboardShow: _onKeyboardShow, child: child);
 
     child = TerminalGestureHandler(
       terminalView: this,
       terminalController: _controller,
       onTapUp: _onTapUp,
       onTapDown: _onTapDown,
-      onSecondaryTapDown:
-          widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
-      onSecondaryTapUp:
-          widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
+      onSecondaryTapDown: widget.onSecondaryTapDown != null
+          ? _onSecondaryTapDown
+          : null,
+      onSecondaryTapUp: widget.onSecondaryTapUp != null
+          ? _onSecondaryTapUp
+          : null,
       readOnly: widget.readOnly,
       child: child,
     );
@@ -563,8 +569,9 @@ class TerminalViewState extends State<TerminalView> {
     );
 
     child = Container(
-      color:
-          widget.theme.background.withValues(alpha: widget.backgroundOpacity),
+      color: widget.theme.background.withValues(
+        alpha: widget.backgroundOpacity,
+      ),
       padding: widget.padding,
       child: child,
     );
@@ -712,10 +719,7 @@ class TerminalViewState extends State<TerminalView> {
     }
 
     // ignore: invalid_use_of_protected_member
-    final shortcutResult = _shortcutManager.handleKeypress(
-      context,
-      event,
-    );
+    final shortcutResult = _shortcutManager.handleKeypress(context, event);
 
     if (shortcutResult != KeyEventResult.ignored) {
       return shortcutResult;
@@ -799,10 +803,7 @@ class TerminalViewState extends State<TerminalView> {
     return true;
   }
 
-  bool _isAltGraphActive(
-    KeyEvent event,
-    HardwareKeyboard hardwareKeyboard,
-  ) {
+  bool _isAltGraphActive(KeyEvent event, HardwareKeyboard hardwareKeyboard) {
     if (widget.terminal.platform == TerminalTargetPlatform.macos) return false;
     if (hardwareKeyboard.isLogicalKeyPressed(LogicalKeyboardKey.altGraph)) {
       return true;
@@ -833,14 +834,16 @@ class TerminalViewState extends State<TerminalView> {
     }
 
     if (HardwareKeyboard.instance.isShiftPressed) {
-      final shifted = _shiftedPrintablePhysicalFallbacks[event.physicalKey] ??
+      final shifted =
+          _shiftedPrintablePhysicalFallbacks[event.physicalKey] ??
           _shiftedPrintableLogicalFallbacks[event.logicalKey];
       if (shifted != null) {
         return shifted;
       }
     }
 
-    final fallback = _printablePhysicalFallbacks[event.physicalKey] ??
+    final fallback =
+        _printablePhysicalFallbacks[event.physicalKey] ??
         _printableLogicalFallbacks[event.logicalKey];
     if (fallback != null) {
       return fallback;

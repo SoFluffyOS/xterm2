@@ -28,6 +28,7 @@ class TerminalScrollGestureHandler extends StatefulWidget {
     this.mouseWheelSensitivity = 1,
     this.shiftOverridesMouseReporting = false,
     this.readOnly = false,
+    this.applicationScrollWhenCursorHidden = false,
     required this.child,
   });
 
@@ -55,6 +56,14 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   final bool shiftOverridesMouseReporting;
 
   final bool readOnly;
+
+  /// Treat a hidden cursor as a full-screen app for scroll routing, and keep
+  /// sending that application scroll even when [readOnly] is true.
+  ///
+  /// Off by default: a hidden cursor also appears in some line editors whose
+  /// history belongs in the cell buffer, and read-only views historically
+  /// swallowed application scroll.
+  final bool applicationScrollWhenCursorHidden;
 
   final Widget child;
 
@@ -92,9 +101,13 @@ class _TerminalScrollGestureHandlerState
 
   @override
   void didUpdateWidget(covariant TerminalScrollGestureHandler oldWidget) {
-    if (oldWidget.terminal != widget.terminal) {
-      oldWidget.terminal.removeListener(_onTerminalUpdated);
-      widget.terminal.addListener(_onTerminalUpdated);
+    if (oldWidget.terminal != widget.terminal ||
+        oldWidget.applicationScrollWhenCursorHidden !=
+            widget.applicationScrollWhenCursorHidden) {
+      if (oldWidget.terminal != widget.terminal) {
+        oldWidget.terminal.removeListener(_onTerminalUpdated);
+        widget.terminal.addListener(_onTerminalUpdated);
+      }
       handlesApplicationScroll = _shouldHandleApplicationScroll();
       lastLineOffset = 0;
       horizontalScrollRemainder = 0;
@@ -114,51 +127,67 @@ class _TerminalScrollGestureHandlerState
 
   bool _shouldHandleApplicationScroll() {
     return widget.terminal.isUsingAltBuffer ||
-        widget.terminal.mouseMode.reportScroll;
+        widget.terminal.mouseMode.reportScroll ||
+        (widget.applicationScrollWhenCursorHidden &&
+            !widget.terminal.cursorVisibleMode);
   }
 
   /// Send a single scroll event to the terminal. If [simulateScroll] is true,
   /// then if the application doesn't recognize mouse wheel events, this method
   /// will simulate scroll events by sending up/down arrow keys.
   void _sendScrollEvent(bool up) {
-    if (widget.readOnly ||
-        !widget.terminalController
-            .shouldSendPointerInput(PointerInput.scroll)) {
+    final applicationScroll = _shouldHandleApplicationScroll();
+    final canSendPointer =
+        !widget.readOnly &&
+        widget.terminalController.shouldSendPointerInput(PointerInput.scroll);
+    // Compose-style read-only views still have to talk to a full-screen TUI.
+    // Walking the cell buffer instead paints previous frames at the wrong
+    // width and desyncs the live layout from the application.
+    final canSimulateReadOnlyApplicationScroll =
+        widget.applicationScrollWhenCursorHidden &&
+        widget.readOnly &&
+        applicationScroll &&
+        widget.simulateScroll;
+
+    if (!canSendPointer && !canSimulateReadOnlyApplicationScroll) {
       _scrollMainBuffer(up);
       return;
     }
 
-    final modifiers = _currentModifiers();
-    var handled = false;
-    if (!modifiers.shift ||
-        (!widget.shiftOverridesMouseReporting &&
-            widget.terminal.mouseShiftCaptureMode)) {
-      handled = widget.sendMouseEvent(
-        up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
-        TerminalMouseButtonState.down,
-        lastPointerPosition,
-        modifiers: modifiers,
-      );
-    }
-
-    if (handled) {
-      for (var i = 1; i < widget.mouseWheelSensitivity.clamp(1, 10); i++) {
-        widget.sendMouseEvent(
+    if (canSendPointer) {
+      final modifiers = _currentModifiers();
+      var handled = false;
+      if (!modifiers.shift ||
+          (!widget.shiftOverridesMouseReporting &&
+              widget.terminal.mouseShiftCaptureMode)) {
+        handled = widget.sendMouseEvent(
           up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
           TerminalMouseButtonState.down,
           lastPointerPosition,
           modifiers: modifiers,
         );
       }
-      return;
+
+      if (handled) {
+        for (var i = 1; i < widget.mouseWheelSensitivity.clamp(1, 10); i++) {
+          widget.sendMouseEvent(
+            up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
+            TerminalMouseButtonState.down,
+            lastPointerPosition,
+            modifiers: modifiers,
+          );
+        }
+        return;
+      }
+
+      if (!applicationScroll) {
+        _scrollMainBuffer(up);
+        return;
+      }
     }
 
-    if (!widget.terminal.isUsingAltBuffer) {
-      _scrollMainBuffer(up);
-      return;
-    }
-
-    if (widget.simulateScroll) {
+    if (widget.simulateScroll &&
+        (applicationScroll || canSimulateReadOnlyApplicationScroll)) {
       widget.terminal.keyInput(
         up ? TerminalKey.arrowUp : TerminalKey.arrowDown,
       );
@@ -187,8 +216,9 @@ class _TerminalScrollGestureHandlerState
 
   void _sendHorizontalScrollEvent(bool left) {
     if (widget.readOnly ||
-        !widget.terminalController
-            .shouldSendPointerInput(PointerInput.scroll)) {
+        !widget.terminalController.shouldSendPointerInput(
+          PointerInput.scroll,
+        )) {
       return;
     }
 
@@ -211,22 +241,23 @@ class _TerminalScrollGestureHandlerState
     if (handled) return;
     if (!widget.terminal.isUsingAltBuffer || !widget.simulateScroll) return;
 
-    widget.terminal.keyInput(
-      switch (left) {
-        true => TerminalKey.arrowLeft,
-        false => TerminalKey.arrowRight,
-      },
-    );
+    widget.terminal.keyInput(switch (left) {
+      true => TerminalKey.arrowLeft,
+      false => TerminalKey.arrowRight,
+    });
   }
 
   TerminalMouseModifiers _currentModifiers() {
     final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
     return TerminalMouseModifiers(
-      shift: pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
+      shift:
+          pressedKeys.contains(LogicalKeyboardKey.shiftLeft) ||
           pressedKeys.contains(LogicalKeyboardKey.shiftRight),
-      alt: pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
+      alt:
+          pressedKeys.contains(LogicalKeyboardKey.altLeft) ||
           pressedKeys.contains(LogicalKeyboardKey.altRight),
-      control: pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
+      control:
+          pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
           pressedKeys.contains(LogicalKeyboardKey.controlRight),
     );
   }
@@ -275,12 +306,10 @@ class _TerminalScrollGestureHandlerState
       return widget.child;
     }
 
-    final scrollbackBehavior = ScrollConfiguration.of(context).copyWith(
-      physics: const NeverScrollableScrollPhysics(),
-    );
-    final applicationScrollBehavior = ScrollConfiguration.of(context).copyWith(
-      pointerAxisModifiers: const <LogicalKeyboardKey>{},
-    );
+    final scrollbackBehavior = ScrollConfiguration.of(context)
+        .copyWith(physics: const NeverScrollableScrollPhysics());
+    final applicationScrollBehavior = ScrollConfiguration.of(context)
+        .copyWith(pointerAxisModifiers: const <LogicalKeyboardKey>{});
     return ScrollConfiguration(
       behavior: applicationScrollBehavior,
       child: InfiniteScrollView(
