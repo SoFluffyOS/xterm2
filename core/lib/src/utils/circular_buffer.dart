@@ -18,6 +18,16 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
   /// overflow
   var _absoluteStartIndex = 0;
 
+  /// Items ever appended through [push] or [insert]. Never reset, so a
+  /// difference of two readings counts what arrived in between.
+  int get pushCount => _pushCount;
+  var _pushCount = 0;
+
+  /// Items dropped from the start because the list was full. Explicit trims
+  /// are not counted: a reader anchored to content only drifts on eviction.
+  int get evictedCount => _evictedCount;
+  var _evictedCount = 0;
+
   /// Gets the cyclic index for the specified regular index. The cyclic index
   /// can then be used on the backing array to get the element associated with
   /// the regular index.
@@ -147,11 +157,13 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
   /// trimmed if the list is full.
   void push(T value) {
     _adoptChild(_length, value);
+    _pushCount++;
 
     if (_length == _array.length) {
       // When the list is full, we trim the first element
       _startIndex++;
       _absoluteStartIndex++;
+      _evictedCount++;
       if (_startIndex == _array.length) {
         _startIndex = 0;
       }
@@ -208,10 +220,12 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
     }
 
     _adoptChild(index, item);
+    _pushCount++;
 
     if (_length >= _array.length) {
       _startIndex += 1;
       _absoluteStartIndex += 1;
+      _evictedCount++;
     } else {
       _length++;
     }

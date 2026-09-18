@@ -56,33 +56,136 @@ void main() {
     setup.focusNode.dispose();
   });
 
-  test('full display erase returns viewport to bottom', () {
+  testWidgets('full display erase that stays empty follows to bottom', (
+    tester,
+  ) async {
     final offset = _TestViewportOffset();
     final setup = _createRenderTerminal(offset: offset);
     final render = setup.render;
     final owner = PipelineOwner();
+    final constraints = BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    ));
 
     render.attach(owner);
-    render.layout(BoxConstraints.tight(Size(
-      render.cellSize.width * 10,
-      render.cellSize.height * 5,
-    )));
+    render.layout(constraints);
     setup.terminal.write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n');
-    render.layout(BoxConstraints.tight(Size(
-      render.cellSize.width * 10,
-      render.cellSize.height * 5,
-    )));
+    render.layout(constraints);
     offset.jumpTo(0);
 
     setup.terminal.write('\x1b[H\x1b[2J');
-    expect(render.debugNeedsLayout, isTrue);
+    render.layout(constraints);
+    expect(offset.pixels, 0);
 
-    render.layout(BoxConstraints.tight(Size(
+    await tester.pump(RenderTerminal.clearFollowGrace);
+    expect(render.debugNeedsLayout, isTrue);
+    render.layout(constraints);
+    expect(offset.pixels, offset.maxScrollExtent);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  testWidgets('clear-and-reprint keeps the reader on the same lines', (
+    tester,
+  ) async {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+    final constraints = BoxConstraints.tight(Size(
       render.cellSize.width * 10,
       render.cellSize.height * 5,
-    )));
+    ));
+    final transcript = [for (var i = 0; i < 30; i++) 'line-$i'].join('\r\n');
 
-    expect(offset.pixels, offset.maxScrollExtent);
+    render.attach(owner);
+    render.layout(constraints);
+    setup.terminal.write('$transcript\r\n');
+    render.layout(constraints);
+    final anchor = render.lineHeight * 12;
+    offset.jumpTo(anchor);
+    render.layout(constraints);
+    final rowsBefore = _visibleRows(render, setup.terminal);
+    expect(rowsBefore.first, 'line-12');
+
+    // An inline TUI redraws its whole transcript after a resize: clear the
+    // screen and scrollback, then print everything again.
+    setup.terminal.write('\x1b[H\x1b[2J\x1b[3J');
+    render.layout(constraints);
+    setup.terminal.write('$transcript\r\n');
+    render.layout(constraints);
+
+    expect(offset.pixels, anchor);
+    expect(_visibleRows(render, setup.terminal), rowsBefore);
+
+    await tester.pump(RenderTerminal.clearFollowGrace * 2);
+    expect(offset.pixels, anchor);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  testWidgets('scrolling after a clear cancels the follow to bottom', (
+    tester,
+  ) async {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset);
+    final render = setup.render;
+    final owner = PipelineOwner();
+    final constraints = BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    ));
+
+    render.attach(owner);
+    render.layout(constraints);
+    setup.terminal.write('a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\nh\r\n');
+    render.layout(constraints);
+    offset.jumpTo(0);
+
+    setup.terminal.write('\x1b[H\x1b[2J');
+    render.layout(constraints);
+    offset.jumpTo(render.lineHeight);
+    render.layout(constraints);
+
+    await tester.pump(RenderTerminal.clearFollowGrace * 2);
+    expect(render.debugNeedsLayout, isFalse);
+    expect(offset.pixels, render.lineHeight);
+
+    render.detach();
+    setup.focusNode.dispose();
+  });
+
+  test('anchor follows content evicted from a full scrollback', () {
+    final offset = _TestViewportOffset();
+    final setup = _createRenderTerminal(offset: offset, maxLines: 20);
+    final render = setup.render;
+    final owner = PipelineOwner();
+    final constraints = BoxConstraints.tight(Size(
+      render.cellSize.width * 10,
+      render.cellSize.height * 5,
+    ));
+
+    render.attach(owner);
+    render.layout(constraints);
+    final capacity = setup.terminal.buffer.lines.maxLength;
+    setup.terminal.write(
+      [for (var i = 0; i < capacity; i++) 'row-$i'].join('\r\n'),
+    );
+    render.layout(constraints);
+    expect(setup.terminal.buffer.lines.length, capacity);
+    offset.jumpTo(render.lineHeight * 8);
+    render.layout(constraints);
+    expect(_visibleRows(render, setup.terminal).first, 'row-8');
+
+    setup.terminal.write('\r\nmore-1\r\nmore-2\r\nmore-3');
+    render.layout(constraints);
+
+    expect(setup.terminal.buffer.lines.evictedCount, 3);
+    expect(_visibleRows(render, setup.terminal).first, 'row-8');
+    expect(offset.pixels, render.lineHeight * 5);
 
     render.detach();
     setup.focusNode.dispose();
@@ -564,8 +667,10 @@ void main() {
   double backgroundOpacity = 1,
   ViewportOffset? offset,
   void Function(String)? onOutput,
+  int maxLines = 1000,
 }) {
-  final terminal = Terminal(onOutput: onOutput)..resize(10, 5);
+  final terminal = Terminal(onOutput: onOutput, maxLines: maxLines)
+    ..resize(10, 5);
   final controller = TerminalController();
   final focusNode = FocusNode();
   final render = RenderTerminal(
@@ -588,6 +693,14 @@ void main() {
     controller: controller,
     focusNode: focusNode,
   );
+}
+
+List<String> _visibleRows(RenderTerminal render, Terminal terminal) {
+  final (first, last) = render.debugVisibleLineRange();
+  return [
+    for (var index = first; index <= last; index++)
+      terminal.buffer.lines[index].toString().trim(),
+  ];
 }
 
 class _TestViewportOffset extends ViewportOffset {

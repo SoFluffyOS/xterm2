@@ -209,10 +209,31 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _lastForceScrollToBottomGeneration = 0;
 
+  var _lastScreenClearGeneration = 0;
+
+  var _lastEvictedLineCount = 0;
+
   Buffer? _lastTerminalBuffer;
+
+  /// Offset from the top of the buffer the reader chose when they scrolled
+  /// away from the bottom. Layout returns to it whenever the buffer collapses
+  /// and regrows underneath (an application clearing and reprinting its
+  /// transcript), which plain clamping would turn into a jump to the top.
+  var _anchorPixels = 0.0;
+
+  Timer? _clearFollowTimer;
+
+  /// How long a screen clear may stay empty before the viewport follows it to
+  /// the bottom. A clear-and-reprint refills the buffer well inside this.
+  static const clearFollowGrace = Duration(milliseconds: 300);
 
   void _onScroll() {
     _stickToBottom = _scrollOffset >= _stickyScrollOffset;
+    if (!_stickToBottom) {
+      _anchorPixels = _scrollOffset;
+    }
+    // The reader picked a place after the clear; that decision stands.
+    _cancelClearFollow();
     markNeedsLayout();
     _notifyEditableRect();
   }
@@ -224,18 +245,26 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
-    final bufferChanged = !identical(_terminal.buffer, _lastTerminalBuffer);
+    final buffer = _terminal.buffer;
+    final bufferChanged = !identical(buffer, _lastTerminalBuffer);
     if (bufferChanged && _controller.selection != null) {
       _controller.clearSelection();
     }
-    final forceScrollToBottom =
-        _terminal.buffer.forceScrollToBottomGeneration !=
-            _lastForceScrollToBottomGeneration;
+    final forceScrollToBottom = buffer.forceScrollToBottomGeneration !=
+        _lastForceScrollToBottomGeneration;
+    var anchorMoved = false;
     if (forceScrollToBottom) {
       _stickToBottom = true;
+      _cancelClearFollow();
+    } else if (!bufferChanged && !_stickToBottom) {
+      anchorMoved = _followEvictedLines(buffer);
+      if (buffer.screenClearGeneration != _lastScreenClearGeneration) {
+        _scheduleClearFollow();
+      }
     }
     final needsLayout = forceScrollToBottom ||
-        _terminal.buffer.lines.length != _lastTerminalLineCount ||
+        anchorMoved ||
+        buffer.lines.length != _lastTerminalLineCount ||
         _terminal.viewWidth != _lastTerminalWidth ||
         _terminal.viewHeight != _lastTerminalHeight ||
         // A view taller than its terminal follows the cursor, not the end.
@@ -251,14 +280,51 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _notifyEditableRect();
   }
 
+  /// A full buffer drops its oldest line for every new one, which moves all
+  /// content up a line; the anchor moves with the text it points at.
+  bool _followEvictedLines(Buffer buffer) {
+    final evicted = buffer.lines.evictedCount - _lastEvictedLineCount;
+    if (evicted <= 0) return false;
+    final moved = max(0.0, _anchorPixels - evicted * lineHeight);
+    if (moved == _anchorPixels) return false;
+    _anchorPixels = moved;
+    return true;
+  }
+
+  /// An erase leaves the reader where they are for [clearFollowGrace]. If the
+  /// application refills the buffer in that time it reprinted, and layout has
+  /// already put the same text back under the anchor; if it stays empty the
+  /// screen really was cleared and the viewport follows it down.
+  void _scheduleClearFollow() {
+    if (_terminal.buffer.linesPushedSinceScreenClear > 0) {
+      _cancelClearFollow();
+      return;
+    }
+    _clearFollowTimer?.cancel();
+    _clearFollowTimer = Timer(clearFollowGrace, () {
+      _clearFollowTimer = null;
+      if (!attached || _stickToBottom) return;
+      if (_terminal.buffer.linesPushedSinceScreenClear > 0) return;
+      _stickToBottom = true;
+      markNeedsLayout();
+    });
+  }
+
+  void _cancelClearFollow() {
+    _clearFollowTimer?.cancel();
+    _clearFollowTimer = null;
+  }
+
   void _recordTerminalLayoutState() {
-    _lastTerminalBuffer = _terminal.buffer;
-    _lastTerminalLineCount = _terminal.buffer.lines.length;
+    final buffer = _terminal.buffer;
+    _lastTerminalBuffer = buffer;
+    _lastTerminalLineCount = buffer.lines.length;
     _lastTerminalWidth = _terminal.viewWidth;
     _lastTerminalHeight = _terminal.viewHeight;
-    _lastCursorY = _terminal.buffer.absoluteCursorY;
-    _lastForceScrollToBottomGeneration =
-        _terminal.buffer.forceScrollToBottomGeneration;
+    _lastCursorY = buffer.absoluteCursorY;
+    _lastForceScrollToBottomGeneration = buffer.forceScrollToBottomGeneration;
+    _lastScreenClearGeneration = buffer.screenClearGeneration;
+    _lastEvictedLineCount = buffer.lines.evictedCount;
   }
 
   void _onControllerUpdate() {
@@ -283,6 +349,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void detach() {
     _stopCursorBlinking();
     _stopTextBlinking();
+    _cancelClearFollow();
     _offset.removeListener(_onScroll);
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
@@ -380,6 +447,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
     if (_stickToBottom) {
       _offset.correctBy(_stickyScrollOffset - _scrollOffset);
+      return;
+    }
+    // Clamping alone keeps the pixel count, not the text: after a clear and
+    // reprint the buffer shrank and regrew, and the reader would land at the
+    // top instead of on the lines they were reading.
+    final target = _anchorPixels.clamp(0.0, _maxScrollExtent);
+    if (target != _scrollOffset) {
+      _offset.correctBy(target - _scrollOffset);
     }
   }
 

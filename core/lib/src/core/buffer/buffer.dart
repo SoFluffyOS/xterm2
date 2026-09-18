@@ -109,6 +109,27 @@ class Buffer {
   int get forceScrollToBottomGeneration => _forceScrollToBottomGeneration;
   var _forceScrollToBottomGeneration = 0;
 
+  /// Increments when the application erased the screen or the scrollback.
+  ///
+  /// Unlike [forceScrollToBottomGeneration] this does not decide where the
+  /// viewport goes. Inline agent TUIs clear and immediately reprint their
+  /// whole transcript on every resize, so a renderer that jumped to the
+  /// bottom here would tear the reader away from the same text it is about
+  /// to draw again; it consults [linesPushedSinceScreenClear] instead.
+  int get screenClearGeneration => _screenClearGeneration;
+  var _screenClearGeneration = 0;
+  var _pushCountAtScreenClear = 0;
+
+  /// Lines that scrolled into this buffer after the last screen clear, which
+  /// is how a clear-and-reprint tells itself apart from a clear that stays.
+  int get linesPushedSinceScreenClear =>
+      lines.pushCount - _pushCountAtScreenClear;
+
+  void _markScreenClear() {
+    _screenClearGeneration++;
+    _pushCountAtScreenClear = lines.pushCount;
+  }
+
   /// Vertical position of the cursor relative to the top of the buffer,
   /// starting from 0.
   int get absoluteCursorY => _cursorY + scrollBack;
@@ -598,7 +619,7 @@ class Buffer {
         respectProtected: respectProtected,
       );
     }
-    _forceScrollToBottomGeneration++;
+    _markScreenClear();
   }
 
   /// Erases the line from the cursor to the end of the line, including the
@@ -1338,7 +1359,7 @@ class Buffer {
     }
 
     lines.trimStart(scrollBack);
-    _forceScrollToBottomGeneration++;
+    _markScreenClear();
   }
 
   /// Moves the current viewport into scrollback and replaces it with blanks.
@@ -1348,7 +1369,7 @@ class Buffer {
       lines.push(_newEmptyLine());
       _compactScrolledOutLine();
     }
-    _forceScrollToBottomGeneration++;
+    _markScreenClear();
   }
 
   int _visibleContentLineCount() {

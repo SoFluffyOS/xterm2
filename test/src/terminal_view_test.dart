@@ -2005,7 +2005,9 @@ void main() {
       expect(terminalOutput.join(), isEmpty);
     });
 
-    testWidgets('does nothing when read only', (tester) async {
+    testWidgets('read-only view still scrolls an alternate-screen app', (
+      tester,
+    ) async {
       final terminalOutput = <String>[];
       final terminal = Terminal(onOutput: terminalOutput.add);
       terminal.useAltBuffer();
@@ -2021,29 +2023,117 @@ void main() {
 
       await tester.drag(find.byType(TerminalView), const Offset(0, -100));
 
-      expect(terminalOutput.join(), isEmpty);
+      expect(terminalOutput.join(), contains('\x1B[B'));
     });
 
-    testWidgets(
-        'read-only hidden-cursor TUI still gets application scroll when opted in',
-        (tester) async {
+    testWidgets('read-only view reports wheel events to a mouse-mode app', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true, readOnly: true),
+      ));
+
+      await tester.drag(find.byType(TerminalView), const Offset(0, -100));
+
+      expect(terminalOutput.join(), contains('\x1B[<65;'));
+      expect(terminalOutput.join(), isNot(contains('\x1B[B')));
+    });
+
+    testWidgets('a hidden cursor alone keeps scrolling in the cell buffer', (
+      tester,
+    ) async {
       final terminalOutput = <String>[];
       final terminal = Terminal(onOutput: terminalOutput.add);
       terminal.write('\x1b[?25l');
+      for (var line = 0; line < 200; line++) {
+        terminal.write('history-$line\r\n');
+      }
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
 
       await tester.pumpWidget(MaterialApp(
         home: TerminalView(
           terminal,
           autofocus: true,
           readOnly: true,
-          simulateScroll: true,
-          applicationScrollWhenCursorHidden: true,
+          scrollController: scrollController,
         ),
       ));
+      final offsetBefore = scrollController.offset;
 
-      await tester.drag(find.byType(TerminalView), const Offset(0, -100));
+      await tester.drag(find.byType(TerminalView), const Offset(0, 100));
+      await tester.pumpAndSettle();
 
-      expect(terminalOutput.join(), contains('\x1B[B'));
+      expect(scrollController.offset, lessThan(offsetBefore));
+      expect(terminalOutput.join(), isEmpty);
+    });
+
+    testWidgets('touch travel is grouped into fewer wheel reports', (
+      tester,
+    ) async {
+      Future<int> reportsFor(int linesPerEvent) async {
+        final terminalOutput = <String>[];
+        final terminal = Terminal(onOutput: terminalOutput.add);
+        terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+        await tester.pumpWidget(MaterialApp(
+          home: TerminalView(
+            terminal,
+            autofocus: true,
+            touchScrollLinesPerWheelEvent: linesPerEvent,
+          ),
+        ));
+        final lineHeight = tester
+            .state<TerminalViewState>(find.byType(TerminalView))
+            .renderTerminal
+            .lineHeight;
+
+        // The drag recognizer eats the touch slop before the view scrolls.
+        await tester.drag(
+          find.byType(TerminalView),
+          Offset(0, -(lineHeight * 10 + kTouchSlop)),
+          kind: PointerDeviceKind.touch,
+        );
+        return RegExp(r'\x1B\[<65;').allMatches(terminalOutput.join()).length;
+      }
+
+      final single = await reportsFor(1);
+      final grouped = await reportsFor(3);
+
+      expect(single, greaterThanOrEqualTo(9));
+      expect(grouped, 3);
+    });
+
+    testWidgets('mouse wheel keeps one report per line', (tester) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(
+          terminal,
+          autofocus: true,
+          touchScrollLinesPerWheelEvent: 3,
+        ),
+      ));
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final position = state.renderTerminal.localToGlobal(const Offset(2, 2));
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: position,
+          scrollDelta: Offset(0, state.renderTerminal.lineHeight * 3),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        RegExp(r'\x1B\[<65;').allMatches(terminalOutput.join()).length,
+        3,
+      );
     });
 
     testWidgets('respects disabled scroll pointer input', (tester) async {
