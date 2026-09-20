@@ -156,6 +156,78 @@ void main() {
     expect(controller.selection, isNotNull);
   });
 
+  testWidgets('drag override keeps local selection during mouse tracking', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)
+      ..write('selectable text')
+      ..write('\x1b[?1003h\x1b[?1006h');
+    final controller = TerminalController(pointerInputs: PointerInputs.all());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 240,
+            child: TerminalView(
+              terminal,
+              controller: controller,
+              dragOverridesMouseReporting: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(find.byType(TerminalView));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.down(center);
+    await tester.pump(kPressTimeout);
+    await mouse.moveBy(const Offset(40, 0));
+    await tester.pump();
+    await mouse.up();
+    await tester.pump();
+
+    expect(output, isEmpty);
+    expect(controller.selection, isNotNull);
+  });
+
+  testWidgets('drag override still reports clicks to a tracking application', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)
+      ..write('\x1b[?1003h\x1b[?1006h');
+    final controller = TerminalController(pointerInputs: PointerInputs.all());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 240,
+            child: TerminalView(
+              terminal,
+              controller: controller,
+              dragOverridesMouseReporting: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(TerminalView));
+    await tester.pump(kDoubleTapTimeout);
+
+    expect(output, hasLength(2));
+    expect(output[0], startsWith('\x1b[<0;'));
+    expect(output[0], endsWith('M'));
+    expect(output[1], endsWith('m'));
+    expect(controller.selection, isNull);
+  });
+
   testWidgets('ctrl-c copies a local selection and interrupts without one', (
     tester,
   ) async {
