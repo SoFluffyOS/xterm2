@@ -30,11 +30,17 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
 
     final specialCode = _specialKeyCode(event.key);
     if (specialCode != null) {
+      if (!_shouldReportPrivateUseKey(event, mode)) {
+        return null;
+      }
       return _sequence(specialCode, event);
     }
 
     final numpadCode = _numpadKeyCode(event.key);
     if (numpadCode != null) {
+      if (!_shouldReportPrivateUseKey(event, mode)) {
+        return null;
+      }
       return _sequence(numpadCode, event);
     }
 
@@ -70,6 +76,25 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     }
 
     return _sequence(payload, event);
+  }
+
+  /// Functional Kitty codes live in the Unicode PUA (`CSI 57358 u` and up).
+  /// Flag 1 (what Cursor CLI enables) must not emit them: Ink inserts the
+  /// codepoint as prompt text. Flag 8 is the mode that asked for those keys.
+  /// Releases without flag 2 must not look like extra presses.
+  bool _shouldReportPrivateUseKey(TerminalKeyboardEvent event, int mode) {
+    if (mode & _reportAllKeysAsEscapeCodes == 0) {
+      return false;
+    }
+    return _shouldReportEventType(event, mode);
+  }
+
+  bool _shouldReportEventType(TerminalKeyboardEvent event, int mode) {
+    if (event.type == TerminalKeyEventType.release &&
+        mode & _reportEventTypes == 0) {
+      return false;
+    }
+    return true;
   }
 
   bool _shouldEncodeControlKey(TerminalKeyboardEvent event, int mode) {
@@ -224,10 +249,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     return unshiftedCharacter.runes.first;
   }
 
-  int? _alternateCharacterCode(
-    TerminalKeyboardEvent event,
-    int characterCode,
-  ) {
+  int? _alternateCharacterCode(TerminalKeyboardEvent event, int characterCode) {
     final text = event.text;
     if (text == null) {
       final isLetter = event.key.index >= TerminalKey.keyA.index &&

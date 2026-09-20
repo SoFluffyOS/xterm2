@@ -1,24 +1,17 @@
-const _kittyModifierKeyCodes = {
-  57441, // Shift Left
-  57442, // Control Left
-  57443, // Alt Left
-  57444, // Meta Left
-  57447, // Shift Right
-  57448, // Control Right
-  57449, // Alt Right
-  57450, // Meta Right
-};
+const _bmpPrivateUseAreaStart = 0xE000;
+const _bmpPrivateUseAreaEnd = 0xF8FF;
 
-/// Returns true when [text] is Flutter's Windows modifier-key sentinel.
+/// Returns true when [text] is a single BMP private-use character.
 ///
-/// The values are Kitty keyboard protocol private-use key codes. They can
-/// surface as `KeyEvent.character` for raw modifier keys on Windows and should
-/// not be inserted as terminal text.
+/// Kitty functional key codes live in this range and can surface as
+/// `KeyEvent.character` for modifier, lock, media, and similar keys. They
+/// must not be inserted as terminal text.
 bool isKittyModifierKeyCharacter(String text) {
   final runes = text.runes;
   if (runes.length != 1) {
     return false;
   }
 
-  return _kittyModifierKeyCodes.contains(runes.first);
+  final code = runes.first;
+  return code >= _bmpPrivateUseAreaStart && code <= _bmpPrivateUseAreaEnd;
 }

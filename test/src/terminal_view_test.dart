@@ -1827,6 +1827,31 @@ void main() {
       expect(terminalOutput, ['\x1b[A', '\x1b[1;1:3A']);
     });
 
+    testWidgets('does not insert Shift as text under Kitty disambiguate mode', (
+      tester,
+    ) async {
+      final terminalOutput = <String>[];
+      final terminal = Terminal(onOutput: terminalOutput.add);
+      terminal.write('\x1b[>1u');
+
+      await tester.pumpWidget(MaterialApp(
+        home: TerminalView(terminal, autofocus: true),
+      ));
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.keyH,
+        character: 'H',
+        physicalKey: PhysicalKeyboardKey.keyH,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+
+      expect(terminalOutput, ['H']);
+    });
+
     testWidgets('encodes unmapped text with Kitty associated text', (
       tester,
     ) async {

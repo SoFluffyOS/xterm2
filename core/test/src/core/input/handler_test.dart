@@ -243,12 +243,14 @@ void main() {
       ]);
     });
 
-    test('leaves modified extended function keys to Kitty mode', () {
+    test('leaves modified extended function keys to Kitty report-all mode', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
 
       expect(terminal.keyInput(TerminalKey.f13, shift: true), isFalse);
       terminal.write('\x1b[=1u');
+      expect(terminal.keyInput(TerminalKey.f13, shift: true), isFalse);
+      terminal.write('\x1b[=8u');
       terminal.keyInput(TerminalKey.f13, shift: true);
 
       expect(output, ['\x1b[57376;2u']);
@@ -339,6 +341,77 @@ void main() {
       );
 
       expect(output, ['\x1b[97;6u', '\x1b[109;8u']);
+    });
+
+    test('does not report Kitty private-use keys without report-all mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[>1u');
+      for (final key in [
+        TerminalKey.shiftLeft,
+        TerminalKey.controlLeft,
+        TerminalKey.altLeft,
+        TerminalKey.metaLeft,
+        TerminalKey.shiftRight,
+        TerminalKey.controlRight,
+        TerminalKey.altRight,
+        TerminalKey.metaRight,
+        TerminalKey.capsLock,
+        TerminalKey.numLock,
+        TerminalKey.scrollLock,
+        TerminalKey.printScreen,
+        TerminalKey.pause,
+        TerminalKey.contextMenu,
+        TerminalKey.f13,
+        TerminalKey.f24,
+        TerminalKey.mediaPlay,
+        TerminalKey.audioVolumeMute,
+        TerminalKey.numpad0,
+        TerminalKey.numpadComma,
+      ]) {
+        terminal.keyInput(key);
+      }
+      terminal.keyInput(TerminalKey.enter, shift: true);
+      terminal.write('\x1b[<u');
+
+      terminal.write('\x1b[=2u');
+      terminal.keyInput(TerminalKey.controlLeft, ctrl: true);
+
+      expect(
+        output.where(_isPrivateUseKittySequence),
+        isEmpty,
+      );
+      expect(output, contains('\x1b[13;2u'));
+    });
+
+    test('reports modifier keys only in Kitty report-all mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=8u');
+      terminal.keyInput(TerminalKey.shiftLeft, shift: true);
+      terminal.keyInput(
+        TerminalKey.shiftLeft,
+        type: TerminalKeyEventType.release,
+      );
+
+      expect(output, ['\x1b[57441;2u']);
+    });
+
+    test('reports modifier key releases when Kitty event types are enabled',
+        () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[=11u');
+      terminal.keyInput(TerminalKey.shiftLeft, shift: true);
+      terminal.keyInput(
+        TerminalKey.shiftLeft,
+        type: TerminalKeyEventType.release,
+      );
+
+      expect(output, ['\x1b[57441;2u', '\x1b[57441;1:3u']);
     });
 
     test('disambiguates modified textual keys in Kitty mode', () {
@@ -444,7 +517,7 @@ void main() {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
 
-      terminal.write('\x1b[=1u');
+      terminal.write('\x1b[=8u');
       terminal.keyInput(TerminalKey.f13);
       terminal.keyInput(TerminalKey.numpad0, alt: true);
       terminal.keyInput(TerminalKey.numpadComma);
@@ -458,6 +531,7 @@ void main() {
 
       terminal.write('\x1b[=1u');
       terminal.keyInput(TerminalKey.keyA, superKey: true, text: 'a');
+      terminal.write('\x1b[=8u');
       terminal.keyInput(
         TerminalKey.f13,
         capsLock: true,
@@ -632,4 +706,12 @@ void main() {
       expect(output, isEmpty);
     });
   });
+}
+
+bool _isPrivateUseKittySequence(String sequence) {
+  final match = RegExp(r'^\x1b\[(\d+)').firstMatch(sequence);
+  if (match == null) {
+    return false;
+  }
+  return int.parse(match.group(1)!) >= 0xE000;
 }
