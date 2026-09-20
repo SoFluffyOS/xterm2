@@ -28,9 +28,19 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
       return null;
     }
 
+    // A release only has an encoding of its own under flag 2. Without it the
+    // release would repeat the press sequence, and an agent that enabled
+    // flag 1 alone (Cursor, Gemini, Copilot, OpenCode) sees Shift+Enter,
+    // Escape or Ctrl+V twice: a doubled newline, and a paste the agent runs
+    // itself on top of the bracketed paste the terminal already sent.
+    if (event.type == TerminalKeyEventType.release &&
+        mode & _reportEventTypes == 0) {
+      return null;
+    }
+
     final specialCode = _specialKeyCode(event.key);
     if (specialCode != null) {
-      if (!_shouldReportPrivateUseKey(event, mode)) {
+      if (!_shouldReportPrivateUseKey(mode)) {
         return null;
       }
       return _sequence(specialCode, event);
@@ -38,7 +48,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
 
     final numpadCode = _numpadKeyCode(event.key);
     if (numpadCode != null) {
-      if (!_shouldReportPrivateUseKey(event, mode)) {
+      if (!_shouldReportPrivateUseKey(mode)) {
         return null;
       }
       return _sequence(numpadCode, event);
@@ -81,20 +91,8 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
   /// Functional Kitty codes live in the Unicode PUA (`CSI 57358 u` and up).
   /// Flag 1 (what Cursor CLI enables) must not emit them: Ink inserts the
   /// codepoint as prompt text. Flag 8 is the mode that asked for those keys.
-  /// Releases without flag 2 must not look like extra presses.
-  bool _shouldReportPrivateUseKey(TerminalKeyboardEvent event, int mode) {
-    if (mode & _reportAllKeysAsEscapeCodes == 0) {
-      return false;
-    }
-    return _shouldReportEventType(event, mode);
-  }
-
-  bool _shouldReportEventType(TerminalKeyboardEvent event, int mode) {
-    if (event.type == TerminalKeyEventType.release &&
-        mode & _reportEventTypes == 0) {
-      return false;
-    }
-    return true;
+  bool _shouldReportPrivateUseKey(int mode) {
+    return mode & _reportAllKeysAsEscapeCodes != 0;
   }
 
   bool _shouldEncodeControlKey(TerminalKeyboardEvent event, int mode) {
@@ -104,11 +102,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (event.key == TerminalKey.escape) {
       return mode & (_disambiguateEscapeCodes | _reportEventTypes) != 0;
     }
-    if (event.type == TerminalKeyEventType.release &&
-        mode & _reportEventTypes != 0) {
-      if (mode & _reportAllKeysAsEscapeCodes != 0) {
-        return true;
-      }
+    if (event.type == TerminalKeyEventType.release) {
       return event.ctrl || event.alt || event.shift || event.superKey;
     }
     if (mode & _disambiguateEscapeCodes == 0) {
@@ -121,8 +115,7 @@ class KittyKeyboardInputHandler implements TerminalInputHandler {
     if (mode & _reportAllKeysAsEscapeCodes != 0) {
       return true;
     }
-    if (event.type == TerminalKeyEventType.release &&
-        mode & _reportEventTypes != 0) {
+    if (event.type == TerminalKeyEventType.release) {
       return true;
     }
     if (mode & _disambiguateEscapeCodes == 0) {

@@ -563,6 +563,35 @@ void main() {
       expect(output, ['\x1b[97;5:2u', '\x1b[97;1:3u', '\x1b[1;1:3A']);
     });
 
+    test('does not repeat Kitty press sequences on release without flag 2', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[>1u');
+      terminal.keyInput(TerminalKey.enter, shift: true);
+      terminal.keyInput(
+        TerminalKey.enter,
+        shift: true,
+        type: TerminalKeyEventType.release,
+      );
+      terminal.keyInput(TerminalKey.keyV, ctrl: true);
+      terminal.keyInput(
+        TerminalKey.keyV,
+        ctrl: true,
+        type: TerminalKeyEventType.release,
+      );
+      terminal.keyInput(TerminalKey.escape);
+      terminal.keyInput(TerminalKey.escape, type: TerminalKeyEventType.release);
+      terminal.keyInput(TerminalKey.arrowUp, ctrl: true);
+      terminal.keyInput(
+        TerminalKey.arrowUp,
+        ctrl: true,
+        type: TerminalKeyEventType.release,
+      );
+
+      expect(output, ['\x1b[13;2u', '\x1b[118;5u', '\x1b[27u', '\x1b[1;5A']);
+    });
+
     test('does not emit key releases outside Kitty event reporting', () {
       final output = <String>[];
       final terminal = Terminal(onOutput: output.add);
