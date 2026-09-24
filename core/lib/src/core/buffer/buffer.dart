@@ -243,7 +243,7 @@ class Buffer {
 
       currentLine.setCell(_cursorX, 0, 1, terminal.cursor);
       _cursorX = rightLimit;
-      _wrapInput();
+      _wrapInput(forWideChar: true);
     }
 
     final line = currentLine;
@@ -315,7 +315,7 @@ class Buffer {
         final combining = sourceLine.getCombiningCharacters(index);
         sourceLine.eraseCell(index, terminal.cursor);
         _cursorX = rightLimit;
-        _wrapInput();
+        _wrapInput(forWideChar: true);
         final destinationIndex = _marginLeft;
         currentLine.setCellData(destinationIndex, cellData);
         currentLine.setWidth(destinationIndex, 2);
@@ -548,20 +548,28 @@ class Buffer {
     };
   }
 
-  void _wrapInput() {
+  /// Moves the cursor to the start of the next row and records the new row as
+  /// a continuation of the current one.
+  ///
+  /// [forWideChar] is set when the wrap happens because a wide character did
+  /// not fit, in which case the blank cell left at the margin is the
+  /// terminal's own and says nothing about whether the wrap was real.
+  void _wrapInput({bool forWideChar = false}) {
     final wrappedFrom = currentLine;
+    final lastColumn = _rightLimit - 1;
     index();
     setCursorX(_marginLeft);
-    currentLine.isWrapped =
-        !(terminal.windowsPtyMode && _endsWithBlankCell(wrappedFrom));
+    currentLine.isWrapped = forWideChar ||
+        !(terminal.windowsPtyMode &&
+            _endsWithBlankCell(wrappedFrom, lastColumn));
   }
 
-  /// Whether [line] ends in a blank cell at the right margin, which means a
-  /// wrap out of it came from padding rather than from real content.
-  bool _endsWithBlankCell(BufferLine line) {
-    final last = viewWidth - 1;
-    if (last < 0 || line.length <= last) return true;
-    final codePoint = line.getCodePoint(last);
+  /// Whether [line] has a blank cell at [lastColumn], the column a wrap left
+  /// from, which means the wrap came from padding rather than from real
+  /// content.
+  bool _endsWithBlankCell(BufferLine line, int lastColumn) {
+    if (lastColumn < 0 || line.length <= lastColumn) return true;
+    final codePoint = line.getCodePoint(lastColumn);
     return codePoint == 0 || codePoint == 0x20;
   }
 

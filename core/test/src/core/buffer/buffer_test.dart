@@ -266,6 +266,35 @@ void main() {
       expect(terminal.buffer.getText(range, true), '1ABCD2EF');
     });
 
+    test('windowsPtyMode keeps a wide character wrap joined', () {
+      // A wide character that does not fit leaves the last cell blank.
+      final terminal = Terminal(windowsPtyMode: true)..resize(5, 3);
+      terminal.write('1ABC中');
+
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    });
+
+    test('windowsPtyMode keeps a grapheme widened at the margin joined', () {
+      // The variation selector widens the heart after it was written in the
+      // last column, which moves it to the next row.
+      final terminal = Terminal(windowsPtyMode: true)..resize(5, 3);
+      terminal.write('1ABC❤️');
+
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    });
+
+    test('windowsPtyMode checks the right margin, not the view width', () {
+      final terminal = Terminal(windowsPtyMode: true)..resize(10, 4);
+      terminal.write('\x1b[?69h\x1b[1;5s');
+      terminal.write('1ABCD2EF');
+
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+
+      terminal.write('\x1b[3;1H1AB  2EF');
+
+      expect(terminal.buffer.lines[3].isWrapped, isFalse);
+    });
+
     test('padded rows stay wrapped without windowsPtyMode', () {
       final terminal = Terminal()..resize(5, 4);
       terminal.write('1AB  2EF');
