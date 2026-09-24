@@ -549,9 +549,20 @@ class Buffer {
   }
 
   void _wrapInput() {
+    final wrappedFrom = currentLine;
     index();
     setCursorX(_marginLeft);
-    currentLine.isWrapped = true;
+    currentLine.isWrapped =
+        !(terminal.windowsPtyMode && _endsWithBlankCell(wrappedFrom));
+  }
+
+  /// Whether [line] ends in a blank cell at the right margin, which means a
+  /// wrap out of it came from padding rather than from real content.
+  bool _endsWithBlankCell(BufferLine line) {
+    final last = viewWidth - 1;
+    if (last < 0 || line.length <= last) return true;
+    final codePoint = line.getCodePoint(last);
+    return codePoint == 0 || codePoint == 0x20;
   }
 
   /// The line at the current cursor position.

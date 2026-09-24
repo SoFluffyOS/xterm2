@@ -412,6 +412,7 @@ class Terminal
     this.reflowEnabled = true,
     this.reflowWithHiddenCursor = true,
     this.preserveOrphanCombiningMarks = false,
+    this.windowsPtyMode = false,
     this.wordSeparators,
   });
 
@@ -804,6 +805,15 @@ class Terminal
   /// Keep legacy spacing cells for combining marks without a preceding glyph.
   @override
   final bool preserveOrphanCombiningMarks;
+
+  /// Treat a wrap that happens after blank padding as a hard line break.
+  ///
+  /// The Windows pseudo console moves to the next row by padding the current
+  /// one with spaces up to the right margin and then writing the next row,
+  /// instead of sending a line break. Without this, every such row is recorded
+  /// as a soft wrap, so selections join unrelated rows and keep their padding.
+  @override
+  final bool windowsPtyMode;
 
   /// Writes the data from the underlying program to the terminal. Calling this
   /// updates the states of the terminal and emits events such as [onBell] or

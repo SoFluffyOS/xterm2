@@ -14,6 +14,8 @@ abstract class TerminalState {
 
   bool get preserveOrphanCombiningMarks;
 
+  bool get windowsPtyMode;
+
   /* Modes */
 
   bool get insertMode;

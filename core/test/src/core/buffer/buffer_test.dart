@@ -234,6 +234,44 @@ void main() {
 
       expect(terminal.buffer.getText(range, true), '1AB  2EF');
     });
+
+    test('windowsPtyMode splits rows the pty padded up to the margin', () {
+      // ConPTY moves to the next row by filling the current one with spaces
+      // and then writing the next row, with no line break of its own.
+      final terminal = Terminal(windowsPtyMode: true)..resize(5, 4);
+      terminal.write('1AB  2EF  3IJ');
+
+      expect(terminal.buffer.lines[1].isWrapped, isFalse);
+      expect(terminal.buffer.lines[2].isWrapped, isFalse);
+
+      final range = BufferRangeLine(
+        const CellOffset(0, 0),
+        const CellOffset(3, 2),
+      );
+
+      expect(terminal.buffer.getText(range, true), '1AB\n2EF\n3IJ');
+    });
+
+    test('windowsPtyMode keeps real soft wraps joined', () {
+      final terminal = Terminal(windowsPtyMode: true)..resize(5, 3);
+      terminal.write('1ABCD2EF');
+
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+
+      final range = BufferRangeLine(
+        const CellOffset(0, 0),
+        const CellOffset(3, 1),
+      );
+
+      expect(terminal.buffer.getText(range, true), '1ABCD2EF');
+    });
+
+    test('padded rows stay wrapped without windowsPtyMode', () {
+      final terminal = Terminal()..resize(5, 4);
+      terminal.write('1AB  2EF');
+
+      expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    });
   });
 
   group('Buffer.resize()', () {
