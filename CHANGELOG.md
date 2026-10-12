@@ -1,3 +1,12 @@
+## [5.4.0] - Unreleased
+
+* Move the terminal model (state machine, buffers, escape-sequence parsing and
+  input encoding) into the new pure-Dart `xterm2_core` package, so it can run
+  without Flutter, for example in a server that tracks terminal screens. The
+  `xterm2` API is unchanged: `package:xterm2/core.dart` and
+  `package:xterm2/xterm.dart` export the same types.
+* Require Dart 3.6 or newer (Flutter 3.27 or newer).
+
 ## [5.3.0] - 2026-07-28
 
 * Render bounded search matches with a distinct active result.

@@ -15,7 +15,11 @@ under a new pub package name.
 
 **xterm2** is a fast and fully-featured terminal emulator for Flutter applications, with support for mobile and desktop platforms.
 
-> This package requires Flutter version >=3.19.0
+> This package requires Flutter version >=3.27.0.
+>
+> The terminal model also ships on its own as the pure-Dart
+> [`xterm2_core`](https://pub.dev/packages/xterm2_core) package, for use
+> without Flutter.
 
 ## Screenshots
 
