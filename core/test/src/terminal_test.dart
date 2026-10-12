@@ -1,0 +1,4982 @@
+import 'dart:convert';
+
+import 'package:test/test.dart';
+import 'package:xterm2_core/xterm2_core.dart';
+
+void main() {
+  test('Terminal batches printable ASCII parser runs', () {
+    final terminal = _TrackingTerminal();
+
+    terminal.write('plain\x1b[31mred😀tail');
+
+    expect(terminal.bulkWrites, 3);
+    expect(terminal.buffer.lines[0].getText(), 'plainred😀tail');
+    expect(
+      terminal.buffer.lines[0].getForeground(5),
+      CellColor.named | NamedColor.red,
+    );
+  });
+
+  test('Terminal batches ASCII across wraps and preserves styled metadata', () {
+    final terminal = Terminal()..resize(4, 3);
+
+    terminal.write('\x1b[4;58;2;1;2;3mabcdef');
+
+    expect(terminal.buffer.lines[0].getText(), 'abcd');
+    expect(terminal.buffer.lines[1].getText(), 'ef');
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.cursorX, 2);
+    expect(terminal.buffer.cursorY, 1);
+    expect(terminal.buffer.lines[0].getUnderlineColor(3), isNot(0));
+    expect(terminal.buffer.lines[1].getUnderlineColor(0), isNot(0));
+  });
+
+  test('Terminal keeps DEC charset translation on ASCII parser runs', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b(0lqk\x1b(Babc');
+
+    expect(terminal.buffer.lines[0].getText(), '┌─┐abc');
+  });
+
+  test('Terminal renders the British national replacement charset', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b(A#\x1b(B#');
+
+    expect(terminal.buffer.lines[0].getText(), '£#');
+  });
+
+  test('Terminal preserves no-wrap and insert modes for ASCII runs', () {
+    final noWrapTerminal = Terminal()..resize(4, 1);
+    noWrapTerminal.write('\x1b[?7lABCDE');
+    expect(noWrapTerminal.buffer.lines[0].getText(), 'ABCE');
+
+    final insertTerminal = Terminal()..resize(4, 1);
+    insertTerminal.write('abcd\r\x1b[4hXY');
+    expect(insertTerminal.buffer.lines[0].getText(), 'XYab');
+  });
+
+  test('Terminal sets a horizontal tab stop at the cursor', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[3gabc\x1bH\r\t');
+
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal applies cursor tabulation control', () {
+    final clearAllTerminal = Terminal()..resize(20, 5);
+    clearAllTerminal.write('\x1b[3g\x1b[5W\t');
+    expect(clearAllTerminal.buffer.cursorX, 19);
+
+    final resetTerminal = Terminal()..resize(20, 5);
+    resetTerminal.write('\x1b[3g\x1b[?5W\t');
+    expect(resetTerminal.buffer.cursorX, 8);
+
+    final setTerminal = Terminal()..resize(20, 5);
+    setTerminal.write('\x1b[5W\x1b[12G\x1b[W\r\t');
+    expect(setTerminal.buffer.cursorX, 11);
+
+    final clearCurrentTerminal = Terminal()..resize(20, 5);
+    clearCurrentTerminal.write('\x1b[5W\x1b[12G\x1b[W\x1b[2W\r\t');
+    expect(clearCurrentTerminal.buffer.cursorX, 19);
+  });
+
+  test('Terminal moves across multiple horizontal tab stops', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b[2I');
+    expect(terminal.buffer.cursorX, 16);
+
+    terminal.write('\x1b[Z');
+    expect(terminal.buffer.cursorX, 8);
+
+    terminal.write('\x1b[9Z');
+    expect(terminal.buffer.cursorX, 0);
+
+    terminal.write('\x1b[9I');
+    expect(terminal.buffer.cursorX, 19);
+  });
+
+  test('Terminal preserves horizontal tabs for copied output', () {
+    final terminal = Terminal()..resize(20, 2);
+
+    terminal.write('\tabc');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x09);
+    expect(line.getText(0, 11), '\tabc');
+    expect(
+      terminal.buffer.getText(
+        BufferRangeLine(const CellOffset(0, 0), const CellOffset(11, 0)),
+      ),
+      '\tabc',
+    );
+  });
+
+  test('Terminal horizontal tab does not overwrite existing cells', () {
+    final terminal = Terminal()..resize(20, 2);
+
+    terminal.write('x\r\tabc');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'x'.codeUnitAt(0));
+    expect(line.getText(0, 11), 'xabc');
+  });
+
+  test('Terminal applies a full reset', () {
+    final terminal = Terminal()..resize(20, 5);
+    terminal.write(
+      '\x1b[?1h\x1b[?7l\x1b[?25l\x1b[4h\x1b[5m'
+      '\x1b[3gabc\x1bH\x1b[?1049hcontent\x1bc',
+    );
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(
+      terminal.buffer.lines.toList().every((line) => line.getText().isEmpty),
+      isTrue,
+    );
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.cursorKeysMode, isFalse);
+    expect(terminal.autoWrapMode, isTrue);
+    expect(terminal.cursorVisibleMode, isTrue);
+    expect(terminal.insertMode, isFalse);
+    expect(terminal.cursor.attrs, 0);
+
+    terminal.write('\t');
+    expect(terminal.buffer.cursorX, 8);
+  });
+
+  test('Terminal applies a DEC soft reset', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write(
+      '\x1b[?1h\x1b[?7l\x1b[4h\x1b[5m\x1b[2;4rcontent\x1b[!p',
+    );
+
+    expect(terminal.buffer.lines[0].toString(), 'content');
+    expect(terminal.cursorKeysMode, isFalse);
+    expect(terminal.autoWrapMode, isTrue);
+    expect(terminal.insertMode, isFalse);
+    expect(terminal.cursor.attrs, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
+  });
+
+  test('Terminal applies the DEC screen alignment test', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('scrollback\ncontent');
+    final scrollbackText = terminal.buffer.lines[0].toString();
+    terminal.write('\x1b#');
+    terminal.write('8');
+
+    expect(terminal.buffer.lines[0].toString(), scrollbackText);
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.toString()),
+      everyElement('EEEE'),
+    );
+    expect(
+      terminal.buffer.lines[terminal.buffer.lines.length - 1].getAttributes(0),
+      0,
+    );
+  });
+
+  test('Terminal DEC screen alignment homes cursor and resets margins', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('\x1b[2;3r\x1b[?69h\x1b[2;3s\x1b[?6h\x1b[2;2H');
+    terminal.write('\x1b#8');
+
+    expect(terminal.originMode, isFalse);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, 2);
+    expect(terminal.buffer.marginLeft, 0);
+    expect(terminal.buffer.marginRight, 3);
+  });
+
+  test('Terminal DEC screen alignment keeps only active colors', () {
+    final terminal = Terminal()..resize(4, 2);
+
+    terminal.write('\u2764\ufe0f\x1b[31;41;1;4;9m\x1b[1"q\x1b#8');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getText(0, 4), 'EEEE');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+    expect(line.getBackground(0), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(0), 0);
+    expect(line.getCombiningCharacters(0), isNull);
+  });
+
+  test('Terminal full-screen scroll up preserves main-buffer history', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('1111\r\n2222\r\n3333\x1b[S');
+
+    expect(terminal.buffer.scrollBack, 1);
+    expect(terminal.buffer.lines[0].getText(0, 4), '1111');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 4)),
+      ['2222', '3333', ''],
+    );
+  });
+
+  test('Terminal hyperlink lookup remains safe after overflow reflow', () {
+    final terminal = Terminal(maxLines: 5)..resize(4, 2);
+    terminal.write(
+      '\x1b]8;;https://example.com\x1b\\'
+      'abcdefghijklmnopqrstuvwxyz'
+      '\x1b]8;;\x1b\\',
+    );
+
+    terminal.resize(8, 2);
+
+    final hyperlinks = <String?>[];
+    for (var row = 0; row < terminal.buffer.lines.length; row++) {
+      for (var column = 0; column < terminal.viewWidth; column++) {
+        hyperlinks.add(terminal.hyperlinkAt(CellOffset(column, row)));
+      }
+    }
+    expect(hyperlinks, contains('https://example.com'));
+  });
+
+  test('Terminal edits the last cell after a pending wrap', () {
+    for (final sequence in ['\x1b[@', '\x1b[P', '\x1b[X', '\x1b[K']) {
+      final terminal = Terminal()..resize(4, 2);
+
+      terminal.write('abcd$sequence');
+
+      expect(terminal.buffer.lines[0].getText(0, 4), 'abc');
+      terminal.write('Z');
+      expect(terminal.buffer.lines[0].getText(0, 4), 'abcZ');
+      expect(terminal.buffer.cursorY, 0);
+    }
+  });
+
+  test('Terminal scroll-complete erase moves viewport into scrollback', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+
+    terminal.write('abcd\r\nefgh\x1b[22J');
+
+    expect(terminal.buffer.scrollBack, 2);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].getText(0, 4), 'abcd');
+    expect(terminal.buffer.lines[1].getText(0, 4), 'efgh');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 4)),
+      everyElement(''),
+    );
+  });
+
+  test('Terminal scroll-complete erase scrolls only non-empty viewport rows',
+      () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 3);
+
+    terminal.write('abcd\x1b[22J');
+
+    expect(terminal.buffer.scrollBack, 1);
+    expect(terminal.buffer.lines[0].getText(0, 4), 'abcd');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal complete erase at semantic prompt preserves history', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write(
+      'old1\r\nold2\r\n'
+      '\x1b]133;A\x1b\\~/simon '
+      '\x1b[H\x1b[2J',
+    );
+
+    expect(terminal.buffer.scrollBack, 3);
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].getText(0, 12), 'old1');
+    expect(terminal.buffer.lines[1].getText(0, 12), 'old2');
+    expect(terminal.buffer.lines[2].getText(0, 12), '~/simon ');
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .map((line) => line.getText(0, 12)),
+      everyElement(''),
+    );
+  });
+
+  test('Terminal complete erase in output state does not preserve history', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\x1b[H\x1b[2J');
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+  });
+
+  test('Terminal clear preserves the active prompt line', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\r\nold3\r\n~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
+  test('Terminal clear moves a short active prompt to the bottom', () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
+  test('Terminal clear preserves the active prompt after scrollback overflow',
+      () {
+    final terminal = Terminal(maxLines: 10)..resize(12, 4);
+
+    terminal.write('old1\r\nold2\r\nold3\r\nold4\r\nold5\r\n~/simon ');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[0].getText(0, 12), '');
+    expect(terminal.buffer.lines[1].getText(0, 12), '');
+    expect(terminal.buffer.lines[2].getText(0, 12), '');
+    expect(terminal.buffer.lines[3].getText(0, 12), '~/simon ');
+  });
+
+  test('Terminal clear preserves wrapped active input', () {
+    final terminal = Terminal(maxLines: 10)..resize(6, 4);
+
+    terminal.write('old\r\nabcdefg');
+    terminal.clear();
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.cursorY, 3);
+    expect(terminal.buffer.lines[2].getText(0, 6), 'abcdef');
+    expect(terminal.buffer.lines[3].getText(0, 6), 'g');
+    expect(terminal.buffer.lines[3].isWrapped, isTrue);
+  });
+
+  test('Terminal restores origin mode with saved cursor', () {
+    final terminal = Terminal()..resize(8, 4);
+
+    terminal.write('\x1b[?69h\x1b[3;6s\x1b[2;4r\x1b[?6h');
+    terminal.saveCursor();
+    terminal.write('\x1b[?6l');
+    terminal.restoreCursor();
+    terminal.write('\x1b[1;1HX');
+
+    expect(terminal.originMode, true);
+    expect(terminal.buffer.lines[1].getCodePoint(2), 0x58);
+  });
+
+  test('Terminal clamps a saved cursor when the viewport shrinks', () {
+    final terminal = Terminal()..resize(10, 5);
+
+    terminal.write('\x1b[5;10H\x1b7');
+    terminal.resize(5, 2);
+    terminal.write('\x1b8X');
+
+    expect(terminal.buffer.cursorX, 4);
+    expect(terminal.buffer.cursorY, 1);
+    final lastVisibleLine = terminal.buffer.scrollBack + 1;
+    expect(terminal.buffer.lines[lastVisibleLine].getCodePoint(4), 0x58);
+  });
+
+  test('Terminal reflows a saved cursor with its logical line', () {
+    final terminal = Terminal()..resize(2, 3);
+
+    terminal.write('1A2B\x1b7');
+    terminal.resize(5, 3);
+    terminal.write('\x1b8X');
+
+    expect(terminal.buffer.lines[0].getText(), '1A2BX');
+    expect(terminal.buffer.cursorX, 4);
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal preserves pending wrap across resize reflow', () {
+    final terminal = Terminal()..resize(2, 3);
+
+    terminal.write('1A2B');
+    terminal.resize(5, 3);
+    terminal.write('X');
+
+    expect(terminal.buffer.lines[0].getText(), '1A2BX');
+    expect(terminal.buffer.cursorX, 4);
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal preserves pending wrap when reflow ends at the edge', () {
+    final terminal = Terminal()..resize(4, 3);
+
+    terminal.write('abcd');
+    terminal.resize(2, 3);
+    terminal.write('X');
+
+    expect(terminal.buffer.lines[0].getText(), 'ab');
+    expect(terminal.buffer.lines[1].getText(), 'cd');
+    expect(terminal.buffer.lines[2].getText(), 'X');
+    expect(terminal.buffer.cursorX, 1);
+    expect(terminal.buffer.cursorY, 1);
+  });
+
+  test('Terminal preserves saved pending wrap at a reflow edge', () {
+    final terminal = Terminal()..resize(4, 3);
+
+    terminal.write('abcd\x1b7');
+    terminal.resize(2, 3);
+    terminal.write('\x1b8X');
+
+    expect(terminal.buffer.lines[0].getText(), 'ab');
+    expect(terminal.buffer.lines[1].getText(), 'cd');
+    expect(terminal.buffer.lines[2].getText(), 'X');
+    expect(terminal.buffer.cursorX, 1);
+    expect(terminal.buffer.cursorY, 1);
+  });
+
+  test('Terminal preserves pending wrap across height-only resize', () {
+    final terminal = Terminal()..resize(4, 2);
+
+    terminal.write('abcd');
+    terminal.resize(4, 3);
+    terminal.write('X');
+
+    expect(terminal.buffer.lines[0].getText(), 'abcd');
+    expect(terminal.buffer.lines[1].getText(), 'X');
+    expect(terminal.buffer.cursorX, 1);
+    expect(terminal.buffer.cursorY, 1);
+  });
+
+  test('Terminal applies DECCOLM screen reset side effects', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('scrollback\n\x1b[31;44mcontent\x1b[2;2r\x1b[2;3H');
+    final scrollback = terminal.buffer.lines
+        .toList()
+        .take(terminal.buffer.scrollBack)
+        .map((line) => line.toString())
+        .toList();
+
+    terminal.write('\x1b[?40h\x1b[?3h');
+
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .take(terminal.buffer.scrollBack)
+          .map((line) => line.toString()),
+      scrollback,
+    );
+    expect(
+      terminal.buffer.lines
+          .toList()
+          .skip(terminal.buffer.scrollBack)
+          .every((line) => line.toString().isEmpty),
+      isTrue,
+    );
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.marginTop, 0);
+    expect(terminal.buffer.marginBottom, terminal.viewHeight - 1);
+    expect(
+      terminal.buffer.lines[terminal.buffer.lines.length - 1].getAttributes(0),
+      0,
+    );
+  });
+
+  test('Terminal ignores DECCOLM until mode 3 is enabled', () {
+    final terminal = Terminal(maxLines: 10)..resize(4, 2);
+    terminal.write('abc');
+
+    terminal.write('\x1b[?3h');
+
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 0);
+    expect(terminal.buffer.lines[0].toString(), 'abc');
+  });
+
+  test('Terminal dispose clears listeners and stops deferred updates',
+      () async {
+    var updates = 0;
+    final terminal = Terminal()..addListener(() => updates++);
+
+    terminal.write('\x1b[?2026h');
+    terminal.dispose();
+    terminal.write('ignored');
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    expect(updates, 0);
+    expect(terminal.buffer.currentLine.toString(), isEmpty);
+  });
+
+  test('Terminal applies partial and zero cursor positions', () {
+    final terminal = Terminal()..resize(20, 10);
+
+    terminal.write('\x1b[5H');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[0;0H');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[0d');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal constrains origin-mode cursor movement to margins', () {
+    final terminal = Terminal()..resize(10, 6);
+
+    terminal.write('\x1b[2;5r');
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[?6h');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[99B');
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[99A');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[2d');
+    expect(terminal.buffer.cursorY, 2);
+
+    terminal.write('\x1b[?6l');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal relative cursor movement respects scrolling margins', () {
+    final terminal = Terminal()..resize(10, 6);
+
+    terminal.write('\x1b[2;5r\x1b[3;1H\x1b[99A');
+    expect(terminal.buffer.cursorY, 1);
+
+    terminal.write('\x1b[99B');
+    expect(terminal.buffer.cursorY, 4);
+
+    terminal.write('\x1b[1;1H\x1b[99A');
+    expect(terminal.buffer.cursorY, 0);
+  });
+
+  test('Terminal treats rapid blink SGR as blinking text', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[6mrapid');
+
+    expect(terminal.cursor.isBlink, isTrue);
+  });
+
+  test('Terminal allocates two cells for modern Unicode emoji', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1FAE0}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal preserves supplementary glyphs across output chunks', () {
+    final terminal = Terminal()..resize(10, 2);
+    const emoji = '😀';
+
+    terminal.write(emoji.substring(0, 1));
+    terminal.write(emoji.substring(1));
+    terminal.write('x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), '😀x');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal attaches modern Unicode combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('a\u{1E2AE}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCombiningCharacters(0), '\u{1E2AE}');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal allocates two cells for Unicode 17 emoji', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1FAEA}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal attaches Unicode 17 combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('a\u{1E5EE}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCombiningCharacters(0), '\u{1E5EE}');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal VS16 expands an emoji grapheme to two cells', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u2764\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCombiningCharacters(0), '\ufe0f');
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal VS15 narrows a wide emoji grapheme', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u231a\ufe0ex');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCombiningCharacters(0), '\ufe0e');
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal applies variation selectors to keycap bases', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('#\ufe0e#\ufe0f');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x23);
+    expect(line.getCombiningCharacters(0), '\ufe0e');
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x23);
+    expect(line.getCombiningCharacters(1), '\ufe0f');
+    expect(line.getWidth(1), 2);
+    expect(line.getWidth(2), 0);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal keeps keycap sequences in one wide grapheme', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('#\ufe0f\u20e3x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x23);
+    expect(line.getCombiningCharacters(0), '\ufe0f\u20e3');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal can disable grapheme width adjustment', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\x1b[?2027l\u2764\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x78);
+  });
+
+  test('Terminal ignores emoji variation selectors on invalid bases', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('x\ufe0fy');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 1);
+    expect(line.getCombiningCharacters(0), isNull);
+    expect(line.getCodePoint(1), 0x79);
+  });
+
+  test('Terminal repeat previous character ignores combining marks', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('e\u0301\x1b[2b');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'e'.codeUnitAt(0));
+    expect(line.getCombiningCharacters(0), '\u0301');
+    expect(line.getCodePoint(1), 'e'.codeUnitAt(0));
+    expect(line.getCodePoint(2), 'e'.codeUnitAt(0));
+  });
+
+  test('Terminal disables extended grapheme joining with mode 2027', () {
+    final terminal = Terminal()..resize(12, 2);
+
+    terminal.write('\x1b[?2027l\u{1F468}\u200d\u{1F469}');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F468);
+    expect(line.getCodePoint(2), 0x1F469);
+    expect(terminal.buffer.cursorX, 4);
+  });
+
+  test('Terminal handles stored grapheme breaks when mode 2027 is enabled', () {
+    final terminal = Terminal()..resize(5, 1);
+
+    terminal.write('\x1b[?2027la\u200b\x1b[?2027h\u0301x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x61);
+    expect(line.getCombiningCharacters(0), '\u200b\u0301');
+    expect(line.getCodePoint(1), 0x78);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal keeps text separate after stored grapheme breaks', () {
+    final terminal = Terminal()..resize(5, 1);
+
+    terminal.write('\x1b[?2027la\u200b\x1b[?2027hbx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x61);
+    expect(line.getCombiningCharacters(0), '\u200b');
+    expect(line.getCodePoint(1), 0x62);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal widens spacing marks after stored grapheme breaks', () {
+    final terminal = Terminal()..resize(5, 1);
+
+    terminal.write('\x1b[?2027la\u200b\x1b[?2027h\u0903x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x61);
+    expect(line.getCombiningCharacters(0), '\u200b\u0903');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal ignores zero-width marks without a base cell', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[?2027l\u0332');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getCombiningCharacters(0), isNull);
+    expect(terminal.buffer.cursorX, 0);
+  });
+
+  test('Terminal ignores zero-width marks at the first column', () {
+    final terminal = Terminal();
+
+    terminal.write('x\r\x1b[?2027l\u0332');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x78);
+    expect(line.getCombiningCharacters(0), isNull);
+    expect(terminal.buffer.cursorX, 0);
+  });
+
+  test('Terminal attaches zero-width marks to pending wrap cells', () {
+    final terminal = Terminal()..resize(2, 2);
+
+    terminal.write('\x1b[?2027lxy\u0332');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(1), 0x79);
+    expect(line.getCombiningCharacters(1), '\u0332');
+  });
+
+  test('Terminal wraps a VS16-expanded grapheme at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u2764\ufe0f');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getCodePoint(0), 0x2764);
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getCombiningCharacters(0), '\ufe0f');
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal preserves hyperlinks when VS16 wraps a grapheme', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ab\u2764\ufe0f');
+
+    expect(terminal.hyperlinkAt(const CellOffset(2, 0)), isNull);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(1, 1)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal drops VS16-expanded graphemes that cannot fit', () {
+    final terminal = Terminal()..resize(1, 2);
+
+    terminal.write('\u2764\ufe0fx');
+
+    final firstLine = terminal.buffer.lines[0];
+    final secondLine = terminal.buffer.lines[1];
+    expect(firstLine.getCodePoint(0), 0x2764);
+    expect(firstLine.getWidth(0), 1);
+    expect(firstLine.getCombiningCharacters(0), isNull);
+    expect(secondLine.getCodePoint(0), 0x78);
+    expect(secondLine.getWidth(0), 1);
+    expect(terminal.buffer.cursorX, 0);
+  });
+
+  test('Terminal expands width when a ZWJ grapheme gains a wide codepoint', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u2764\u200d\u{1F525}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x2764);
+    expect(line.getCombiningCharacters(0), '\u200d\u{1F525}');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal applies variation selectors inside ZWJ graphemes', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F3F4}\u200d\u2620\ufe0fx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F3F4);
+    expect(line.getCombiningCharacters(0), '\u200d\u2620\ufe0f');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal ignores invalid VS15 inside emoji ZWJ graphemes', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F469}\ufe0e\u200d\u{1F466}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F469);
+    expect(line.getCombiningCharacters(0), '\u200d\u{1F466}');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal keeps invalid emoji modifiers separate from text', () {
+    final terminal = Terminal()..resize(8, 2);
+
+    terminal.write('"\u{1F3FF}"');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), '"'.codeUnitAt(0));
+    expect(line.getWidth(0), 1);
+    expect(line.getCodePoint(1), 0x1F3FF);
+    expect(line.getWidth(1), 2);
+    expect(line.getWidth(2), 0);
+    expect(line.getCodePoint(3), '"'.codeUnitAt(0));
+    expect(terminal.buffer.cursorX, 4);
+  });
+
+  test('Terminal joins emoji modifiers to valid bases', () {
+    final terminal = Terminal();
+
+    terminal.write('\u{1F44B}\u{1F3FF}');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x1F44B);
+    expect(line.getCombiningCharacters(0), '\u{1F3FF}');
+    expect(line.getWidth(0), 2);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal wraps regional indicator pairs as one flag', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u{1F1FB}\u{1F1F3}');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getCodePoint(0), 0x1F1FB);
+    expect(wrappedLine.getCombiningCharacters(0), '\u{1F1F3}');
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal keeps invalid ZWJ sequences from merging text', () {
+    final terminal = Terminal();
+
+    terminal.write('A\u200dB');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'A'.codeUnitAt(0));
+    expect(line.getCombiningCharacters(0), '\u200d');
+    expect(line.getCodePoint(1), 'B'.codeUnitAt(0));
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal keeps Unicode 17 emoji ZWJ sequences in one grapheme', () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\u{1F9D1}\u200D\u{1FAEF}\u200D\u{1F9D1}x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(
+      line.getCombiningCharacters(0),
+      '\u200D\u{1FAEF}\u200D\u{1F9D1}',
+    );
+    expect(line.getCodePoint(2), 0x78);
+  });
+
+  test('Terminal renders Indic conjuncts as wide graphemes', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0915\u094d\u0937');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0915);
+    expect(line.getCombiningCharacters(0), '\u094d\u0937');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal renders explicit Indic ZWJ conjuncts as wide graphemes', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0915\u094d\u200d\u0937x');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0915);
+    expect(line.getCombiningCharacters(0), '\u094d\u200d\u0937');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal renders explicit Sinhala ZWJ conjuncts as wide graphemes', () {
+    final terminal = Terminal();
+
+    terminal.write('\u0d9a\u0dca\u200d\u0dbbx');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x0D9A);
+    expect(line.getCombiningCharacters(0), '\u0dca\u200d\u0dbb');
+    expect(line.getWidth(0), 2);
+    expect(line.getWidth(1), 0);
+    expect(line.getCodePoint(2), 0x78);
+    expect(terminal.buffer.cursorX, 3);
+  });
+
+  test('Terminal wraps widening Indic ZWJ conjuncts at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u0915\u094d\u200d\u0937');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getText(), '\u0915\u094d\u200d\u0937');
+    expect(wrappedLine.getWidth(0), 2);
+    expect(wrappedLine.getWidth(1), 0);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal wraps a widening ZWJ grapheme at the right edge', () {
+    final terminal = Terminal()..resize(3, 2);
+
+    terminal.write('ab\u2764\u200d\u{1F525}');
+
+    expect(terminal.buffer.lines[0].toString(), 'ab');
+    final wrappedLine = terminal.buffer.lines[1];
+    expect(wrappedLine.isWrapped, isTrue);
+    expect(wrappedLine.getText(), '\u2764\u200d\u{1F525}');
+    expect(wrappedLine.getWidth(0), 2);
+    expect(terminal.buffer.cursorX, 2);
+  });
+
+  test('Terminal erase chars clears split wide-character boundaries', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('😀a😀b😀');
+    terminal.write('\x1b[1;2H\x1b[3X');
+
+    final line = terminal.buffer.lines[0];
+    for (var column = 0; column < 5; column++) {
+      expect(
+        line.getCodePoint(column),
+        0,
+        reason: 'column $column should be blank',
+      );
+      expect(
+        line.getWidth(column),
+        isNot(2),
+        reason: 'column $column should not keep wide metadata',
+      );
+    }
+    expect(line.getCodePoint(5), 'b'.codeUnitAt(0));
+    expect(line.getCodePoint(6), 0x1f600);
+    expect(line.getWidth(6), 2);
+    expect(line.getWidth(7), 0);
+  });
+
+  test('Terminal erase chars clears wide grapheme cells', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('x\u2764\u200d\u{1F525}y');
+    terminal.write('\x1b[1;2H\x1b[1X');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 'x'.codeUnitAt(0));
+    expect(line.getCodePoint(1), 0);
+    expect(line.getCombiningCharacters(1), isNull);
+    expect(line.getWidth(1), isNot(2));
+    expect(line.getCodePoint(2), 0);
+    expect(line.getWidth(2), isNot(2));
+    expect(line.getCodePoint(3), 'y'.codeUnitAt(0));
+  });
+
+  test('Terminal erase chars keeps only current background style', () {
+    final terminal = Terminal()..resize(8, 1);
+
+    terminal.write('\x1b[31;41;1;4;9;58:2::1:2:3mabc\r\x1b[2X');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(0), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(0), 0);
+    expect(line.getUnderlineColor(0), CellColor.normal);
+    expect(line.getCodePoint(1), 0);
+    expect(line.getForeground(1), CellColor.normal);
+    expect(line.getBackground(1), CellColor.named | NamedColor.red);
+    expect(line.getAttributes(1), 0);
+    expect(line.getUnderlineColor(1), CellColor.normal);
+    expect(line.getCodePoint(2), 'c'.codeUnitAt(0));
+  });
+
+  test('Terminal insert and delete blank cells reset text decorations', () {
+    final insertTerminal = Terminal()..resize(8, 1);
+    insertTerminal.write('\x1b[31;41;1;4;9mabc\r\x1b[2@');
+    final insertedLine = insertTerminal.buffer.lines[0];
+
+    expect(insertedLine.getCodePoint(0), 0);
+    expect(insertedLine.getForeground(0), CellColor.normal);
+    expect(insertedLine.getBackground(0), CellColor.named | NamedColor.red);
+    expect(insertedLine.getAttributes(0), 0);
+    expect(insertedLine.getText(2, 5), 'abc');
+
+    final deleteTerminal = Terminal()..resize(8, 1);
+    deleteTerminal.write('\x1b[31;41;1;4;9mabcde\r\x1b[2P');
+    final deletedLine = deleteTerminal.buffer.lines[0];
+
+    expect(deletedLine.getText(0, 3), 'cde');
+    expect(deletedLine.getCodePoint(6), 0);
+    expect(deletedLine.getForeground(6), CellColor.normal);
+    expect(deletedLine.getBackground(6), CellColor.named | NamedColor.red);
+    expect(deletedLine.getAttributes(6), 0);
+  });
+
+  test('Terminal resets bold and faint intensity with SGR 22', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[1;2mbold-faint\x1b[22mplain');
+
+    final styledAttrs = terminal.buffer.lines[0].getAttributes(0);
+    expect(styledAttrs & CellAttr.bold, isNot(0));
+    expect(styledAttrs & CellAttr.faint, isNot(0));
+    expect(terminal.cursor.isBold, isFalse);
+    expect(terminal.cursor.isFaint, isFalse);
+  });
+
+  test('Terminal applies overline SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[53mover\x1b[55mplain');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.overline,
+      isNot(0),
+    );
+    expect(terminal.cursor.isOverline, isFalse);
+  });
+
+  test('Terminal applies framed and encircled SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[51mframe\x1b[52mcircle\x1b[54mplain');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.framed, isNot(0));
+    expect(line.getAttributes(5) & CellAttr.framed, 0);
+    expect(line.getAttributes(5) & CellAttr.encircled, isNot(0));
+    expect(terminal.cursor.isFramed, isFalse);
+    expect(terminal.cursor.isEncircled, isFalse);
+  });
+
+  test('Terminal applies double underline SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[21mdouble\x1b[24mplain');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.doubleUnderline,
+      isNot(0),
+    );
+    expect(terminal.cursor.isDoubleUnderline, isFalse);
+  });
+
+  test('Terminal applies colon underline style SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal
+        .write('\x1b[4:3mcurly\x1b[4:4mdotted\x1b[4:5mdashed\x1b[4:0mplain');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.undercurl, isNot(0));
+    expect(line.getAttributes(5) & CellAttr.dottedUnderline, isNot(0));
+    expect(line.getAttributes(11) & CellAttr.dashedUnderline, isNot(0));
+    expect(terminal.cursor.isDashedUnderline, isFalse);
+  });
+
+  test('Terminal falls back unknown colon underline styles to single', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4:99munderlined');
+
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.underline,
+      isNot(0),
+    );
+  });
+
+  test('Terminal keeps semicolon underline and italic SGR distinct', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4;3mtext');
+
+    final attrs = terminal.buffer.lines[0].getAttributes(0);
+    expect(attrs & CellAttr.underline, isNot(0));
+    expect(attrs & CellAttr.italic, isNot(0));
+    expect(attrs & CellAttr.undercurl, 0);
+  });
+
+  test('Terminal applies underline color SGR', () {
+    final terminal = Terminal()..resize(20, 5);
+
+    terminal.write('\x1b[4;58;2;12;34;56mcolor\x1b[59mplain');
+
+    expect(
+      terminal.buffer.lines[0].getUnderlineColor(0),
+      equals(0x0c2238 | CellColor.rgb),
+    );
+    expect(terminal.cursor.underlineColor, 0);
+  });
+
+  group('Terminal.maxLines', () {
+    test('never truncates the viewport', () {
+      final terminal = Terminal(maxLines: 2);
+
+      for (var i = 0; i < 39; i++) {
+        terminal.write('line $i\r\n');
+      }
+      terminal.write('line 39');
+
+      expect(terminal.lines.length, terminal.viewHeight);
+      expect(terminal.buffer.currentLine.toString(), startsWith('line 39'));
+
+      terminal.resize(80, 30);
+
+      expect(terminal.lines.length, 30);
+      expect(terminal.buffer.currentLine.toString(), startsWith('line 39'));
+    });
+  });
+
+  group('Terminal.inputHandler', () {
+    test('can be set to null', () {
+      final terminal = Terminal(inputHandler: null);
+      expect(() => terminal.keyInput(TerminalKey.keyA), returnsNormally);
+    });
+
+    test('can be changed', () {
+      final handler1 = _TestInputHandler();
+      final handler2 = _TestInputHandler();
+      final terminal = Terminal(inputHandler: handler1);
+
+      terminal.keyInput(TerminalKey.keyA);
+      expect(handler1.events, isNotEmpty);
+
+      terminal.inputHandler = handler2;
+
+      terminal.keyInput(TerminalKey.keyA);
+      expect(handler2.events, isNotEmpty);
+    });
+  });
+
+  group('Terminal.mouseInput', () {
+    test('filters mouse motion according to tracking mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1002h\x1b[?1006h');
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.none,
+          TerminalMouseButtonState.down,
+          CellOffset(1, 2),
+          motion: true,
+        ),
+        isFalse,
+      );
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.left,
+          TerminalMouseButtonState.down,
+          CellOffset(1, 2),
+          motion: true,
+        ),
+        isTrue,
+      );
+
+      terminal.write('\x1b[?1003h');
+      expect(
+        terminal.mouseInput(
+          TerminalMouseButton.none,
+          TerminalMouseButtonState.down,
+          CellOffset(2, 3),
+          motion: true,
+        ),
+        isTrue,
+      );
+      expect(output, ['\x1b[<32;2;3M', '\x1b[<35;3;4M']);
+    });
+
+    test('can handle mouse events', () {
+      final output = <String>[];
+
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(10, 10),
+      );
+
+      expect(output, isEmpty);
+
+      // enable mouse reporting
+      terminal.write('\x1b[?1000h');
+
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(10, 10),
+      );
+
+      expect(output, ['\x1B[M ++']);
+    });
+
+    test('ignores unsupported highlight tracking mode', () {
+      final terminal = Terminal();
+
+      terminal.write('\x1b[?1001h');
+
+      expect(terminal.mouseMode, MouseMode.none);
+    });
+
+    test('highlight mode reset does not disable active mouse tracking', () {
+      final terminal = Terminal();
+
+      terminal.write('\x1b[?1000h\x1b[?1001l');
+
+      expect(terminal.mouseMode, MouseMode.upDownScroll);
+    });
+
+    test('reports mouse modifiers', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1000h\x1b[?1006h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(0, 0),
+        modifiers: const TerminalMouseModifiers(
+          shift: true,
+          control: true,
+        ),
+      );
+
+      expect(output, ['\x1B[<20;1;1M']);
+    });
+
+    test('omits mouse modifiers in X10 tracking mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?9h\x1b[?1006h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(0, 0),
+        modifiers: const TerminalMouseModifiers(
+          shift: true,
+          alt: true,
+          control: true,
+        ),
+      );
+
+      expect(output, ['\x1B[<0;1;1M']);
+    });
+
+    test('reports sgr pixel mouse coordinates', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?1000h\x1b[?1016h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(2, 3),
+        pixelPosition: CellOffset(20, 30),
+      );
+
+      expect(output, ['\x1B[<0;21;31M']);
+    });
+
+    test('ignores invalid collapsed mouse mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?10061000h');
+      terminal.mouseInput(
+        TerminalMouseButton.left,
+        TerminalMouseButtonState.down,
+        CellOffset(10, 10),
+      );
+
+      expect(output, isEmpty);
+    });
+  });
+
+  group('Terminal.reflowEnabled', () {
+    test('prevents reflow when set to false', () {
+      final terminal = Terminal(reflowEnabled: false);
+
+      terminal.write('Hello World');
+      terminal.resize(5, 5);
+
+      expect(terminal.buffer.lines[0].toString(), 'Hello');
+      expect(terminal.buffer.lines[1].toString(), isEmpty);
+    });
+
+    test('preserves hidden cells when reflow is disabled', () {
+      final terminal = Terminal(reflowEnabled: false);
+
+      terminal.write('Hello World');
+      terminal.resize(5, 5);
+      terminal.resize(20, 5);
+
+      expect(terminal.buffer.lines[0].toString(), 'Hello World');
+      expect(terminal.buffer.lines[1].toString(), isEmpty);
+    });
+
+    test('can be set at runtime', () {
+      final terminal = Terminal(reflowEnabled: true);
+
+      terminal.resize(5, 5);
+      terminal.write('Hello World');
+      terminal.reflowEnabled = false;
+      terminal.resize(20, 5);
+
+      expect(terminal.buffer.lines[0].toString(), 'Hello');
+      expect(terminal.buffer.lines[1].toString(), ' Worl');
+      expect(terminal.buffer.lines[2].toString(), 'd');
+    });
+  });
+
+  group('Terminal.mouseInput', () {
+    test('applys to the main buffer', () {
+      final terminal = Terminal(
+        wordSeparators: {
+          'z'.codeUnitAt(0),
+        },
+      );
+
+      expect(
+        terminal.mainBuffer.wordSeparators,
+        contains('z'.codeUnitAt(0)),
+      );
+    });
+
+    test('applys to the alternate buffer', () {
+      final terminal = Terminal(
+        wordSeparators: {
+          'z'.codeUnitAt(0),
+        },
+      );
+
+      expect(
+        terminal.altBuffer.wordSeparators,
+        contains('z'.codeUnitAt(0)),
+      );
+    });
+  });
+
+  group('Terminal.onPrivateOSC', () {
+    test(r'works with \a end', () {
+      String? lastCode;
+      List<String>? lastData;
+
+      final terminal = Terminal(
+        onPrivateOSC: (String code, List<String> data) {
+          lastCode = code;
+          lastData = data;
+        },
+      );
+
+      terminal.write('\x1b]6\x07');
+
+      expect(lastCode, '6');
+      expect(lastData, []);
+
+      terminal.write('\x1b]616;hello world\x07');
+
+      expect(lastCode, '616');
+      expect(lastData, ['hello world']);
+
+      terminal.write('\x1b]666;hello;world\x07');
+
+      expect(lastCode, '666');
+      expect(lastData, ['hello', 'world']);
+
+      terminal.write('\x1b]hello;world\x07');
+
+      expect(lastCode, 'hello');
+      expect(lastData, ['world']);
+    });
+
+    test(r'works with \x1b\ end', () {
+      String? lastCode;
+      List<String>? lastData;
+
+      final terminal = Terminal(
+        onPrivateOSC: (String code, List<String> data) {
+          lastCode = code;
+          lastData = data;
+        },
+      );
+
+      terminal.write('\x1b]6\x1b\\');
+
+      expect(lastCode, '6');
+      expect(lastData, []);
+
+      terminal.write('\x1b]616;hello world\x1b\\');
+
+      expect(lastCode, '616');
+      expect(lastData, ['hello world']);
+
+      terminal.write('\x1b]666;hello;world\x1b\\');
+
+      expect(lastCode, '666');
+      expect(lastData, ['hello', 'world']);
+
+      terminal.write('\x1b]hello;world\x1b\\');
+
+      expect(lastCode, 'hello');
+      expect(lastData, ['world']);
+    });
+
+    test('do not receive common osc', () {
+      String? lastCode;
+      List<String>? lastData;
+
+      final terminal = Terminal(
+        onPrivateOSC: (String code, List<String> data) {
+          lastCode = code;
+          lastData = data;
+        },
+      );
+
+      terminal.write('\x1b]0;hello world\x07');
+
+      expect(lastCode, isNull);
+      expect(lastData, isNull);
+    });
+  });
+
+  test('Terminal reports OSC 7 current directory URIs', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]7;file://localhost/tmp/my%20project;draft\x1b\\');
+
+    expect(currentDirectory, 'file://localhost/tmp/my%20project;draft');
+  });
+
+  test('Terminal reports iTerm2 OSC 1337 current directory', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]1337;CurrentDir=/tmp/my project\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+  });
+
+  test('Terminal reports iTerm2 OSC 1337 remote host', () {
+    String? remoteHost;
+    final terminal = Terminal(
+      onRemoteHostChange: (value) => remoteHost = value,
+    );
+
+    terminal.write('\x1b]1337;RemoteHost=user@example.com\x1b\\');
+
+    expect(remoteHost, 'user@example.com');
+  });
+
+  test('Terminal answers iTerm2 OSC 1337 ReportCellSize', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b]1337;ReportCellSize\x1b\\');
+
+    expect(output, ['\x1b]1337;ReportCellSize=18;9\x1b\\']);
+  });
+
+  test('Terminal answers iTerm2 OSC 1337 ReportVariable queries', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onITerm2VariableQuery: (name) {
+        return switch (name) {
+          'path' => '/tmp/project',
+          _ => null,
+        };
+      },
+    )..resize(80, 24);
+
+    final path = base64.encode(utf8.encode('path'));
+    final columns = base64.encode(utf8.encode('columns'));
+    final unknown = base64.encode(utf8.encode('unknown'));
+    terminal.write('\x1b]1337;ReportVariable=$path\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=$columns\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=$unknown\x1b\\');
+    terminal.write('\x1b]1337;ReportVariable=not base64\x1b\\');
+
+    final encodedPath = base64.encode(utf8.encode('/tmp/project'));
+    final encodedColumns = base64.encode(utf8.encode('80'));
+    expect(output, [
+      '\x1b]1337;ReportVariable=$encodedPath\x1b\\',
+      '\x1b]1337;ReportVariable=$encodedColumns\x1b\\',
+    ]);
+  });
+
+  test('Terminal decodes iTerm2 OSC 1337 badge format', () {
+    final formats = <String>[];
+    final terminal = Terminal(onITerm2BadgeFormatChange: formats.add);
+
+    final encoded = base64.encode(utf8.encode(r'\(session.name)'));
+    terminal.write('\x1b]1337;SetBadgeFormat=$encoded\x1b\\');
+    terminal.write('\x1b]1337;SetBadgeFormat=\x1b\\');
+    terminal.write('\x1b]1337;SetBadgeFormat=not base64\x1b\\');
+
+    expect(formats, [r'\(session.name)', '']);
+  });
+
+  test('Terminal applies iTerm2 OSC 1337 SetColors', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]1337;SetColors=fg=112233\x1b\\'
+      '\x1b]1337;SetColors=bg=abc\x1b\\'
+      '\x1b]1337;SetColors=curbg=p3:445566\x1b\\'
+      '\x1b]1337;SetColors=red=ff0000\x1b\\'
+      '\x1b]1337;SetColors=br_blue=0000ff\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, 0x112233);
+    expect(terminal.backgroundColorOverride, 0xaabbcc);
+    expect(terminal.cursorColorOverride, 0x445566);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {1: 0xff0000, 12: 0x0000ff},
+    );
+
+    terminal.write(
+      '\x1b]1337;SetColors=fg=default\x1b\\'
+      '\x1b]1337;SetColors=red=default\x1b\\'
+      '\x1b]1337;SetColors=blue=not-a-color\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {12: 0x0000ff},
+    );
+  });
+
+  test('Terminal reports iTerm2 shell integration version', () {
+    final versions = <String>[];
+    final terminal = Terminal(
+      onITerm2ShellIntegrationVersionChange: versions.add,
+    );
+
+    terminal.write('\x1b]1337;ShellIntegrationVersion=14;shell=zsh\x1b\\');
+    terminal.write('\x1b]1337;ShellIntegrationVersion=  \x1b\\');
+
+    expect(versions, ['14;shell=zsh']);
+  });
+
+  test('Terminal exposes iTerm2 OSC 1337 marks and profiles', () {
+    var marks = 0;
+    final profiles = <String>[];
+    final terminal = Terminal(
+      onITerm2Mark: () {
+        marks++;
+      },
+      onITerm2ProfileChange: profiles.add,
+    );
+
+    terminal.write('\x1b]1337;SetMark\x1b\\');
+    terminal.write('\x1b]1337;SetMark=ignored\x1b\\');
+    terminal.write('\x1b]1337;SetProfile=Build\x1b\\');
+    terminal.write('\x1b]1337;SetProfile=\x1b\\');
+
+    expect(marks, 2);
+    expect(profiles, ['Build']);
+  });
+
+  test('Terminal decodes iTerm2 OSC 1337 user variables', () {
+    final variables = <({String name, String value})>[];
+    final terminal = Terminal(
+      onUserVariableChange: (name, value) {
+        variables.add((name: name, value: value));
+      },
+    );
+
+    terminal.write('\x1b]1337;SetUserVar=project=bHVtaWRl\x1b\\');
+    terminal.write('\x1b]1337;SetUserVar=broken=not base64\x1b\\');
+
+    expect(variables, [(name: 'project', value: 'lumide')]);
+  });
+
+  test('Terminal applies iTerm2 OSC 1337 cursor shapes', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]1337;CursorShape=1\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.verticalBar);
+    expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b]1337;CursorShape=2\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.underline);
+
+    terminal.write('\x1b]1337;CursorShape=0\x1b\\');
+    expect(terminal.applicationCursorType, TerminalCursorType.block);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 focus requests', () {
+    var focusRequests = 0;
+    final terminal = Terminal(
+      onFocusRequest: () => focusRequests++,
+    );
+
+    terminal.write('\x1b]1337;StealFocus\x1b\\');
+    terminal.write('\x1b]1337;StealFocus=true\x1b\\');
+
+    expect(focusRequests, 2);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 open url requests', () {
+    final urls = <String>[];
+    final terminal = Terminal(onOpenUrl: urls.add);
+
+    terminal.write('\x1b]1337;OpenURL=https://lumide.dev/docs?a=1;b=2\x1b\\');
+
+    expect(urls, ['https://lumide.dev/docs?a=1;b=2']);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 attention requests', () {
+    final requests = <String>[];
+    final terminal = Terminal(onAttentionRequest: requests.add);
+
+    terminal.write('\x1b]1337;RequestAttention\x1b\\');
+    terminal.write('\x1b]1337;RequestAttention=fireworks\x1b\\');
+
+    expect(requests, ['', 'fireworks']);
+  });
+
+  test('Terminal applies iTerm2 OSC 1337 cursor line highlight', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]1337;HighlightCursorLine=yes\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isTrue);
+
+    terminal.write('\x1b]1337;HighlightCursorLine=no\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isFalse);
+
+    terminal.write('\x1b]1337;HighlightCursorLine=invalid\x1b\\');
+    expect(terminal.cursorLineHighlightMode, isFalse);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 ClearScrollback', () {
+    final terminal = Terminal(maxLines: 10)..resize(20, 2);
+
+    terminal.write('old1\nold2\nnew');
+    expect(terminal.buffer.scrollBack, 1);
+
+    terminal.write('\x1b]1337;ClearScrollback\x1b\\');
+
+    expect(terminal.buffer.scrollBack, 0);
+    expect(terminal.buffer.lines[0].toString(), startsWith('old2'));
+  });
+
+  test('Terminal reports ConEmu OSC 9;9 current directory', () {
+    String? currentDirectory;
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;9;/tmp/my project\x1b\\');
+    terminal.write('\x1b]9;9\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+    expect(notifications, [(title: '', body: '9')]);
+  });
+
+  test('Terminal reports OSC 3008 start context metadata', () {
+    String? currentDirectory;
+    final signals = <TerminalContextSignal>[];
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+      onContextSignal: signals.add,
+    );
+
+    terminal.write(
+      '\x1b]3008;start=cmd1;type=command;user=simon;hostname=dev;'
+      'machineid=machine;bootid=boot;pid=42;pidfdid=43;comm=dart;'
+      'cwd=/tmp/my project;cmdline=dart run;vm=qemu;container=devbox;'
+      'targetuser=root;targethost=server;sessionid=session;'
+      'unknown=value;user=ignored\x1b\\',
+    );
+
+    final signal = signals.single;
+    expect(signal.action, TerminalContextSignalAction.start);
+    expect(signal.id, 'cmd1');
+    expect(signal.type, TerminalContextType.command);
+    expect(signal.user, 'simon');
+    expect(signal.hostname, 'dev');
+    expect(signal.machineId, 'machine');
+    expect(signal.bootId, 'boot');
+    expect(signal.pid, 42);
+    expect(signal.pidfdId, 43);
+    expect(signal.command, 'dart');
+    expect(signal.currentDirectory, '/tmp/my project');
+    expect(signal.commandLine, 'dart run');
+    expect(signal.virtualMachine, 'qemu');
+    expect(signal.container, 'devbox');
+    expect(signal.targetUser, 'root');
+    expect(signal.targetHost, 'server');
+    expect(signal.sessionId, 'session');
+    expect(signal.metadata['unknown'], 'value');
+    expect(signal.metadata['user'], 'simon');
+    expect(
+      () => signal.metadata['new'] = 'value',
+      throwsUnsupportedError,
+    );
+    expect(currentDirectory, '/tmp/my project');
+  });
+
+  test('Terminal reports OSC 3008 end context metadata', () {
+    final signals = <TerminalContextSignal>[];
+    final terminal = Terminal(onContextSignal: signals.add);
+
+    terminal.write(
+      '\x1b]3008;end=cmd1;exit=failure;status=7;signal=SIGTERM\x1b\\',
+    );
+
+    final signal = signals.single;
+    expect(signal.action, TerminalContextSignalAction.end);
+    expect(signal.id, 'cmd1');
+    expect(signal.exitStatus, TerminalContextExitStatus.failure);
+    expect(signal.status, 7);
+    expect(signal.signal, 'SIGTERM');
+  });
+
+  test('Terminal applies OSC 3008 cwd without a context listener', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write(
+      '\x1b]3008;start=cmd1;cwdExtra=/tmp/wrong;cwd=/tmp/right\x1b\\',
+    );
+
+    expect(currentDirectory, '/tmp/right');
+  });
+
+  test('Terminal rejects malformed OSC 3008 contexts and metadata', () {
+    final signals = <TerminalContextSignal>[];
+    String? currentDirectory;
+    final terminal = Terminal(
+      onContextSignal: signals.add,
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]3008;end=cmd1;cwd=/tmp/ignored\x1b\\');
+    terminal.write('\x1b]3008;start=;cwd=/tmp/invalid\x1b\\');
+    terminal.write('\x1b]3008;invalid=cmd1;cwd=/tmp/invalid\x1b\\');
+    terminal.write('\x1b]3008;start=cmd2;pid=-1;status=abc;=bad\x1b\\');
+
+    expect(signals, hasLength(2));
+    expect(signals.first.currentDirectory, '/tmp/ignored');
+    expect(signals.first.action, TerminalContextSignalAction.end);
+    expect(signals.last.pid, isNull);
+    expect(signals.last.status, isNull);
+    expect(signals.last.metadata, isNot(contains('')));
+    expect(currentDirectory, isNull);
+  });
+
+  test('Terminal reports OSC 9 and OSC 777 notifications', () {
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;Build finished\x1b\\');
+    terminal.write('\x1b]777;notify;Tests;All passed\x1b\\');
+    terminal.write('\x1b]777;notify;Title;Body;with;semicolons\x1b\\');
+
+    expect(notifications, [
+      (title: '', body: 'Build finished'),
+      (title: 'Tests', body: 'All passed'),
+      (title: 'Title', body: 'Body;with;semicolons'),
+    ]);
+  });
+
+  test('Terminal reports OSC 22 mouse shape changes', () {
+    final shapes = <String>[];
+    final terminal = Terminal(onMouseShapeChange: shapes.add);
+
+    terminal.write('\x1b]22;pointer\x1b\\');
+    terminal.write('\x1b]22;text;custom\x1b\\');
+
+    expect(shapes, ['pointer', 'text;custom']);
+  });
+
+  test('Terminal reports OSC 9;4 progress updates', () {
+    final reports = <TerminalProgressReport>[];
+    final notifications = <({String title, String body})>[];
+    final terminal = Terminal(
+      onProgressReport: reports.add,
+      onNotification: (title, body) {
+        notifications.add((title: title, body: body));
+      },
+    );
+
+    terminal.write('\x1b]9;4;1;42\x1b\\');
+    terminal.write('\x1b]9;4;1;900\x1b\\');
+    terminal.write('\x1b]9;4;3\x1b\\');
+    terminal.write('\x1b]9;4;4;7\x1b\\');
+    terminal.write('\x1b]9;4;0;100\x1b\\');
+    terminal.write('\x1b]9;4;5\x1b\\');
+
+    expect(
+      reports.map((report) => (report.state, report.progress)),
+      [
+        (TerminalProgressState.set, 42),
+        (TerminalProgressState.set, 100),
+        (TerminalProgressState.indeterminate, null),
+        (TerminalProgressState.pause, 7),
+        (TerminalProgressState.remove, null),
+      ],
+    );
+    expect(notifications, [(title: '', body: '4;5')]);
+  });
+
+  test('Terminal tracks OSC 133 semantic prompt state', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]133;A\x1b\\');
+    terminal.write('\x1b]133;B\x1b\\');
+    terminal.write('\x1b]133;C\x1b\\');
+    terminal.write('\x1b]133;D;2\x1b\\');
+
+    expect(
+      states.map((state) => state.content),
+      [
+        TerminalSemanticPromptContent.prompt,
+        TerminalSemanticPromptContent.input,
+        TerminalSemanticPromptContent.output,
+        TerminalSemanticPromptContent.output,
+      ],
+    );
+    expect(terminal.semanticPromptState.lastCommandExitCode, 2);
+  });
+
+  test('Terminal tracks OSC 133 semantic prompt options', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write(
+      '\x1b]133;A;aid=14;k=c;cl=line;redraw=last;special_key=1\x1b\\',
+    );
+    terminal.write('\x1b]133;N;click_events=2\x1b\\');
+
+    expect(states.first.aid, '14');
+    expect(states.first.promptKind, TerminalSemanticPromptKind.continuation);
+    expect(states.first.clickMode, TerminalSemanticPromptClickMode.line);
+    expect(states.first.redraw, TerminalSemanticPromptRedraw.last);
+    expect(states.first.specialKey, isTrue);
+    expect(
+      states.last.clickMode,
+      TerminalSemanticPromptClickMode.eventsRelative,
+    );
+  });
+
+  test('Terminal indexes primary OSC 133 prompts', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('\x1b]133;A\x1b\\first\r\n');
+    terminal.write('\x1b]133;A;k=c\x1b\\continuation\r\n');
+    terminal.write('\x1b]133;A\x1b\\second');
+
+    expect(terminal.isSemanticPromptLine(0), isTrue);
+    expect(terminal.isSemanticPromptLine(1), isFalse);
+    expect(terminal.isSemanticPromptLine(2), isTrue);
+    expect(terminal.semanticPromptLineBefore(2), 0);
+    expect(terminal.semanticPromptLineAfter(0), 2);
+    expect(terminal.semanticPromptLineBefore(0), isNull);
+    expect(terminal.semanticPromptLineAfter(2), isNull);
+  });
+
+  test('Terminal keeps semantic prompt indexes through reflow', () {
+    final terminal = Terminal(maxLines: 20)..resize(8, 3);
+
+    terminal.write('\x1b]133;A\x1b\\1234567890\r\n');
+    terminal.write('\x1b]133;A\x1b\\second');
+    terminal.resize(4, 3);
+
+    expect(terminal.isSemanticPromptLine(0), isTrue);
+    final secondPrompt = terminal.semanticPromptLineAfter(0);
+    expect(secondPrompt, isNotNull);
+    if (secondPrompt != null) {
+      expect(terminal.isSemanticPromptLine(secondPrompt), isTrue);
+      expect(secondPrompt, greaterThan(0));
+    }
+  });
+
+  test('Terminal prunes semantic prompts with scrollback overflow', () {
+    final terminal = Terminal(maxLines: 4)..resize(8, 2);
+    final capacity = terminal.buffer.lines.maxLength;
+
+    for (var index = 0; index < capacity + 2; index++) {
+      terminal.write('\x1b]133;A\x1b\\p$index\r\n');
+    }
+
+    expect(terminal.semanticPromptLineAfter(-1), 0);
+    expect(terminal.semanticPromptLineBefore(99), capacity - 2);
+  });
+
+  test('Terminal preserves the active semantic prompt index when cleared', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('old\r\n\x1b]133;A\x1b\\~/simon ');
+    terminal.write('\x1b]133;B\x1b\\');
+    terminal.clear();
+
+    expect(terminal.isSemanticPromptLine(3), isTrue);
+    expect(terminal.semanticPromptLineBefore(4), 3);
+  });
+
+  test('Terminal invalidates erased semantic prompt indexes', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('\x1b]133;A\x1b\\prompt');
+    expect(terminal.isSemanticPromptLine(0), isTrue);
+
+    terminal.write('\x1b]133;C\x1b\\\r\x1b[2K');
+
+    expect(terminal.isSemanticPromptLine(0), isFalse);
+    expect(terminal.semanticPromptLineAfter(-1), isNull);
+  });
+
+  test('Terminal replaces an erased semantic prompt index', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('\x1b]133;A\x1b\\first\r\n');
+    terminal.write('\x1b]133;A\x1b\\erased');
+    terminal.write('\x1b]133;C\x1b\\\r\x1b[2K');
+    terminal.write('\x1b]133;A\x1b\\replacement');
+
+    expect(terminal.isSemanticPromptLine(0), isTrue);
+    expect(terminal.isSemanticPromptLine(1), isTrue);
+    expect(terminal.semanticPromptLineAfter(0), 1);
+  });
+
+  test('Terminal keeps semantic content across SGR resets', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('\x1b]133;A\x1b\\one\x1b[0mtwo');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getSemanticContent(0), CellAttr.semanticPrompt);
+    expect(line.getSemanticContent(3), CellAttr.semanticPrompt);
+  });
+
+  test('Terminal reset clears semantic prompt indexes', () {
+    final terminal = Terminal(maxLines: 20)..resize(12, 4);
+
+    terminal.write('\x1b]133;A\x1b\\prompt');
+    terminal.reset();
+
+    expect(terminal.semanticPromptLineAfter(-1), isNull);
+    expect(
+      terminal.semanticPromptState.content,
+      TerminalSemanticPromptContent.output,
+    );
+  });
+
+  test('Terminal applies OSC 133 fresh-line actions', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('Hello\x1b]133;L\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 1);
+    expect(states, isEmpty);
+
+    terminal.write('prompt\x1b]133;A\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 2);
+    expect(states.last.content, TerminalSemanticPromptContent.prompt);
+
+    terminal.write('\x1b]133;N\x1b\\');
+
+    expect(terminal.buffer.cursorX, 0);
+    expect(terminal.buffer.cursorY, 2);
+    expect(states.last.content, TerminalSemanticPromptContent.prompt);
+  });
+
+  test('Terminal keeps OSC 133 prompt marker on current line', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('Hello\x1b]133;P\x1b\\');
+
+    expect(terminal.buffer.cursorX, 5);
+    expect(terminal.buffer.cursorY, 0);
+    expect(states.single.content, TerminalSemanticPromptContent.prompt);
+  });
+
+  test('Terminal terminates OSC 133 input on linefeed', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add)..resize(10, 4);
+
+    terminal.write('\x1b]133;I\x1b\\\n');
+
+    expect(states.map((state) => state.content), [
+      TerminalSemanticPromptContent.input,
+      TerminalSemanticPromptContent.output,
+    ]);
+    expect(terminal.semanticPromptState.content,
+        TerminalSemanticPromptContent.output);
+  });
+
+  test('Terminal decodes OSC 133 command line options', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]133;C;cmdline=echo\\ bobr\\nkurwa\x1b\\');
+    terminal.write('\x1b]133;C;cmdline_url=echo%20bobr%3bkurwa\x1b\\');
+    terminal.write('\x1b]133;C;cmdline=' "'echo bobr" '\x1b\\');
+
+    expect(states[0].commandLine, 'echo bobr\nkurwa');
+    expect(states[1].commandLine, 'echo bobr;kurwa');
+    expect(states[2].commandLine, isNull);
+  });
+
+  test('Terminal tracks OSC 633 shell integration state', () {
+    final states = <TerminalSemanticPromptState>[];
+    final terminal = Terminal(onSemanticPrompt: states.add);
+
+    terminal.write('\x1b]633;A\x1b\\');
+    terminal.write('\x1b]633;B\x1b\\');
+    terminal.write('\x1b]633;C\x1b\\');
+    terminal.write('\x1b]633;D;7\x1b\\');
+
+    expect(states.map((state) => state.content), [
+      TerminalSemanticPromptContent.prompt,
+      TerminalSemanticPromptContent.input,
+      TerminalSemanticPromptContent.output,
+      TerminalSemanticPromptContent.output,
+    ]);
+    expect(states.last.lastCommandExitCode, 7);
+    expect(terminal.semanticPromptState.lastCommandExitCode, 7);
+    expect(terminal.isSemanticPromptLine(0), isTrue);
+  });
+
+  test('Terminal reports OSC 633 shell integration cwd property', () {
+    String? currentDirectory;
+    final terminal = Terminal(
+      onCurrentDirectoryChange: (uri) => currentDirectory = uri,
+    );
+
+    terminal.write('\x1b]633;P;Cwd=/tmp/my project\x1b\\');
+
+    expect(currentDirectory, '/tmp/my project');
+  });
+
+  test('Terminal pushes and restores window titles', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[22t');
+    terminal.write('\x1b]2;second\x1b\\\x1b[23t');
+    terminal.write('\x1b[23t');
+
+    expect(titles, ['first', 'second', 'first']);
+  });
+
+  test('Terminal ignores icon title stack operations', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[22;1t');
+    terminal.write('\x1b]2;second\x1b\\\x1b[23;1t');
+    terminal.write('\x1b[22;2t\x1b]2;third\x1b\\\x1b[23;2t');
+
+    expect(titles, ['first', 'second', 'third', 'second']);
+  });
+
+  test('Terminal reports window titles', () {
+    final output = <String>[];
+    final titles = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onTitleChange: titles.add,
+    );
+
+    terminal.write('\x1b]2;first\x1b\\\x1b[21t');
+    terminal.write('\x1b]2;second;draft\x1b\\\x1b[23t');
+    terminal.write('\x1b[21t');
+
+    expect(titles, ['first', 'second;draft']);
+    expect(output, ['\x1b]lfirst\x1b\\', '\x1b]lsecond;draft\x1b\\']);
+  });
+
+  test('Terminal preserves semicolon-rich OSC text payloads', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+    final title = List.generate(300, (index) => 'section-$index').join(';');
+
+    terminal.write('\x1b]2;$title\x1b\\');
+
+    expect(titles, [title]);
+  });
+
+  test('Terminal applies and resets OSC color overrides', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]4;1;#abc;42;rgb:ffff/8000/0000\x1b\\'
+      '\x1b]10;#112233;#445566;#778899\x1b\\'
+      '\x1b]17;#223344\x1b\\'
+      '\x1b]19;#334455\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {1: 0xaabbcc, 42: 0xff8000},
+    );
+    expect(terminal.foregroundColorOverride, 0x112233);
+    expect(terminal.backgroundColorOverride, 0x445566);
+    expect(terminal.cursorColorOverride, 0x778899);
+    expect(terminal.selectionColorOverride, 0x223344);
+    expect(terminal.selectionForegroundColorOverride, 0x334455);
+
+    terminal.write(
+      '\x1b]104;1\x1b\\'
+      '\x1b]110\x1b\\'
+      '\x1b]111\x1b\\'
+      '\x1b]112\x1b\\'
+      '\x1b]117\x1b\\'
+      '\x1b]119\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {42: 0xff8000},
+    );
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.backgroundColorOverride, isNull);
+    expect(terminal.cursorColorOverride, isNull);
+    expect(terminal.selectionColorOverride, isNull);
+    expect(terminal.selectionForegroundColorOverride, isNull);
+
+    terminal.write('\x1b]104\x1b\\');
+    expect(terminal.indexedColorOverrides, isEmpty);
+  });
+
+  test('Terminal ignores malformed OSC colors', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]4;1;#12;300;#ffffff\x1b\\'
+      '\x1b]10;rgb:gg/00/00\x1b\\',
+    );
+
+    expect(terminal.indexedColorOverrides, isEmpty);
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.colorRevision, 0);
+  });
+
+  test('Terminal answers OSC color queries', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 4 && index == 2) return 0x123456;
+        if (code == 11) return 0xabcdef;
+        if (code == 13) return 0x13579b;
+        if (code == 19) return 0x456789;
+        return null;
+      },
+    );
+    terminal.write(
+      '\x1b]4;1;#010203\x1b\\'
+      '\x1b]13;#02468a\x1b\\'
+      '\x1b]17;#234567\x1b\\',
+    );
+
+    terminal.write(
+      '\x1b]4;1;?;2;?\x1b\\'
+      '\x1b]11;?\x1b\\'
+      '\x1b]12;?\x1b\\'
+      '\x1b]13;?\x1b\\'
+      '\x1b]113\x1b\\'
+      '\x1b]13;?\x1b\\'
+      '\x1b]17;?\x1b\\'
+      '\x1b]19;?\x1b\\',
+    );
+
+    expect(output, [
+      '\x1b]4;1;rgb:0101/0202/0303\x1b\\',
+      '\x1b]4;2;rgb:1212/3434/5656\x1b\\',
+      '\x1b]11;rgb:abab/cdcd/efef\x1b\\',
+      '\x1b]13;rgb:0202/4646/8a8a\x1b\\',
+      '\x1b]13;rgb:1313/5757/9b9b\x1b\\',
+      '\x1b]17;rgb:2323/4545/6767\x1b\\',
+      '\x1b]19;rgb:4545/6767/8989\x1b\\',
+    ]);
+  });
+
+  test('Terminal applies and answers OSC special colors', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 5 && index == 2) return 0xabcdef;
+        return null;
+      },
+    );
+
+    terminal.write(
+      '\x1b]5;1;#112233;2;?\x1b\\'
+      '\x1b]4;260;#445566;257;?\x1b\\',
+    );
+
+    expect(
+      Map<int, int>.fromEntries(terminal.specialColorOverrides),
+      {1: 0x112233, 4: 0x445566},
+    );
+    expect(output, [
+      '\x1b]5;2;rgb:abab/cdcd/efef\x1b\\',
+      '\x1b]4;257;rgb:1111/2222/3333\x1b\\',
+    ]);
+
+    terminal.write('\x1b]105;1\x1b\\');
+    expect(
+      Map<int, int>.fromEntries(terminal.specialColorOverrides),
+      {4: 0x445566},
+    );
+
+    terminal.write('\x1b]104;260\x1b\\');
+    expect(terminal.specialColorOverrides, isEmpty);
+  });
+
+  test('Terminal applies bulk OSC palette updates', () {
+    final terminal = Terminal();
+    final sequence = StringBuffer('\x1b]4');
+    for (var index = 0; index < 32; index++) {
+      sequence.write(';$index;#${index.toRadixString(16).padLeft(6, '0')}');
+    }
+    sequence.write('\x1b\\');
+
+    terminal.write(sequence.toString());
+
+    expect(terminal.indexedColorOverrides.length, 32);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides)[31],
+      0x00001f,
+    );
+  });
+
+  test('Terminal applies Kitty OSC 21 color protocol', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorQuery: (code, index) {
+        if (code == 4 && index == 3) return 0x112233;
+        if (code == 11) return 0x445566;
+        return null;
+      },
+    );
+
+    terminal.write(
+      '\x1b]21;foreground=#010203;background=?;cursor=#040506;3=?;2=#070809\x1b\\',
+    );
+
+    expect(terminal.foregroundColorOverride, 0x010203);
+    expect(terminal.cursorColorOverride, 0x040506);
+    expect(
+      Map<int, int>.fromEntries(terminal.indexedColorOverrides),
+      {2: 0x070809},
+    );
+    expect(output, [
+      '\x1b]11;rgb:4444/5555/6666\x1b\\',
+      '\x1b]4;3;rgb:1111/2222/3333\x1b\\',
+    ]);
+
+    terminal.write('\x1b]21;foreground=;cursor=;2=\x1b\\');
+
+    expect(terminal.foregroundColorOverride, isNull);
+    expect(terminal.cursorColorOverride, isNull);
+    expect(terminal.indexedColorOverrides, isEmpty);
+  });
+
+  test('Terminal renders Kitty OSC 66 text sizing payload as plain text', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b]66;s=2:w=7;Hi;there\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), 'Hi;there');
+  });
+
+  test('Terminal ignores unsafe Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(20, 3);
+
+    terminal.write('\x1b]66;;safe\x7funsafe\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), isEmpty);
+  });
+
+  test('Terminal accepts max-size Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(5000, 2);
+    final text = List.filled(4096, 'x').join();
+
+    terminal.write('\x1b]66;;$text\x1b\\');
+
+    expect(terminal.buffer.lines[0].getText(0, 4096), text);
+  });
+
+  test('Terminal discards overlong Kitty OSC 66 text payloads', () {
+    final terminal = Terminal()..resize(20, 3);
+    final text = List.filled(4097, 'x').join();
+
+    terminal.write('\x1b]66;;$text\x1b\\');
+
+    expect(terminal.buffer.lines[0].toString().trimRight(), isEmpty);
+  });
+
+  test('Terminal handles OSC 52 clipboard store and query', () async {
+    final stores = <(String, String)>[];
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+      onClipboardQuery: (selector) => switch (selector) {
+        'c' => 'paste me',
+        _ => null,
+      },
+    );
+
+    terminal.write('\x1b]52;c;Y29weSBtZQ==\x1b\\');
+    terminal.write('\x1b]52;p;cHJpbWFyeQ==\x1b\\');
+    terminal.write('\x1b]52;;Y2xlYXI=\x1b\\');
+    terminal.write('\x1b]52;x;aWdub3JlZA==\x1b\\');
+    terminal.write('\x1b]52;c;?\x1b\\');
+    terminal.write('\x1b]52;;?\x1b\\');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(stores, [('c', 'copy me'), ('s', 'primary'), ('c', 'clear')]);
+    expect(output, [
+      '\x1b]52;c;cGFzdGUgbWU=\x1b\\',
+      '\x1b]52;c;cGFzdGUgbWU=\x1b\\',
+    ]);
+  });
+
+  test('Terminal handles Kitty OSC 5522 clipboard writes', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write('\x1b]5522;type=wdata:mime=dGV4dC9wbGFpbg==;a2l0dHk=\x1b\\');
+    terminal.write('\x1b]5522;type=write:loc=primary;cHJpbWFyeQ==\x1b\\');
+    terminal.write('\x1b]5522;type=read;ignored\x1b\\');
+    terminal.write('\x1b]5522;type=wdata:status=DONE;ignored\x1b\\');
+
+    expect(stores, [('c', 'kitty'), ('s', 'primary')]);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 clipboard copy', () {
+    final stores = <(String, String)>[];
+    final privateOsc = <String>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+      onPrivateOSC: (code, args) => privateOsc.add('$code;${args.join(';')}'),
+    );
+
+    terminal.write('\x1b]1337;Copy=:Y29weSBtZQ==\x1b\\');
+    terminal.write('\x1b]1337;Copy=:?\x1b\\');
+    terminal.write('\x1b]1337;Copy=Y29weSBtZQ==\x1b\\');
+
+    expect(stores, [('c', 'copy me')]);
+    expect(privateOsc, isEmpty);
+  });
+
+  test('Terminal handles iTerm2 OSC 1337 streaming clipboard copy', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write(
+      '\x1b]1337;CopyToClipboard=\x1b\\'
+      'hello\x10\x1c\x1f\x7f\tworld\r\n'
+      '\x1b[31mred🙂\x1b[0m'
+      '\x1b]1337;EndCopy\x1b\\',
+    );
+    terminal.write(
+      '\x1b]1337;CopyToClipboard=primary\x1b\\'
+      'selection'
+      '\x1b]1337;EndCopy\x1b\\',
+    );
+
+    expect(stores, [
+      ('c', 'hello\tworld\r\nred🙂'),
+      ('s', 'selection'),
+    ]);
+  });
+
+  test('Terminal bounds iTerm2 streaming clipboard capture', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+    final oversized = ''.padRight(10 * 1024 * 1024 + 1, 'x');
+
+    terminal.write('\x1b]1337;CopyToClipboard=\x1b\\');
+    terminal.write(oversized);
+    terminal.write('\x1b]1337;EndCopy\x1b\\');
+    terminal.write(
+      '\x1b]1337;CopyToClipboard=\x1b\\'
+      'recovered'
+      '\x1b]1337;EndCopy\x1b\\',
+    );
+
+    expect(stores, [('c', 'recovered')]);
+  });
+
+  test('Terminal ignores malformed OSC 52 payloads', () {
+    final stores = <(String, String)>[];
+    final terminal = Terminal(
+      onClipboardStore: (selector, text) => stores.add((selector, text)),
+    );
+
+    terminal.write('\x1b]52;c;not base64\x1b\\');
+    terminal.write('\x1b]52;x;Y29weQ==\x1b\\');
+
+    expect(stores, isEmpty);
+  });
+
+  test('Terminal discards unsupported DCS payloads until terminator', () {
+    final terminal = Terminal();
+
+    terminal.write('before\x1bPqbinary;data');
+    terminal.write('\x1b\\after');
+
+    expect(terminal.buffer.lines[0].toString(), 'beforeafter');
+  });
+
+  test('Terminal does not terminate DCS with BEL', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x07still ignored\x1b\\after');
+
+    expect(terminal.buffer.lines[0].toString(), 'after');
+  });
+
+  test('Terminal bounds oversized DCS payloads across chunks', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP+q${'4' * 4100}');
+    terminal.write('5' * 4100);
+    terminal.write('\x1b\\safe');
+
+    expect(output, isEmpty);
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
+
+  test('Terminal resumes split escape sequences interrupted by DCS', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x1b');
+    terminal.write('[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'G');
+    expect(line.getForeground(0), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal resumes split escape sequences interrupted by APC', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b_ignored\x1b');
+    terminal.write('[31mR');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'R');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+  });
+
+  test('Terminal cancels DCS with CAN', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1bPignored\x18N');
+
+    expect(terminal.buffer.lines[0].toString(), 'N');
+  });
+
+  test('Terminal discards unsupported APC PM and SOS payloads', () {
+    final terminal = Terminal();
+
+    terminal.write('a\x1b_payload\x1b\\b');
+    terminal.write('\x1b^payload\x07still ignored\x1b\\c');
+    terminal.write('\x1bXpayload\x1b\\d');
+
+    expect(terminal.buffer.lines[0].toString(), 'abcd');
+  });
+
+  test('Terminal supports 8-bit C1 OSC DCS and string controls', () {
+    final output = <String>[];
+    final titles = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onTitleChange: titles.add,
+    );
+
+    terminal.write(
+      '\u009d2;c1 title\u009c'
+      '\u009b31mX'
+      '\u009fignored\u009cY'
+      '\u0090\$qm\u009c',
+    );
+
+    expect(titles, ['c1 title']);
+    expect(terminal.buffer.lines[0].toString(), 'XY');
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.named | NamedColor.red,
+    );
+    expect(output, ['\x1bP1\$r0;31m\x1b\\']);
+  });
+
+  test('Terminal paste sanitizes bracketed and non-bracketed payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.paste('a\nb\r\nc\x03');
+    terminal.write('\x1b[?2004h');
+    terminal.paste('safe\x1b[201~\x03\x00\x08\x7f');
+    terminal.paste('x\x1b]52;c;AAAA\x07y\x1bPignored\x1b\\z');
+    terminal.paste('c1\u009b31m\u009d52;c;AAAA\u009c');
+    terminal.paste('emoji 😀\x03é');
+    terminal.paste('escaped \x1b😀 remains valid');
+
+    expect(output, [
+      'a\rb\r\rc ',
+      '\x1b[200~safe    \x1b[201~',
+      '\x1b[200~xyz\x1b[201~',
+      '\x1b[200~c1 31m 52;c;AAAA \x1b[201~',
+      '\x1b[200~emoji 😀 é\x1b[201~',
+      '\x1b[200~escaped  remains valid\x1b[201~',
+    ]);
+  });
+
+  test('Terminal paste preserves safe payloads without copying', () {
+    String? output;
+    final terminal = Terminal(onOutput: (value) => output = value);
+    final input = List.filled(4096, 'safe').join();
+
+    terminal.paste(input);
+
+    expect(identical(output, input), isTrue);
+  });
+
+  test('Terminal paste safety detects command-injection payloads', () {
+    expect(Terminal.isPasteSafe('echo hello'), isTrue);
+    expect(Terminal.isPasteSafe('echo hello\nrm unsafe'), isFalse);
+    expect(Terminal.isPasteSafe('echo hello\r'), isFalse);
+    expect(Terminal.isPasteSafe('safe\x1b[201~unsafe'), isFalse);
+    expect(Terminal.isPasteSafe('safe\x1b]52;c;AAAA\x07'), isFalse);
+    expect(Terminal.isPasteSafe('safe\targument'), isTrue);
+    expect(Terminal.isPasteSafe('safe\x03'), isFalse);
+    expect(Terminal.isPasteSafe('c1\u009b31m'), isFalse);
+  });
+
+  group('Terminal synchronized updates', () {
+    test('coalesces redraws until the update ends', () {
+      final terminal = Terminal();
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hfirst');
+      terminal.write(' second');
+      expect(redraws, 0);
+      expect(terminal.buffer.lines[0].toString(), 'first second');
+
+      terminal.write('\x1b[?2026l');
+      expect(redraws, 1);
+    });
+
+    test('forces a redraw when an application omits the terminator', () async {
+      final terminal = Terminal();
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(redraws, 1);
+      terminal.write(' recovered');
+      expect(redraws, 2);
+    });
+
+    test('resize disables synchronized update mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      terminal.resize(100, 24);
+      terminal.write('\x1b[?2026\x24p');
+
+      expect(redraws, 2);
+      expect(output, ['\x1b[?2026;2\x24y']);
+    });
+
+    test('same-size resize disables synchronized update mode', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      var redraws = 0;
+      terminal.addListener(() => redraws++);
+
+      terminal.write('\x1b[?2026hstalled');
+      terminal.resize(terminal.viewWidth, terminal.viewHeight);
+      terminal.write('\x1b[?2026\x24p');
+
+      expect(redraws, 2);
+      expect(output, ['\x1b[?2026;2\x24y']);
+    });
+
+    test('reports synchronized update mode state', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[?2026h\x1b[?2026\x24p');
+      terminal.write('\x1b[?2026l\x1b[?2026\x24p');
+
+      expect(output, [
+        '\x1b[?2026;1\x24y',
+        '\x1b[?2026;2\x24y',
+      ]);
+    });
+  });
+
+  test('Terminal reports focus only when DEC focus mode is enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.focusInput(false);
+    expect(output, isEmpty);
+
+    terminal.write('\x1b[?1004h');
+    terminal.focusInput(true);
+    terminal.focusInput(false);
+    expect(output, ['\x1b[O', '\x1b[I', '\x1b[O']);
+
+    terminal.write('\x1b[?1004l');
+    terminal.focusInput(true);
+    expect(output, hasLength(3));
+  });
+
+  test('Terminal reports ANSI and DEC private mode state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[4h'
+      '\x1b[2\x24p'
+      '\x1b[4\x24p'
+      '\x1b[12\x24p'
+      '\x1b[12l'
+      '\x1b[12\x24p'
+      '\x1b[20\x24p'
+      '\x1b[?4h'
+      '\x1b[?4\x24p'
+      '\x1b[?7\x24p'
+      '\x1b[?8h'
+      '\x1b[?8\x24p'
+      '\x1b[?40\x24p'
+      '\x1b[?40h'
+      '\x1b[?40\x24p'
+      '\x1b[?45h'
+      '\x1b[?45\x24p'
+      '\x1b[?67h'
+      '\x1b[?67\x24p'
+      '\x1b[?1045h'
+      '\x1b[?1045\x24p'
+      '\x1b[?1048\x24p'
+      '\x1b[?1035\x24p'
+      '\x1b[?1035l'
+      '\x1b[?1035\x24p'
+      '\x1b[?1036\x24p'
+      '\x1b[?1039\x24p'
+      '\x1b[?25l'
+      '\x1b[?25\x24p'
+      '\x1b[?2031\x24p'
+      '\x1b[?2048\x24p'
+      '\x1b[?9999\x24p',
+    );
+
+    expect(output, [
+      '\x1b[2;2\x24y',
+      '\x1b[4;1\x24y',
+      '\x1b[12;1\x24y',
+      '\x1b[12;2\x24y',
+      '\x1b[20;2\x24y',
+      '\x1b[?4;1\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?8;1\x24y',
+      '\x1b[?40;2\x24y',
+      '\x1b[?40;1\x24y',
+      '\x1b[?45;1\x24y',
+      '\x1b[?67;1\x24y',
+      '\x1b[?1045;1\x24y',
+      '\x1b[?1048;2\x24y',
+      '\x1b[?1035;1\x24y',
+      '\x1b[?1035;2\x24y',
+      '\x1b[?1036;1\x24y',
+      '\x1b[?1039;2\x24y',
+      '\x1b[?25;2\x24y',
+      '\x1b[?2031;2\x24y',
+      '\x1b[?2048;2\x24y',
+      '\x1b[?9999;0\x24y',
+    ]);
+  });
+
+  test('Terminal protects cells from selective line erase', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1"qAB\x1b[2"qCD\r\x1b[?K');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+    expect(
+      terminal.buffer.lines[0].getAttributes(0) & CellAttr.protected,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.protected, 0);
+  });
+
+  test('Terminal protects cells from selective display erase', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1"qA\r\nB\x1b[2"q\r\nC\x1b[H\x1b[?J');
+
+    expect(terminal.buffer.lines[0].toString(), 'A');
+    expect(terminal.buffer.lines[1].toString(), 'B');
+    expect(terminal.buffer.lines[2].toString(), '');
+  });
+
+  test('Terminal ISO protected areas survive normal erase operations', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1bVAB\x1bWCD\r\x1b[K');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+  });
+
+  test('Terminal DEC protected areas do not survive normal erase', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1b[1"qAB\x1b[2"qCD\r\x1b[K');
+
+    expect(terminal.buffer.lines[0].toString(), '');
+  });
+
+  test('Terminal ISO protected areas survive erase characters', () {
+    final terminal = Terminal()..resize(8, 3);
+
+    terminal.write('\x1bVAB\x1bWCD\r\x1b[4X');
+
+    expect(terminal.buffer.lines[0].toString(), 'AB');
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.protected, 0);
+  });
+
+  test('Terminal saves and restores DEC private mode state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[?2026h'
+      '\x1b[?7;25;2026s'
+      '\x1b[?7;25;2026l'
+      '\x1b[?7\x24p'
+      '\x1b[?25\x24p'
+      '\x1b[?2026\x24p'
+      '\x1b[?7;25;2026r'
+      '\x1b[?7\x24p'
+      '\x1b[?25\x24p'
+      '\x1b[?2026\x24p'
+      '\x1b[?2026l',
+    );
+
+    expect(output, [
+      '\x1b[?7;2\x24y',
+      '\x1b[?25;2\x24y',
+      '\x1b[?2026;2\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?25;1\x24y',
+      '\x1b[?2026;1\x24y',
+    ]);
+  });
+
+  test('Terminal reports ANSI and DEC private mode states', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[4h'
+      '\x1b[4\x24p'
+      '\x1b[?7\x24p'
+      '\x1b[?1006\x24p'
+      '\x1b[?1006h'
+      '\x1b[?1006\x24p'
+      '\x1b[?1001\x24p'
+      '\x1b[?9999\x24p',
+    );
+
+    expect(output, [
+      '\x1b[4;1\x24y',
+      '\x1b[?7;1\x24y',
+      '\x1b[?1006;2\x24y',
+      '\x1b[?1006;1\x24y',
+      '\x1b[?1001;0\x24y',
+      '\x1b[?9999;0\x24y',
+    ]);
+  });
+
+  test('Terminal reports Alacritty-compatible device attributes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1bZ\x1b[c\x1b[0c\x1b[>c\x1b[>0c\x1b[5c\x1b[>5c',
+    );
+
+    expect(output, [
+      '\x1b[?6c',
+      '\x1b[?6c',
+      '\x1b[?6c',
+      '\x1b[>0;50300;1c',
+      '\x1b[>0;50300;1c',
+    ]);
+  });
+
+  test('Terminal reports Ghostty-compatible color scheme DSR', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorSchemeQuery: () => TerminalColorScheme.dark,
+    );
+
+    terminal.write('\x1b[?996n');
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.light;
+    terminal.write('\x1b[?996n');
+
+    expect(output, [
+      '\x1b[?997;1n',
+      '\x1b[?997;2n',
+    ]);
+  });
+
+  test('Terminal ignores color scheme DSR without callback', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[?996n');
+
+    expect(output, isEmpty);
+  });
+
+  test('Terminal reports color scheme changes when mode 2031 is enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onColorSchemeQuery: () => TerminalColorScheme.dark,
+    );
+
+    terminal.write('\x1b[?2031h');
+    terminal.reportColorSchemeChange();
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.light;
+    terminal.reportColorSchemeChange();
+    terminal.write('\x1b[?2031l');
+    terminal.onColorSchemeQuery = () => TerminalColorScheme.dark;
+    terminal.reportColorSchemeChange();
+
+    expect(output, [
+      '\x1b[?997;1n',
+      '\x1b[?997;1n',
+      '\x1b[?997;2n',
+    ]);
+  });
+
+  test('Terminal reports XTVERSION with default and callback values', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[>q');
+    terminal.onXtVersionQuery = () => 'lumide-term 1.0';
+    terminal.write('\x1b[>0q');
+
+    expect(output, [
+      '\x1bP>|xterm2 5.3.0\x1b\\',
+      '\x1bP>|lumide-term 1.0\x1b\\',
+    ]);
+  });
+
+  test('Terminal sanitizes and bounds XTVERSION callback output', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onXtVersionQuery: () => 'bad\x1b[31m${'x' * 300}',
+    );
+
+    terminal.write('\x1b[>q');
+
+    expect(output.single, startsWith('\x1bP>|bad[31m'));
+    expect(output.single, hasLength('\x1bP>|\x1b\\'.length + 256));
+  });
+
+  test('Terminal answers ENQ through optional callback', () {
+    final output = <String>[];
+    final terminal = Terminal(
+      onOutput: output.add,
+      onEnquiry: () => 'OK',
+    );
+
+    terminal.write('\x05');
+
+    expect(output, ['OK']);
+  });
+
+  test('Terminal ignores ENQ without callback or empty response', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x05');
+    terminal.onEnquiry = () => '';
+    terminal.write('\x05');
+
+    expect(output, isEmpty);
+  });
+
+  test('Terminal reports DECRQSS status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write(
+      '\x1b[1;3;4m'
+      '\x1b[3;10r'
+      '\x1b[5 q'
+      '\x1bP\$q"q\x1b\\'
+      '\x1bP\$qm\x1b\\'
+      '\x1bP\$qr\x1b\\'
+      '\x1bP\$q q\x1b\\'
+      '\x1bP\$qx\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r0"q\x1b\\',
+      '\x1bP1\$r0;1;3;4m\x1b\\',
+      '\x1bP1\$r3;10r\x1b\\',
+      '\x1bP1\$r5 q\x1b\\',
+      '\x1bP0\$r\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports DECRQSS protected attribute state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[1"q\x1bP\$q"q\x1b\\');
+    terminal.write('\x1b[2"q\x1bP\$q"q\x1b\\');
+
+    expect(output, [
+      '\x1bP1\$r1"q\x1b\\',
+      '\x1bP1\$r0"q\x1b\\',
+    ]);
+  });
+
+  test('Terminal includes active colors in DECRQSS SGR reports', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[38;5;123;48;2;1;2;3;58;5;4m'
+      '\x1bP\$qm\x1b\\',
+    );
+
+    expect(
+      output,
+      ['\x1bP1\$r0;38;5;123;48;2;1;2;3;58;5;4m\x1b\\'],
+    );
+  });
+
+  test('Terminal reports DECRQSS left and right margins when enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1bP\$qs\x1b\\');
+    terminal.write('\x1b[?69h\x1b[3;10s\x1bP\$qs\x1b\\');
+
+    expect(output, [
+      '\x1bP0\$r\x1b\\',
+      '\x1bP1\$r3;10s\x1b\\',
+    ]);
+  });
+
+  test('Terminal applies and reports page size sequences', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1b[100\$|\x1bP\$q\$|\x1b\\');
+    terminal.write('\x1b[30t\x1bP\$qt\x1b\\');
+    terminal.write('\x1b[36*|\x1bP\$q*|\x1b\\');
+
+    expect(terminal.viewWidth, 100);
+    expect(terminal.viewHeight, 36);
+    expect(output, [
+      '\x1bP1\$r100\$|\x1b\\',
+      '\x1bP1\$r30t\x1b\\',
+      '\x1bP1\$r36*|\x1b\\',
+    ]);
+  });
+
+  test('Terminal inserts and deletes columns inside margins', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('ABCDEF\r\nabcdef\r\n123456');
+    terminal.write('\x1b[1;3H\x1b[2\'}');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'ABCD');
+    expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+    expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+    expect(terminal.buffer.lines[1].getText(0, 6), 'abcd');
+    expect(terminal.buffer.lines[2].getText(0, 6), '1234');
+
+    final deleteTerminal = Terminal()..resize(6, 3);
+    deleteTerminal.write('ABCDEF\r\nabcdef\r\n123456');
+    deleteTerminal.write('\x1b[1;3H\x1b[2\'~');
+
+    expect(deleteTerminal.buffer.lines[0].getText(0, 6), 'ABEF');
+    expect(deleteTerminal.buffer.lines[1].getText(0, 6), 'abef');
+    expect(deleteTerminal.buffer.lines[2].getText(0, 6), '1256');
+  });
+
+  test('Terminal applies back and forward index at horizontal margins', () {
+    final backIndexTerminal = Terminal()..resize(6, 1);
+    backIndexTerminal.write('ABCDEF');
+    backIndexTerminal.write('\x1b[?69h\x1b[2;5s\x1b[1;2H\x1b6');
+
+    expect(backIndexTerminal.buffer.lines[0].getText(0, 6), 'ABCDF');
+    expect(backIndexTerminal.buffer.lines[0].getCodePoint(1), 0);
+
+    final forwardIndexTerminal = Terminal()..resize(6, 1);
+    forwardIndexTerminal.write('ABCDEF');
+    forwardIndexTerminal.write('\x1b[?69h\x1b[2;5s\x1b[1;5H\x1b9');
+
+    expect(forwardIndexTerminal.buffer.lines[0].getText(0, 6), 'ACDEF');
+    expect(forwardIndexTerminal.buffer.lines[0].getCodePoint(4), 0);
+  });
+
+  test('Terminal applies rectangular erase and fill operations', () {
+    final terminal = Terminal()..resize(6, 3);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl\x1b[3;1Hmnopqr');
+    terminal.write('\x1b[2;2;3;4\$z');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abcdef');
+    expect(terminal.buffer.lines[1].getCodePoint(0), 'g'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(1), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(3), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(4), 'k'.codeUnitAt(0));
+    expect(terminal.buffer.lines[2].getCodePoint(1), 0);
+    expect(terminal.buffer.lines[2].getCodePoint(3), 0);
+
+    terminal.write('\x1b[88;1;2;2;4\$x');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'aXXXef');
+    expect(terminal.buffer.lines[1].getText(0, 6), 'gXXXkl');
+  });
+
+  test('Terminal preserves protected cells during selective rectangle erase',
+      () {
+    final terminal = Terminal()..resize(5, 2);
+
+    terminal.write('\x1b[1;1Habcde\x1b[2;1Hfghij');
+    terminal.write('\x1b[1"q\x1b[2;2Hgh\x1b[0"q');
+    terminal.write('\x1b[2;1;2;3\${');
+
+    expect(terminal.buffer.lines[1].getCodePoint(0), 0);
+    expect(terminal.buffer.lines[1].getCodePoint(1), 'g'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(2), 'h'.codeUnitAt(0));
+    expect(terminal.buffer.lines[1].getCodePoint(3), 'i'.codeUnitAt(0));
+  });
+
+  test('Terminal copies rectangular areas with overlap safety', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[1;2;2;4;1;1;3;1\$v');
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abbcdf');
+    expect(terminal.buffer.lines[1].getText(0, 6), 'ghhijl');
+  });
+
+  test('Terminal reports rectangular checksums', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(3, 2);
+
+    terminal.write('\x1b[1;1Habc\x1b[2;1Hdef');
+    terminal.write('\x1b[1;1;1;1;1;2*y\x1b[2;1*y');
+
+    expect(output, [
+      '\x1bP1!~FF3D\x1b\\',
+      '\x1bP2!~FDAB\x1b\\',
+    ]);
+  });
+
+  test('Terminal changes and reverses rectangular attributes', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[2*x\x1b[1;2;2;4;7\$r');
+
+    expect(terminal.buffer.lines[0].getAttributes(0) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(1) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(3) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[1].getAttributes(4) & CellAttr.inverse, 0);
+
+    terminal.write('\x1b[1;3;2;3;7\$t');
+
+    expect(terminal.buffer.lines[0].getAttributes(2) & CellAttr.inverse, 0);
+    expect(terminal.buffer.lines[1].getAttributes(2) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(1) & CellAttr.inverse,
+      isNot(0),
+    );
+  });
+
+  test('Terminal supports stream attribute change extent', () {
+    final terminal = Terminal()..resize(6, 2);
+
+    terminal.write('\x1b[1;1Habcdef\x1b[2;1Hghijkl');
+    terminal.write('\x1b[0*x\x1b[1;2;2;4;7\$r');
+
+    expect(terminal.buffer.lines[0].getAttributes(0) & CellAttr.inverse, 0);
+    expect(
+      terminal.buffer.lines[0].getAttributes(5) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(0) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(
+      terminal.buffer.lines[1].getAttributes(3) & CellAttr.inverse,
+      isNot(0),
+    );
+    expect(terminal.buffer.lines[1].getAttributes(4) & CellAttr.inverse, 0);
+  });
+
+  test('Terminal reports DECSACE status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[2*x\x1bP\$q*x\x1b\\');
+
+    expect(output, ['\x1bP1\$r2*x\x1b\\']);
+  });
+
+  test('Terminal reports VT520 bell volume status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[3 r'
+      '\x1b[4 u'
+      '\x1b[5 t'
+      '\x1bP\$q r\x1b\\'
+      '\x1bP\$q u\x1b\\'
+      '\x1bP\$q t\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r3 r\x1b\\',
+      '\x1bP1\$r4 u\x1b\\',
+      '\x1bP1\$r5 t\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports VT520 lock key and emulation status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[2 v'
+      '\x1b[1 ~'
+      '\x1bP\$q v\x1b\\'
+      '\x1bP\$q ~\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r2 v\x1b\\',
+      '\x1bP1\$r1 ~\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports status line status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[1\$}'
+      '\x1b[2\$~'
+      '\x1bP\$q\$}\x1b\\'
+      '\x1bP\$q\$~\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r1\$}\x1b\\',
+      '\x1bP1\$r2\$~\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports conformance level status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[65;1"p\x1bP\$q"p\x1b\\');
+
+    expect(output, ['\x1bP1\$r65;1"p\x1b\\']);
+  });
+
+  test('Terminal reports protected fields status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[1}\x1bP\$q}\x1b\\');
+
+    expect(output, ['\x1bP1\$r1}\x1b\\']);
+  });
+
+  test('Terminal reports transmit termination character status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[13|'
+      '\x1b[10\'s'
+      '\x1bP\$q|\x1b\\'
+      '\x1bP\$q\'s\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r13|\x1b\\',
+      '\x1bP1\$r10\'s\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports modifyOtherKeys status string', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[>4;2m\x1bP\$q>4m\x1b\\');
+
+    expect(output, ['\x1bP1\$r>4;2m\x1b\\']);
+  });
+
+  test('Terminal reports title mode status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[>2t'
+      '\x1bP\$q>2t\x1b\\'
+      '\x1b[>2T'
+      '\x1bP\$q>2t\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r>2;1t\x1b\\',
+      '\x1bP1\$r>2;0t\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports default VT520 status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1bP\$q+q\x1b\\'
+      '\x1bP\$q*}\x1b\\'
+      '\x1bP\$q*u\x1b\\'
+      '\x1bP\$q-r\x1b\\'
+      '\x1bP\$q,y\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r0+q\x1b\\',
+      '\x1bP1\$r0*}\x1b\\',
+      '\x1bP1\$r0*u\x1b\\',
+      '\x1bP1\$r0-r\x1b\\',
+      '\x1bP1\$r0,y\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports VT520 color attribute status strings', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[5;4;5,}'
+      '\x1b[1;7;0,|'
+      '\x1bP\$q5,}\x1b\\'
+      '\x1bP\$q1,|\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1\$r5;4;5,}\x1b\\',
+      '\x1bP1\$r1;7;0,|\x1b\\',
+    ]);
+  });
+
+  test('Terminal applies DECAC normal text colors', () {
+    final terminal = Terminal()..resize(3, 1);
+
+    terminal.write('\x1b[1;7;0,|A\x1b[0mB\x1b[39;49mC');
+
+    for (var column = 0; column < 3; column++) {
+      expect(
+          terminal.buffer.lines[0].getForeground(column), 7 | CellColor.named);
+      expect(
+          terminal.buffer.lines[0].getBackground(column), 0 | CellColor.named);
+    }
+  });
+
+  test('Terminal includes assigned normal colors in checksums', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(2, 1);
+
+    terminal.write('\x1b[1;7;0,|A\x1b[1;1*y');
+
+    expect(output, ['\x1bP1!~FEBF\x1b\\']);
+  });
+
+  test('Terminal handles split DECRQSS payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP\$');
+    terminal.write('qm\x1b');
+    terminal.write('\\');
+
+    expect(output, ['\x1bP1\$r0m\x1b\\']);
+  });
+
+  test('Terminal reports XTGETTCAP capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write(
+      '\x1bP+q'
+      '544E;436F;524742;6C696E6573;'
+      '4245;5053;53796E63;584D;456E6D67;'
+      '4D73;5373;5365;536D756C78;536574756C63;'
+      '7369746D;7269746D;736D7878;726D7878;626164'
+      '\x1b\\',
+    );
+
+    expect(output, [
+      '\x1bP1+r544E=787465726D2D323536636F6C6F72\x1b\\',
+      '\x1bP1+r436F=323536\x1b\\',
+      '\x1bP1+r524742=38\x1b\\',
+      '\x1bP1+r6C696E6573=3234\x1b\\',
+      '\x1bP1+r4245=1B5B3F3230303468\x1b\\',
+      '\x1bP1+r5053=1B5B3230307E\x1b\\',
+      '\x1bP1+r53796E63='
+          '1B5B3F32303236253F257031257B317D252D25746C256568253B'
+          '\x1b\\',
+      '\x1bP1+r584D='
+          '1B5B3F313030363B31303030253F257031257B317D253D25746825656C253B'
+          '\x1b\\',
+      '\x1bP1+r456E6D67=1B5B3F363968\x1b\\',
+      '\x1bP1+r4D73=1B5D35323B25703125733B257032257307\x1b\\',
+      '\x1bP1+r5373=1B5B25703125642071\x1b\\',
+      '\x1bP1+r5365=1B5B302071\x1b\\',
+      '\x1bP1+r536D756C78=1B5B343A25703125646D\x1b\\',
+      '\x1bP1+r536574756C63='
+          '1B5B35383A323A3A257031257B36353533367D252F25643A257031257B3235367D'
+          '252F257B3235357D252625643A257031257B3235357D25262564253B6D'
+          '\x1b\\',
+      '\x1bP1+r7369746D=1B5B336D\x1b\\',
+      '\x1bP1+r7269746D=1B5B32336D\x1b\\',
+      '\x1bP1+r736D7878=1B5B396D\x1b\\',
+      '\x1bP1+r726D7878=1B5B32396D\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports XTGETTCAP navigation key capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kcbt': '\x1b[Z',
+      'kcub1': '\x1b[D',
+      'kcud1': '\x1b[B',
+      'kcuf1': '\x1b[C',
+      'kcuu1': '\x1b[A',
+      'kdch1': '\x1b[3~',
+      'kend': '\x1b[F',
+      'khome': '\x1b[H',
+      'kich1': '\x1b[2~',
+      'knp': '\x1b[6~',
+      'kpp': '\x1b[5~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')}'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal handles split XTGETTCAP payloads', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1bP+q');
+    terminal.write('436F\x1b');
+    terminal.write('\\');
+
+    expect(output, ['\x1bP1+r436F=323536\x1b\\']);
+  });
+
+  test('Terminal reports common terminfo rendering capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'clear': '\x1b[H\x1b[2J',
+      'E3': '\x1b[3J',
+      'fe': '\x1b[?1004h',
+      'fd': '\x1b[?1004l',
+      'kxIN': '\x1b[I',
+      'kxOUT': '\x1b[O',
+      'bold': '\x1b[1m',
+      'cbt': '\x1b[Z',
+      'civis': '\x1b[?25l',
+      'cnorm': '\x1b[?12l\x1b[?25h',
+      'cr': '\r',
+      'dim': '\x1b[2m',
+      'dsl': '\x1b]2;\x07',
+      'flash': '\x1b[?5h\$<100/>\x1b[?5l',
+      'fsl': '\x07',
+      'home': '\x1b[H',
+      'invis': '\x1b[8m',
+      'rmacs': '\x1b(B',
+      'rmam': '\x1b[?7l',
+      'rmir': '\x1b[4l',
+      'rmkx': '\x1b[?1l\x1b>',
+      'rev': '\x1b[7m',
+      'smacs': '\x1b(0',
+      'smam': '\x1b[?7h',
+      'smir': '\x1b[4h',
+      'smkx': '\x1b[?1h\x1b=',
+      'smul': '\x1b[4m',
+      'rmul': '\x1b[24m',
+      'sgr0': '\x1b(B\x1b[m',
+      'tsl': '\x1b]2;',
+      'op': '\x1b[39;49m',
+      'setrgbf': '\x1b[38:2:%p1%d:%p2%d:%p3%dm',
+      'setrgbb': '\x1b[48:2:%p1%d:%p2%d:%p3%dm',
+      'cup': '\x1b[%i%p1%d;%p2%dH',
+      'ech': '\x1b[%p1%dX',
+      'indn': '\x1b[%p1%dS',
+      'rin': '\x1b[%p1%dT',
+      'rep': '%p1%c\x1b[%p2%{1}%-%db',
+      'smcup': '\x1b[?1049h',
+      'rmcup': '\x1b[?1049l',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal reports modern terminfo feature flags', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'AX': '1',
+      'Tc': '1',
+      'Su': '1',
+      'XT': '1',
+      'fullkbd': '1',
+      'it': '8',
+      'pairs': '32767',
+      'acsc':
+          '++\\,\\,--..00``aaffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')}'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal reports common terminfo keyboard capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kbs': '\x7f',
+      'kcbt': '\x1b[Z',
+      'kent': '\x1bOM',
+      'khome': '\x1b[H',
+      'kend': '\x1b[F',
+      'kich1': '\x1b[2~',
+      'kdch1': '\x1b[3~',
+      'kpp': '\x1b[5~',
+      'knp': '\x1b[6~',
+      'kcuu1': '\x1b[A',
+      'kcud1': '\x1b[B',
+      'kcuf1': '\x1b[C',
+      'kcub1': '\x1b[D',
+      'kf1': '\x1bOP',
+      'kf2': '\x1bOQ',
+      'kf3': '\x1bOR',
+      'kf4': '\x1bOS',
+      'kf5': '\x1b[15~',
+      'kf6': '\x1b[17~',
+      'kf7': '\x1b[18~',
+      'kf8': '\x1b[19~',
+      'kf9': '\x1b[20~',
+      'kf10': '\x1b[21~',
+      'kf11': '\x1b[23~',
+      'kf12': '\x1b[24~',
+      'u6': '\x1b[%i%d;%dR',
+      'u7': '\x1b[6n',
+      'u8': '\x1b[?%[;0123456789]c',
+      'u9': '\x1b[c',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal reports modified navigation terminfo capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kUP': '\x1b[1;2A',
+      'kri': '\x1b[1;2A',
+      'kUP5': '\x1b[1;5A',
+      'kDN': '\x1b[1;2B',
+      'kind': '\x1b[1;2B',
+      'kDN7': '\x1b[1;7B',
+      'kRIT3': '\x1b[1;3C',
+      'kLFT6': '\x1b[1;6D',
+      'kHOM': '\x1b[1;2H',
+      'kEND7': '\x1b[1;7F',
+      'kIC5': '\x1b[2;5~',
+      'kDC4': '\x1b[3;4~',
+      'kPRV6': '\x1b[5;6~',
+      'kNXT3': '\x1b[6;3~',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};626164'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal reports modified function-key terminfo capabilities', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    final capabilities = {
+      'kf13': '\x1b[1;2P',
+      'kf24': '\x1b[24;2~',
+      'kf25': '\x1b[1;5P',
+      'kf36': '\x1b[24;5~',
+      'kf37': '\x1b[1;6P',
+      'kf48': '\x1b[24;6~',
+      'kf49': '\x1b[1;3P',
+      'kf60': '\x1b[24;3~',
+      'kf61': '\x1b[1;4P',
+      'kf63': '\x1b[1;4R',
+    };
+
+    terminal.write(
+      '\x1bP+q'
+      '${capabilities.keys.map(_hexEncode).join(';')};6B663634'
+      '\x1b\\',
+    );
+
+    expect(
+      output,
+      capabilities.entries.map((entry) {
+        return '\x1bP1+r${_hexEncode(entry.key)}=${_hexEncode(entry.value)}\x1b\\';
+      }).toList(),
+    );
+  });
+
+  test('Terminal reports text area and cell pixel sizes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[14t\x1b[16t\x1b[18t');
+
+    expect(output, [
+      '\x1b[4;432;720t',
+      '\x1b[6;18;9t',
+      '\x1b[8;24;80t',
+    ]);
+  });
+
+  test('Terminal ignores XTWINOPS size queries with extra params', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[14;1t\x1b[16;1t\x1b[18;1t\x1b[21;1t');
+
+    expect(output, isEmpty);
+  });
+
+  test('Terminal reports DEC window and terminal state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24);
+
+    terminal.write('\x1b["v\x1b[1\$u\x1b[2\$u');
+
+    expect(output, [
+      '\x1b[24;80;1;1;1"w',
+      '\x1bP1\$s\x1b\\',
+    ]);
+  });
+
+  test('Terminal reports cursor and tab presentation state', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(24, 5);
+
+    terminal.write('\x1b[1;4;5;7m\x1b[3;5H\x1b[1\$w\x1b[2\$w');
+
+    expect(output, [
+      '\x1bP1\$u3;5;1;O;@;@;0;1;@BBBB\x1b\\',
+      '\x1bP2\$u9/17\x1b\\',
+    ]);
+  });
+
+  test('Terminal assigns and reports user-preferred supplemental set', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[&u\x1bP1!uB\x1b\\\x1b[&u');
+
+    expect(output, [
+      '\x1bP0!u%5\x1b\\',
+      '\x1bP1!uB\x1b\\',
+    ]);
+  });
+
+  test('Terminal emits in-band size reports when mode 2048 is enabled', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[?2048h');
+    terminal.resize(100, 30, 10, 20);
+    terminal.write('\x1b[?2048l');
+    terminal.resize(120, 40, 11, 21);
+
+    expect(output, [
+      '\x1b[48;24;80;432;720t',
+      '\x1b[48;30;100;600;1000t',
+    ]);
+  });
+
+  test('Terminal reports in-band geometry for same-size resizes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
+
+    terminal.write('\x1b[?2048h');
+    terminal.resize(80, 24, 9, 18);
+
+    expect(output, [
+      '\x1b[48;24;80;432;720t',
+      '\x1b[48;24;80;432;720t',
+    ]);
+  });
+
+  test('Terminal resets tab stops when the column count changes', () {
+    final terminal = Terminal()..resize(20, 5);
+    terminal.write('\x1b[3g\x1b[5G\x1bH\r\t');
+    expect(terminal.buffer.cursorX, 4);
+
+    terminal.resize(24, 5);
+    terminal.write('\r\t');
+
+    expect(terminal.buffer.cursorX, 8);
+  });
+
+  test('Terminal skips no-op resizes', () {
+    final resizes = <(int, int, int, int)>[];
+    final terminal = Terminal();
+
+    terminal.onResize = (width, height, pixelWidth, pixelHeight) {
+      resizes.add((width, height, pixelWidth, pixelHeight));
+    };
+    terminal.resize(100, 30, 9, 18);
+    terminal.resize(100, 30, 9, 18);
+    terminal.resize(100, 30);
+    terminal.resize(100, 30, 10, 18);
+
+    expect(resizes, [
+      (100, 30, 9, 18),
+      (100, 30, 10, 18),
+    ]);
+    expect(terminal.viewWidth, 100);
+  });
+
+  test('Terminal reports one-based cursor position', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[3;5H\x1b[6n');
+
+    expect(output, ['\x1b[3;5R']);
+  });
+
+  test('Terminal reports origin-mode cursor position relative to margins', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[5;20r\x1b[?6h\x1b[3;5H\x1b[6n');
+
+    expect(output, ['\x1b[3;5R']);
+  });
+
+  test('Terminal reports private device status', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write(
+      '\x1b[3;5H'
+      '\x1b[?6n'
+      '\x1b[?15n'
+      '\x1b[?25n'
+      '\x1b[?26n'
+      '\x1b[?55n'
+      '\x1b[?56n'
+      '\x1b[?62n'
+      '\x1b[?63;1n'
+      '\x1b[?75n'
+      '\x1b[?85n',
+    );
+
+    expect(output, [
+      '\x1b[?3;5;1R',
+      '\x1b[?13n',
+      '\x1b[?23n',
+      '\x1b[?27;1;0;1n',
+      '\x1b[?53n',
+      '\x1b[?57;0n',
+      '\x1b[0*{',
+      '\x1bP1!~0000\x1b\\',
+      '\x1b[?70n',
+      '\x1b[?83n',
+    ]);
+  });
+
+  test('Terminal ignores malformed private device status reports', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[?6;1n\x1b[?996;1n\x1b[?63;1n');
+
+    expect(output, ['\x1bP1!~0000\x1b\\']);
+  });
+
+  test('Terminal supports reverse wrap mode for cursor left', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?45hABCDE1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCDX');
+    expect(terminal.buffer.lines[1].toString(), '1');
+  });
+
+  test('Terminal reverse wrap stops at unwrapped previous line', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?45hABCD\r\n1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCD');
+    expect(terminal.buffer.lines[1].toString(), 'X');
+  });
+
+  test('Terminal supports extended reverse wrap mode', () {
+    final terminal = Terminal()..resize(5, 3);
+
+    terminal.write('\x1b[?1045hABCD\r\n1\x1b[2DX');
+
+    expect(terminal.buffer.lines[0].toString(), 'ABCDX');
+    expect(terminal.buffer.lines[1].toString(), '1');
+  });
+
+  test('Terminal negotiates Kitty keyboard modes', () {
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[=1u');
+    expect(terminal.kittyKeyboardMode, 1);
+
+    terminal.write('\x1b[=2;2u');
+    expect(terminal.kittyKeyboardMode, 3);
+
+    terminal.write('\x1b[=1;3u');
+    expect(terminal.kittyKeyboardMode, 2);
+
+    terminal.write('\x1b[?u');
+    expect(output, ['\x1b[?2u']);
+  });
+
+  test('Terminal pushes and pops Kitty keyboard mode stack', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[>1u\x1b[>3u');
+    expect(terminal.kittyKeyboardMode, 3);
+
+    terminal.write('\x1b[<u');
+    expect(terminal.kittyKeyboardMode, 1);
+
+    terminal.write('\x1b[<99u');
+    expect(terminal.kittyKeyboardMode, 0);
+  });
+
+  test('Terminal pops Kitty keyboard mode to previous set mode', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[=1u\x1b[>2u');
+    expect(terminal.kittyKeyboardMode, 2);
+
+    terminal.write('\x1b[<u');
+    expect(terminal.kittyKeyboardMode, 1);
+  });
+
+  test('Terminal multi-pops Kitty keyboard mode to oldest saved mode', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[=1u\x1b[>2u\x1b[>3u');
+    expect(terminal.kittyKeyboardMode, 3);
+
+    terminal.write('\x1b[<2u');
+    expect(terminal.kittyKeyboardMode, 1);
+  });
+
+  test('Terminal restores main cursor when leaving 1049 alternate screen', () {
+    final terminal = Terminal()..resize(5, 5);
+
+    terminal.write('\x1b[3;4H');
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 2);
+
+    terminal.write('\x1b[?1049h');
+    terminal.write('\x1b[1;1Halt');
+    expect(terminal.isUsingAltBuffer, isTrue);
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 0);
+
+    terminal.write('\x1b[?1049l');
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(terminal.buffer.cursorX, 3);
+    expect(terminal.buffer.cursorY, 2);
+  });
+
+  test('Terminal applies application keypad mode escapes', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b=');
+    expect(terminal.appKeypadMode, isTrue);
+
+    terminal.write('\x1b>');
+    expect(terminal.appKeypadMode, isFalse);
+  });
+
+  test('Terminal supports G2 and G3 character set invocation', () {
+    final terminal = Terminal()..resize(12, 2);
+
+    terminal.write(
+      '\x1b*0\x1bNqq'
+      '\x1b+0\x1boqq'
+      '\x0fq',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0x2500);
+    expect(line.getCodePoint(1), 0x71);
+    expect(line.getCodePoint(2), 0x2500);
+    expect(line.getCodePoint(3), 0x2500);
+    expect(line.getCodePoint(4), 0x71);
+  });
+
+  test('Terminal applies DECSCUSR cursor shape and blinking state', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[3 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.underline);
+    expect(terminal.cursorBlinkMode, isTrue);
+
+    terminal.write('\x1b[6 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.verticalBar);
+    expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b[2 q');
+    expect(terminal.applicationCursorType, TerminalCursorType.block);
+    expect(terminal.cursorBlinkMode, isFalse);
+
+    terminal.write('\x1b[0 q');
+    expect(terminal.applicationCursorType, isNull);
+    expect(terminal.cursorBlinkMode, isFalse);
+  });
+
+  test('Terminal bounds oversized OSC payloads across chunks', () {
+    final privateOsc = <String>[];
+    final terminal = Terminal(
+      onPrivateOSC: (code, args) => privateOsc.add('$code;${args.join(';')}'),
+    );
+
+    terminal.write('\x1b]999;${'x' * 4100}');
+    terminal.write('y' * 4100);
+    terminal.write('\x07safe');
+
+    expect(privateOsc, isEmpty);
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
+
+  test('Terminal terminates oversized OSC discard state with split ST', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b]999;${'x' * 8200}\x1b');
+    terminal.write('\\safe');
+
+    expect(terminal.buffer.lines[0].toString(), 'safe');
+  });
+
+  test('Terminal ignores C0 controls inside OSC payloads', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;a\nb\x07');
+
+    expect(titles, ['ab']);
+  });
+
+  test('Terminal cancels OSC with CAN and restarts it with ESC', () {
+    final titles = <String>[];
+    final terminal = Terminal(onTitleChange: titles.add);
+
+    terminal.write('\x1b]2;ignored\x18N');
+    terminal.write('\x1b]2;ignored\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(titles, isEmpty);
+    expect(line.toString(), 'NG');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getForeground(1), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal bounds oversized CSI payloads across chunks', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[${'1;' * 100}');
+    terminal.write('2;' * 100);
+    terminal.write('mSafe');
+
+    expect(terminal.buffer.lines[0].toString(), 'Safe');
+  });
+
+  test('Terminal resumes escapes after oversized CSI payloads', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[${'1;' * 200}\x1b');
+    terminal.write('[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'G');
+    expect(line.getForeground(0), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal executes embedded CSI controls without cancelling it', () {
+    var bells = 0;
+    final terminal = Terminal(onBell: () => bells++)..resize(5, 3);
+
+    terminal.write('\x1b[31\x07mR');
+    terminal.write('\x1b[0m\x1b[2\nCX');
+
+    expect(bells, 1);
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.named | NamedColor.red,
+    );
+    expect(terminal.buffer.lines[1].getCodePoint(3), 'X'.codeUnitAt(0));
+  });
+
+  test('Terminal preserves ESC state across controls and chunks', () {
+    var bells = 0;
+    final terminal = Terminal(onBell: () => bells++);
+
+    terminal.write('\x1b\x07');
+    terminal.write('[31mR');
+    terminal.write('\x1b\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(bells, 1);
+    expect(line.toString(), 'RG');
+    expect(line.getForeground(0), CellColor.named | NamedColor.red);
+    expect(line.getForeground(1), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal cancels CSI with CAN and restarts it with ESC', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[31\x18mN');
+    terminal.write('\x1b[31\x1b[32mG');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'mNG');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getForeground(1), CellColor.normal);
+    expect(line.getForeground(2), CellColor.named | NamedColor.green);
+  });
+
+  test('Terminal ignores incomplete SGR color sequences', () {
+    final terminal = Terminal();
+
+    expect(
+      () => terminal.write(
+        '\x1b[38m'
+        '\x1b[38;2;1;2m'
+        '\x1b[38;5m'
+        '\x1b[48m'
+        '\x1b[48;2;1;2m'
+        '\x1b[48;5m'
+        'Safe',
+      ),
+      returnsNormally,
+    );
+    expect(terminal.buffer.lines[0].toString(), 'Safe');
+  });
+
+  test('Terminal does not apply malformed SGR color operands as styles', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[38;2;1;2mF'
+      '\x1b[0m'
+      '\x1b[48;5mB'
+      '\x1b[0m'
+      '\x1b[58;9mU',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(1), CellColor.normal);
+    expect(line.getUnderlineColor(2), CellColor.normal);
+    expect(
+      line.createCellData(0).flags & (CellFlags.bold | CellFlags.faint),
+      0,
+    );
+    expect(line.createCellData(2).flags & CellAttr.strikethrough, 0);
+  });
+
+  test('Terminal ignores out-of-range SGR color values', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[38;5;300m'
+      '\x1b[48;5;300m'
+      '\x1b[58;5;300m'
+      '\x1b[38;2;256;1;2m'
+      '\x1b[48;2;1;256;2m'
+      '\x1b[58;2;1;2;256m'
+      'Safe',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.toString(), 'Safe');
+    expect(line.getForeground(0), CellColor.normal);
+    expect(line.getBackground(0), CellColor.normal);
+    expect(line.getUnderlineColor(0), CellColor.normal);
+  });
+
+  test('Terminal supports colon-delimited SGR truecolor foreground', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[38:2:1:2:3mX');
+
+    expect(
+      terminal.buffer.lines[0].getForeground(0),
+      CellColor.rgb | 0x010203,
+    );
+  });
+
+  test('Terminal supports colon-delimited SGR truecolor color space', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[38:2::1:2:3mF');
+    terminal.write('\x1b[48:2:0:4:5:6mB');
+    terminal.write('\x1b[58:2::7:8:9mU');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getForeground(0), CellColor.rgb | 0x010203);
+    expect(line.getBackground(1), CellColor.rgb | 0x040506);
+    expect(line.getUnderlineColor(2), CellColor.rgb | 0x070809);
+  });
+
+  test('Terminal applies Kakoune-style SGR underline foreground and background',
+      () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b[4:3;38;2;51;51;51;48;2;170;170;170;58;2;255;97;136mX',
+    );
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getAttributes(0) & CellAttr.undercurl, isNot(0));
+    expect(line.getForeground(0), CellColor.rgb | 0x333333);
+    expect(line.getBackground(0), CellColor.rgb | 0xaaaaaa);
+    expect(line.getUnderlineColor(0), CellColor.rgb | 0xff6188);
+  });
+
+  test('Terminal supports colon-delimited SGR truecolor background', () {
+    final terminal = Terminal();
+
+    terminal.write('\x1b[48:2:4:5:6mX');
+
+    expect(
+      terminal.buffer.lines[0].getBackground(0),
+      CellColor.rgb | 0x040506,
+    );
+  });
+
+  group('Terminal CSI zero defaults', () {
+    test('scroll margins treat zero as default', () {
+      final terminal = Terminal()..resize(5, 5);
+
+      terminal.write('\x1b[2;4r');
+      expect(terminal.buffer.marginTop, 1);
+      expect(terminal.buffer.marginBottom, 3);
+
+      terminal.write('\x1b[0;0r');
+      expect(terminal.buffer.marginTop, 0);
+      expect(terminal.buffer.marginBottom, 4);
+    });
+
+    test('scroll margins treat omitted top as one', () {
+      final terminal = Terminal()..resize(5, 5);
+
+      terminal.write('\x1b[;3r');
+
+      expect(terminal.buffer.marginTop, 0);
+      expect(terminal.buffer.marginBottom, 2);
+    });
+
+    test('cursor position treats omitted row as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('\x1b[;3HX');
+
+      expect(terminal.buffer.lines[0].toString(), 'X');
+      expect(terminal.buffer.lines[0].getCodePoint(2), 'X'.codeUnitAt(0));
+    });
+
+    test('cursor position treats omitted column as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('\x1b[2;HX');
+
+      expect(terminal.buffer.lines[1].toString(), 'X');
+      expect(terminal.buffer.lines[1].getCodePoint(0), 'X'.codeUnitAt(0));
+    });
+
+    test('cursor position aliases treat zero as one', () {
+      final terminal = Terminal()..resize(10, 5);
+
+      terminal.write('\x1b[3;3H\x1b[0`\x1b[0a\x1b[0eX');
+
+      expect(terminal.buffer.cursorX, 2);
+      expect(terminal.buffer.cursorY, 3);
+      expect(terminal.buffer.lines[3].getCodePoint(1), 'X'.codeUnitAt(0));
+    });
+
+    test('delete characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0P');
+
+      expect(terminal.buffer.lines[0].toString(), 'abde');
+    });
+
+    test('erase characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0X');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].toString(), 'abde');
+    });
+
+    test('erase characters ignores horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;4H\x1b[2X');
+
+      expect(terminal.buffer.lines[0].getText(0, 6), 'abcf');
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
+    test('insert blank characters treats zero as one', () {
+      final terminal = Terminal()..resize(5, 3);
+
+      terminal.write('abcde\r\x1b[2C\x1b[0@');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].toString(), 'abcd');
+    });
+
+    test('insert lines treats zero as one', () {
+      final terminal = Terminal()..resize(5, 5);
+      terminal.write('one\r\ntwo\r\nthree');
+
+      terminal.setCursor(0, 1);
+      terminal.write('\x1b[0L');
+
+      expect(terminal.buffer.lines[0].toString(), 'one');
+      expect(terminal.buffer.lines[1].toString(), '');
+      expect(terminal.buffer.lines[2].toString(), 'two');
+    });
+
+    test('delete lines treats zero as one', () {
+      final terminal = Terminal()..resize(5, 5);
+      terminal.write('one\r\ntwo\r\nthree');
+
+      terminal.setCursor(0, 1);
+      terminal.write('\x1b[0M');
+
+      expect(terminal.buffer.lines[0].toString(), 'one');
+      expect(terminal.buffer.lines[1].toString(), 'three');
+      expect(terminal.buffer.lines[2].toString(), '');
+    });
+  });
+
+  group('Terminal left and right margins', () {
+    test('DECSLRM is ignored until DECLRMM is enabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[2;4s');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+    });
+
+    test('DECSLRM sets horizontal margins and homes cursor', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s');
+
+      expect(terminal.buffer.marginLeft, 1);
+      expect(terminal.buffer.marginRight, 3);
+      expect(terminal.buffer.cursorX, 0);
+      expect(terminal.buffer.cursorY, 0);
+    });
+
+    test('CSI s sets full horizontal margins when DECLRMM is enabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;3H\x1b[s');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+      expect(terminal.buffer.cursorX, 0);
+      expect(terminal.buffer.cursorY, 0);
+    });
+
+    test('CSI s saves cursor when DECLRMM is disabled', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[2;3H\x1b[s\x1b[1;1H\x1b[u');
+
+      expect(terminal.buffer.cursorX, 2);
+      expect(terminal.buffer.cursorY, 1);
+    });
+
+    test('DECLRMM reset clears horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[?69l');
+
+      expect(terminal.buffer.marginLeft, 0);
+      expect(terminal.buffer.marginRight, 5);
+    });
+
+    test('carriage return respects left margin after the margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[1;6H\rX');
+
+      expect(terminal.buffer.cursorX, 3);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x58);
+    });
+
+    test('carriage return before left margin moves to zero', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[1;1H\rX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x58);
+    });
+
+    test('origin mode uses left margin for absolute cursor position', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[?6h\x1b[1;1HX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x58);
+    });
+
+    test('auto wrap returns to left margin at right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;2Habcde');
+
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x62);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x63);
+      expect(terminal.buffer.lines[1].getCodePoint(1), 0x64);
+      expect(terminal.buffer.lines[1].getCodePoint(2), 0x65);
+    });
+
+    test('wide characters wrap before right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;4Hあ');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[1].getCodePoint(1), 0x3042);
+      expect(terminal.buffer.lines[1].getWidth(1), 2);
+    });
+
+    test('widening graphemes wrap before right margin', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[1;4H\u0915\u094d\u0937');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      final wrappedLine = terminal.buffer.lines[1];
+      expect(wrappedLine.getCodePoint(1), 0x0915);
+      expect(wrappedLine.getCombiningCharacters(1), '\u094d\u0937');
+      expect(wrappedLine.getWidth(1), 2);
+      expect(wrappedLine.getWidth(2), 0);
+      expect(terminal.buffer.cursorX, 3);
+    });
+
+    test('delete characters shifts only inside horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;2H\x1b[P');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0x63);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x64);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x65);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
+    test('insert blank characters shifts only inside horizontal margins', () {
+      final terminal = Terminal()..resize(6, 3);
+
+      terminal.write('abcdef\x1b[?69h\x1b[2;4s\x1b[1;2H\x1b[@');
+
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x61);
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x62);
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x63);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x65);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x66);
+    });
+
+    test('insert blank characters clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('ABCD橋\x1b[?69h\x1b[1;5s\x1b[1;3H\x1b[@');
+
+      expect(terminal.buffer.lines[0].getText(), 'ABCD');
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0);
+      expect(terminal.buffer.lines[0].getWidth(2), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(4), 0x44);
+      expect(terminal.buffer.lines[0].getWidth(4), 1);
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0);
+      expect(terminal.buffer.lines[0].getWidth(5), 0);
+    });
+
+    test('insert blank characters clears wide head before right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('中中中中中\x1b[?69h\x1b[1;9s\x1b[1;2Ha\x1b[8@');
+
+      expect(terminal.buffer.lines[0].getText(), 'a');
+      expect(terminal.buffer.lines[0].getCodePoint(8), 0);
+      expect(terminal.buffer.lines[0].getWidth(8), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(9), 0);
+      expect(terminal.buffer.lines[0].getWidth(9), 0);
+    });
+
+    test('delete characters clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(8, 3);
+
+      terminal.write('123456橋\x1b[?69h\x1b[2;7s\x1b[1;2H\x1b[P');
+
+      expect(terminal.buffer.lines[0].getText(), '13456');
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0);
+      expect(terminal.buffer.lines[0].getWidth(5), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0);
+      expect(terminal.buffer.lines[0].getWidth(6), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(7), 0);
+      expect(terminal.buffer.lines[0].getWidth(7), 0);
+    });
+
+    test('insert lines shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;2H\x1b[L');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mhijqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'snopwx');
+    });
+
+    test('delete lines shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;2H\x1b[M');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gnopkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mtuvqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
+    });
+
+    test('delete lines clears wide tail beyond right margin', () {
+      final terminal = Terminal()..resize(80, 24);
+
+      terminal.write('\x1b[10;39H中\x1b[?69h\x1b[5;39s\x1b[10;5H\x1b[24M');
+
+      expect(terminal.buffer.lines[9].getCodePoint(37), 0);
+      expect(terminal.buffer.lines[9].getWidth(37), 0);
+      expect(terminal.buffer.lines[9].getCodePoint(38), 0);
+      expect(terminal.buffer.lines[9].getWidth(38), 0);
+      expect(terminal.buffer.lines[9].getCodePoint(39), 0);
+      expect(terminal.buffer.lines[9].getWidth(39), 0);
+    });
+
+    test('delete lines clears copied wide head at right margin', () {
+      final terminal = Terminal()..resize(8, 3);
+
+      terminal.write('........\r\n123456橋');
+      terminal.write('\x1b[?69h\x1b[2;7s\x1b[1;2H\x1b[M');
+
+      expect(terminal.buffer.lines[0].getText(), '.23456.');
+      expect(terminal.buffer.lines[0].getCodePoint(5), 0x36);
+      expect(terminal.buffer.lines[0].getWidth(5), 1);
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0);
+      expect(terminal.buffer.lines[0].getWidth(6), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(7), 0x2e);
+      expect(terminal.buffer.lines[0].getWidth(7), 1);
+    });
+
+    test('delete lines clears copied wide tail at left margin', () {
+      final terminal = Terminal()..resize(8, 3);
+
+      terminal.write('........\r\n橋abcdef');
+      terminal.write('\x1b[?69h\x1b[2;7s\x1b[1;2H\x1b[M');
+
+      expect(terminal.buffer.lines[0].getText(), '.abcde.');
+      expect(terminal.buffer.lines[0].getCodePoint(0), 0x2e);
+      expect(terminal.buffer.lines[0].getWidth(0), 1);
+      expect(terminal.buffer.lines[0].getCodePoint(1), 0);
+      expect(terminal.buffer.lines[0].getWidth(1), 0);
+      expect(terminal.buffer.lines[0].getCodePoint(2), 0x61);
+      expect(terminal.buffer.lines[0].getWidth(2), 1);
+    });
+
+    test('scroll up shifts only horizontal margin cells', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[2;4s\x1b[2;4r\x1b[S');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'gnopkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mtuvqr');
+      expect(terminal.buffer.lines[3].getText(0, 6), 'swx');
+    });
+
+    test('index outside horizontal margins does not scroll', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[3;1H\x1bDX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'ghijkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'Xnopqr');
+    });
+
+    test('reverse index outside horizontal margins does not scroll', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[2;1H\x1bMX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'Xhijkl');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mnopqr');
+    });
+
+    test('next line uses carriage-return horizontal margin', () {
+      final terminal = Terminal()..resize(6, 4);
+
+      terminal.write('abcdef\r\nghijkl\r\nmnopqr\r\nstuvwx');
+      terminal.write('\x1b[?69h\x1b[3;5s\x1b[2;3r\x1b[3;5H\x1bEX');
+
+      expect(terminal.buffer.lines[1].getText(0, 6), 'ghopql');
+      expect(terminal.buffer.lines[2].getText(0, 6), 'mnXr');
+      expect(terminal.buffer.lines[2].getCodePoint(3), 0);
+      expect(terminal.buffer.lines[2].getCodePoint(4), 0);
+    });
+
+    test('horizontal tab stops at right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[1;2H\tX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0x58);
+      expect(terminal.buffer.cursorX, 7);
+    });
+
+    test('cursor forward tab stops at right margin', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[1;5H\x1b[IX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(6), 0x58);
+      expect(terminal.buffer.cursorX, 7);
+    });
+
+    test('cursor backward tab stops at left margin in origin mode', () {
+      final terminal = Terminal()..resize(10, 3);
+
+      terminal.write('\x1b[?69h\x1b[4;7s\x1b[?6h\x1b[1;3H\x1b[ZX');
+
+      expect(terminal.buffer.lines[0].getCodePoint(3), 0x58);
+      expect(terminal.buffer.cursorX, 4);
+    });
+  });
+
+  test('Terminal stores and closes OSC 8 hyperlinks in packed cells', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]8;id=docs;https://example.com/a;b\x1b\\'
+      'link'
+      '\x1b[0m'
+      '\x1b]8;;\x1b\\ plain',
+    );
+
+    for (var column = 0; column < 4; column++) {
+      expect(
+        terminal.hyperlinkAt(CellOffset(column, 0)),
+        'https://example.com/a;b',
+      );
+    }
+    expect(terminal.hyperlinkAt(const CellOffset(4, 0)), isNull);
+  });
+
+  test('Terminal preserves OSC 8 hyperlinks across wrapped lines', () {
+    final terminal = Terminal()..resize(3, 3);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\abcdef\x1b]8;;\x1b\\');
+
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal preserves OSC 8 hyperlinks across resize reflow', () {
+    final terminal = Terminal()..resize(6, 4);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\abcdef\x1b]8;;\x1b\\');
+    terminal.resize(3, 4);
+
+    expect(terminal.buffer.lines[0].getText(0, 3), 'abc');
+    expect(terminal.buffer.lines[1].getText(0, 3), 'def');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 1)),
+      'https://example.com',
+    );
+
+    terminal.resize(6, 4);
+
+    expect(terminal.buffer.lines[0].getText(0, 6), 'abcdef');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(5, 0)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal closes OSC 8 hyperlinks with empty URI and params', () {
+    final terminal = Terminal();
+
+    terminal.write(
+      '\x1b]8;;https://example.com\x1b\\a'
+      '\x1b]8;id=keep;\x1b\\b',
+    );
+
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
+  });
+
+  test('Terminal clears OSC 8 metadata when linked cells are erased', () {
+    final terminal = Terminal()
+      ..write('\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\');
+
+    terminal.write('\r\x1b[2K');
+
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+  });
+
+  test('Terminal bounds the OSC 8 hyperlink registry', () {
+    final terminal = Terminal(maxLines: 100);
+    for (var index = 0; index < 4096; index++) {
+      terminal.write(
+        '\x1b]8;;https://example.com/$index\x1b\\x\x1b]8;;\x1b\\',
+      );
+    }
+
+    final overflowPosition = CellOffset(
+      terminal.buffer.cursorX,
+      terminal.buffer.absoluteCursorY,
+    );
+    terminal.write(
+      '\x1b]8;;https://example.com/overflow\x1b\\x\x1b]8;;\x1b\\',
+    );
+
+    expect(terminal.hyperlinkAt(overflowPosition), isNull);
+  });
+
+  test('Terminal prunes erased OSC 8 hyperlinks before rejecting new ones', () {
+    final terminal = Terminal()..resize(2, 1);
+
+    for (var index = 0; index < 4096; index++) {
+      terminal.write(
+        '\x1b]8;;https://example.com/$index\x1b\\x\x1b]8;;\x1b\\'
+        '\r\x1b[2K',
+      );
+    }
+
+    terminal.write(
+      '\x1b]8;;https://example.com/after-prune\x1b\\x\x1b]8;;\x1b\\',
+    );
+
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com/after-prune',
+    );
+  });
+
+  test('Terminal insert blank chars shifts hyperlinks without linking blanks',
+      () {
+    final terminal = Terminal()..resize(10, 2);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC');
+    terminal.write('\r\x1b[2@');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getCodePoint(0), 0);
+    expect(line.getCodePoint(1), 0);
+    expect(line.getText(2, 5), 'ABC');
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(2, 0)),
+      'https://example.com',
+    );
+    expect(
+      terminal.hyperlinkAt(const CellOffset(4, 0)),
+      'https://example.com',
+    );
+  });
+
+  test('Terminal insert blank chars clears hyperlinks pushed past line end',
+      () {
+    final terminal = Terminal()..resize(3, 1);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC');
+    terminal.write('\r\x1b[3@');
+
+    final line = terminal.buffer.lines[0];
+    for (var column = 0; column < 3; column++) {
+      expect(line.getCodePoint(column), 0);
+    }
+    for (var column = 0; column < 3; column++) {
+      expect(terminal.hyperlinkAt(CellOffset(column, 0)), isNull);
+    }
+  });
+
+  test('Terminal delete chars shifts hyperlinks without linking tail blanks',
+      () {
+    final terminal = Terminal()..resize(5, 1);
+
+    terminal.write('A\x1b]8;;https://example.com\x1b\\BCD');
+    terminal.write('\r\x1b[P');
+
+    final line = terminal.buffer.lines[0];
+    expect(line.getText(0, 3), 'BCD');
+    expect(line.getCodePoint(3), 0);
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(2, 0)), 'https://example.com');
+    expect(terminal.hyperlinkAt(const CellOffset(3, 0)), isNull);
+  });
+
+  test('Terminal scroll up clears stale hyperlink cells', () {
+    final terminal = Terminal()..resize(5, 5);
+
+    terminal.write('\x1b]8;;https://example.com\x1b\\ABC\x1b]8;;\x1b\\');
+    terminal.write('\r\nDEF\r\nGHI');
+    terminal.write('\x1b[2;2H\x1b[S');
+
+    final viewport = terminal.buffer.scrollBack;
+    expect(terminal.buffer.lines[viewport].getText(0, 3), 'DEF');
+    expect(terminal.buffer.lines[viewport + 1].getText(0, 3), 'GHI');
+    for (var column = 0; column < 3; column++) {
+      expect(terminal.hyperlinkAt(CellOffset(column, viewport)), isNull);
+      expect(terminal.hyperlinkAt(CellOffset(column, viewport + 1)), isNull);
+    }
+  });
+
+  test('Terminal screen switching clears active OSC 8 hyperlink state', () {
+    final terminal = Terminal()..resize(5, 2);
+
+    terminal.write('\x1b]8;;https://example.com/main\x1b\\A');
+    terminal.write('\x1b[?1049hB');
+
+    expect(terminal.isUsingAltBuffer, isTrue);
+    expect(terminal.hyperlinkAt(const CellOffset(0, 0)), isNull);
+
+    terminal.write('\x1b]8;;https://example.com/alt\x1b\\C');
+    expect(
+      terminal.hyperlinkAt(const CellOffset(1, 0)),
+      'https://example.com/alt',
+    );
+
+    terminal.write('\x1b[?1049lD');
+
+    expect(terminal.isUsingAltBuffer, isFalse);
+    expect(
+      terminal.hyperlinkAt(const CellOffset(0, 0)),
+      'https://example.com/main',
+    );
+    expect(terminal.hyperlinkAt(const CellOffset(1, 0)), isNull);
+  });
+}
+
+class _TrackingTerminal extends Terminal {
+  var bulkWrites = 0;
+
+  @override
+  void writeText(String text, int start, int end) {
+    bulkWrites++;
+    super.writeText(text, start, end);
+  }
+}
+
+String _hexEncode(String value) {
+  return value.codeUnits.map((unit) {
+    return unit.toRadixString(16).padLeft(2, '0').toUpperCase();
+  }).join();
+}
+
+class _TestInputHandler implements TerminalInputHandler {
+  final events = <TerminalKeyboardEvent>[];
+
+  @override
+  String? call(TerminalKeyboardEvent event) {
+    events.add(event);
+    return null;
+  }
+}

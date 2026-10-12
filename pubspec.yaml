@@ -6,8 +6,11 @@ repository: https://github.com/SoFluffyOS/xterm2
 issue_tracker: https://github.com/SoFluffyOS/xterm2/issues
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.19.0"
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+workspace:
+  - core
 
 dependencies:
   characters: ^1.4.0
@@ -17,6 +20,7 @@ dependencies:
   equatable: ^2.0.3
   flutter:
     sdk: flutter
+  xterm2_core: ^1.0.0
   zmodem: ^0.0.6
 
 dev_dependencies:

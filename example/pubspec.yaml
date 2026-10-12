@@ -96,3 +96,8 @@ flutter:
     - family: Cascadia Mono
       fonts:
         - asset: fonts/CascadiaMonoPL.ttf
+
+# xterm2 depends on xterm2_core from the same repository.
+dependency_overrides:
+  xterm2_core:
+    path: ../core
