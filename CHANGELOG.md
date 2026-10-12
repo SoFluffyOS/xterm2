@@ -1,4 +1,4 @@
-## [5.4.0] - Unreleased
+## [5.4.0-dev.1] - 2026-10-12
 
 * Move the terminal model (state machine, buffers, escape-sequence parsing and
   input encoding) into the new pure-Dart `xterm2_core` package, so it can run
