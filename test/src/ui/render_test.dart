@@ -471,6 +471,8 @@ void main() {
     final setup = _createRenderTerminal();
     final render = setup.render;
     final cellSize = render.cellSize;
+    // On the last row, which the view follows.
+    setup.terminal.write('\x1b[5;1H');
 
     render.layout(BoxConstraints.tight(Size(
       cellSize.width * 10,

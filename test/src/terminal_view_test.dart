@@ -1041,6 +1041,46 @@ void main() {
     });
   });
 
+  group('TerminalView sized by its terminal', () {
+    testWidgets('shows the cursor row when taller than the view', (
+      tester,
+    ) async {
+      final terminal = Terminal()..resize(20, 24);
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+      terminal.write('first\r\nsecond');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 120,
+              child: TerminalView(
+                terminal,
+                scrollController: scrollController,
+                autoResize: false,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Two lines of output fit: nothing scrolls to the empty rows below.
+      expect(scrollController.offset, 0);
+
+      terminal.write(List.generate(20, (index) => '\r\nline $index').join());
+      await tester.pump();
+
+      // Once the cursor passes the view, the view follows it, short of
+      // the two empty rows still below it.
+      expect(scrollController.offset, greaterThan(0));
+      expect(
+        scrollController.offset,
+        lessThan(scrollController.position.maxScrollExtent),
+      );
+    });
+  });
+
   group('TerminalView scrollback shortcuts', () {
     testWidgets('shift navigation scrolls the main buffer', (tester) async {
       final output = <String>[];

@@ -195,12 +195,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _lastTerminalHeight = 0;
 
+  var _lastCursorY = 0;
+
   var _lastForceScrollToBottomGeneration = 0;
 
   Buffer? _lastTerminalBuffer;
 
   void _onScroll() {
-    _stickToBottom = _scrollOffset >= _maxScrollExtent;
+    _stickToBottom = _scrollOffset >= _stickyScrollOffset;
     markNeedsLayout();
     _notifyEditableRect();
   }
@@ -225,7 +227,11 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final needsLayout = forceScrollToBottom ||
         _terminal.buffer.lines.length != _lastTerminalLineCount ||
         _terminal.viewWidth != _lastTerminalWidth ||
-        _terminal.viewHeight != _lastTerminalHeight;
+        _terminal.viewHeight != _lastTerminalHeight ||
+        // A view taller than its terminal follows the cursor, not the end.
+        (!_autoResize &&
+            _stickToBottom &&
+            _terminal.buffer.absoluteCursorY != _lastCursorY);
     _recordTerminalLayoutState();
     if (needsLayout) {
       markNeedsLayout();
@@ -240,6 +246,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _lastTerminalLineCount = _terminal.buffer.lines.length;
     _lastTerminalWidth = _terminal.viewWidth;
     _lastTerminalHeight = _terminal.viewHeight;
+    _lastCursorY = _terminal.buffer.absoluteCursorY;
     _lastForceScrollToBottomGeneration =
         _terminal.buffer.forceScrollToBottomGeneration;
   }
@@ -361,8 +368,25 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _updateScrollOffset();
 
     if (_stickToBottom) {
-      _offset.correctBy(_maxScrollExtent - _scrollOffset);
+      _offset.correctBy(_stickyScrollOffset - _scrollOffset);
     }
+  }
+
+  /// Where a view that follows the output scrolls to: the end. A terminal
+  /// sized by someone else can be taller than the view, with empty rows
+  /// below the cursor; the view scrolls only far enough to show the
+  /// cursor's row.
+  double get _stickyScrollOffset {
+    final cellHeight = _painter.cellSize.height;
+    final screenTop =
+        (_terminal.buffer.lines.length - _terminal.viewHeight) * cellHeight;
+    // The whole screen fits, or the view sizes the terminal.
+    if (_autoResize || screenTop >= _maxScrollExtent) return _maxScrollExtent;
+    final cursorBottom = (_terminal.buffer.absoluteCursorY + 1) * cellHeight;
+    return (cursorBottom - _viewportHeight).clamp(
+      max(screenTop, 0.0),
+      _maxScrollExtent,
+    );
   }
 
   /// Total height of the terminal in pixels. Includes scrollback buffer.
