@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm2/xterm.dart';
+import 'package:test/test.dart';
+import 'package:xterm2_core/xterm2_core.dart';
 
 void main() {
   test('clipboard policy rejects other protocols and extra OSC 52 fields', () {

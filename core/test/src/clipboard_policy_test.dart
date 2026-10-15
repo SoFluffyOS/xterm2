@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm2/xterm.dart';
+import 'package:test/test.dart';
+import 'package:xterm2_core/xterm2_core.dart';
 
 void main() {
   test('history compaction preserves graphemes, OSC 8 and underline colors',
