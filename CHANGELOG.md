@@ -1,4 +1,4 @@
-## [5.4.0-dev.1] - 2026-10-12
+## [5.4.0] - 2026-10-21
 
 * Move the terminal model (state machine, buffers, escape-sequence parsing and
   input encoding) into the new pure-Dart `xterm2_core` package, so it can run
@@ -6,6 +6,34 @@
   `xterm2` API is unchanged: `package:xterm2/core.dart` and
   `package:xterm2/xterm.dart` export the same types.
 * Require Dart 3.6 or newer (Flutter 3.27 or newer).
+* Add `Terminal.windowsPtyMode`: a row the Windows pseudo console pads with
+  blanks before moving to the next one wraps as a hard break, so selections no
+  longer join unrelated lines. Wraps caused by a wide character stay soft.
+* Keep the scrollback position when inline TUIs clear and reprint their
+  transcript.
+* Route wheel input by mode instead of cursor visibility: alternate-screen and
+  mouse-reporting applications receive wheel reports, also from a read-only
+  view, and everything else scrolls the buffer.
+* Follow the cursor in a view that does not size its terminal, instead of
+  showing the empty rows below it.
+* Add `dragOverridesMouseReporting` and `shiftOverridesMouseReporting` to
+  `TerminalView` to keep local selection while an application captures the
+  mouse.
+* Add `touchScrollLinesPerWheelEvent`, `mouseWheelSensitivity`, `cursorBlink`,
+  `onCopy` and `onPaste` to `TerminalView`, `TerminalStyle.fontWeight`, and
+  `clipboardTerminalShortcuts`.
+* Add `clipboardDecoder`, `allowITerm2ClipboardCapture` and
+  `allowKittyClipboard` to `Terminal` to control OSC 52, 1337 and 5522
+  clipboard writes.
+* Add `reflowWithHiddenCursor` and `preserveOrphanCombiningMarks` to
+  `Terminal`.
+* Report kitty key releases only when the application asks for event types,
+  and private-use keys only with report-all.
+* Keep the CSI u encoding of Shift+Enter when the application has not
+  negotiated it.
+* Release unused capacity of lines that scroll into history.
+* Reduce paragraph cache churn when rendering log output, and amortize
+  hyperlink pruning once the hyperlink table is full.
 
 ## [5.3.0] - 2026-07-28
 

@@ -1,6 +1,6 @@
 name: xterm2
 description: Maintained Flutter terminal emulator package with fast rendering and broad VT/xterm compatibility.
-version: 5.4.0-dev.1
+version: 5.4.0
 homepage: https://github.com/SoFluffyOS/xterm2
 repository: https://github.com/SoFluffyOS/xterm2
 issue_tracker: https://github.com/SoFluffyOS/xterm2/issues
@@ -20,7 +20,7 @@ dependencies:
   equatable: ^2.0.3
   flutter:
     sdk: flutter
-  xterm2_core: ^1.0.0-dev.1
+  xterm2_core: ^1.0.0
   zmodem: ^0.0.6
 
 dev_dependencies:

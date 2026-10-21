@@ -1,6 +1,6 @@
 name: xterm2_core
 description: Terminal emulator core for xterm2 (state machine, buffers, VT/xterm escape sequences) in pure Dart, usable without Flutter.
-version: 1.0.0-dev.1
+version: 1.0.0
 homepage: https://github.com/SoFluffyOS/xterm2
 repository: https://github.com/SoFluffyOS/xterm2/tree/master/core
 issue_tracker: https://github.com/SoFluffyOS/xterm2/issues
