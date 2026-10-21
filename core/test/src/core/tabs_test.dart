@@ -1,0 +1,46 @@
+import 'package:test/test.dart';
+import 'package:xterm2_core/src/core/tabs.dart';
+
+void main() {
+  group('TabStops', () {
+    test('has default tab stops after created', () {
+      final tabStops = TabStops();
+
+      expect(tabStops.isSetAt(0), true);
+      expect(tabStops.isSetAt(1), false);
+      expect(tabStops.isSetAt(7), false);
+      expect(tabStops.isSetAt(8), true);
+      expect(tabStops.isSetAt(9), false);
+      expect(tabStops.isSetAt(15), false);
+      expect(tabStops.isSetAt(16), true);
+    });
+  });
+
+  group('TabStops.find()', () {
+    test('includes start', () {
+      final tabStops = TabStops();
+      expect(tabStops.find(0, 10), 0);
+    });
+
+    test('excludes end', () {
+      final tabStops = TabStops();
+      expect(tabStops.find(0, 8), 0);
+      expect(tabStops.find(1, 9), 8);
+    });
+  });
+
+  test('supports tab stops beyond the initial terminal width', () {
+    final tabStops = TabStops();
+
+    expect(tabStops.find(2000, 2050), 2000);
+
+    tabStops.clearAll();
+    expect(tabStops.find(2000, 2050), isNull);
+
+    tabStops.setAt(2047);
+    expect(tabStops.find(2000, 2050), 2047);
+
+    tabStops.reset();
+    expect(tabStops.find(2000, 2050), 2000);
+  });
+}

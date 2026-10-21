@@ -40,5 +40,9 @@ jobs:
       - name: Run tests
         run: flutter test --coverage
 
+      - name: Run core tests without Flutter
+        working-directory: core
+        run: dart test
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3

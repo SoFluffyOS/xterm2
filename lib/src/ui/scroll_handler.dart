@@ -25,7 +25,9 @@ class TerminalScrollGestureHandler extends StatefulWidget {
     required this.getLineHeight,
     required this.getCellWidth,
     this.simulateScroll = true,
-    this.readOnly = false,
+    this.mouseWheelSensitivity = 1,
+    this.shiftOverridesMouseReporting = false,
+    this.touchScrollLinesPerWheelEvent = 1,
     required this.child,
   });
 
@@ -49,7 +51,15 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   /// is the default behavior of most terminals.
   final bool simulateScroll;
 
-  final bool readOnly;
+  final int mouseWheelSensitivity;
+  final bool shiftOverridesMouseReporting;
+
+  /// Lines of touch travel that produce one wheel report for the application.
+  ///
+  /// A mouse wheel notch is one report, and most TUIs move a few lines per
+  /// report, so a finger mapped one report per line outruns the content it is
+  /// dragging. Mouse and trackpad deltas are not scaled by this.
+  final int touchScrollLinesPerWheelEvent;
 
   final Widget child;
 
@@ -71,6 +81,13 @@ class _TerminalScrollGestureHandlerState
   /// This variable tracks the last offset where the scroll gesture started.
   /// Used to calculate the cell offset of the terminal mouse event.
   var lastPointerPosition = Offset.zero;
+
+  /// Device behind the current application-scroll gesture, which decides how
+  /// many pixels of travel make one wheel report.
+  var lastPointerKind = PointerDeviceKind.mouse;
+
+  /// Raw offset of the infinite scroll view at the last scroll callback.
+  var lastScrollPixels = 0.0;
 
   @override
   void initState() {
@@ -107,6 +124,9 @@ class _TerminalScrollGestureHandlerState
     setState(() {});
   }
 
+  /// The application owns scrolling when it draws on the alternate screen or
+  /// asked for wheel reports. Cursor visibility says nothing about it: inline
+  /// agent TUIs hide the cursor while their transcript lives in scrollback.
   bool _shouldHandleApplicationScroll() {
     return widget.terminal.isUsingAltBuffer ||
         widget.terminal.mouseMode.reportScroll;
@@ -115,17 +135,24 @@ class _TerminalScrollGestureHandlerState
   /// Send a single scroll event to the terminal. If [simulateScroll] is true,
   /// then if the application doesn't recognize mouse wheel events, this method
   /// will simulate scroll events by sending up/down arrow keys.
+  ///
+  /// Scrolling is navigation rather than typing, so a read-only view still
+  /// routes it to an application that owns its scroll; only the controller's
+  /// pointer policy can withhold it.
   void _sendScrollEvent(bool up) {
-    if (widget.readOnly ||
-        !widget.terminalController
-            .shouldSendPointerInput(PointerInput.scroll)) {
+    if (!_shouldHandleApplicationScroll() ||
+        !widget.terminalController.shouldSendPointerInput(
+          PointerInput.scroll,
+        )) {
       _scrollMainBuffer(up);
       return;
     }
 
     final modifiers = _currentModifiers();
     var handled = false;
-    if (!modifiers.shift || widget.terminal.mouseShiftCaptureMode) {
+    if (!modifiers.shift ||
+        (!widget.shiftOverridesMouseReporting &&
+            widget.terminal.mouseShiftCaptureMode)) {
       handled = widget.sendMouseEvent(
         up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
         TerminalMouseButtonState.down,
@@ -134,8 +161,20 @@ class _TerminalScrollGestureHandlerState
       );
     }
 
-    if (handled) return;
+    if (handled) {
+      for (var i = 1; i < widget.mouseWheelSensitivity.clamp(1, 10); i++) {
+        widget.sendMouseEvent(
+          up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
+          TerminalMouseButtonState.down,
+          lastPointerPosition,
+          modifiers: modifiers,
+        );
+      }
+      return;
+    }
 
+    // Shift withheld the report (or the app declined it) while history sits
+    // behind the main buffer: the user asked for that history, not for keys.
     if (!widget.terminal.isUsingAltBuffer) {
       _scrollMainBuffer(up);
       return;
@@ -169,15 +208,17 @@ class _TerminalScrollGestureHandlerState
   }
 
   void _sendHorizontalScrollEvent(bool left) {
-    if (widget.readOnly ||
-        !widget.terminalController
-            .shouldSendPointerInput(PointerInput.scroll)) {
+    if (!widget.terminalController.shouldSendPointerInput(
+      PointerInput.scroll,
+    )) {
       return;
     }
 
     final modifiers = _currentModifiers();
     var handled = false;
-    if (!modifiers.shift || widget.terminal.mouseShiftCaptureMode) {
+    if (!modifiers.shift ||
+        (!widget.shiftOverridesMouseReporting &&
+            widget.terminal.mouseShiftCaptureMode)) {
       handled = widget.sendMouseEvent(
         switch (left) {
           true => TerminalMouseButton.wheelLeft,
@@ -192,12 +233,10 @@ class _TerminalScrollGestureHandlerState
     if (handled) return;
     if (!widget.terminal.isUsingAltBuffer || !widget.simulateScroll) return;
 
-    widget.terminal.keyInput(
-      switch (left) {
-        true => TerminalKey.arrowLeft,
-        false => TerminalKey.arrowRight,
-      },
-    );
+    widget.terminal.keyInput(switch (left) {
+      true => TerminalKey.arrowLeft,
+      false => TerminalKey.arrowRight,
+    });
   }
 
   TerminalMouseModifiers _currentModifiers() {
@@ -212,8 +251,22 @@ class _TerminalScrollGestureHandlerState
     );
   }
 
+  double get _applicationScrollUnit {
+    final linesPerEvent = switch (lastPointerKind) {
+      PointerDeviceKind.touch ||
+      PointerDeviceKind.stylus ||
+      PointerDeviceKind.invertedStylus =>
+        widget.touchScrollLinesPerWheelEvent.clamp(1, 10),
+      _ => 1,
+    };
+    return widget.getLineHeight() * linesPerEvent;
+  }
+
   void _onScroll(double offset) {
-    final currentLineOffset = offset ~/ widget.getLineHeight();
+    lastScrollPixels = offset;
+    final unit = _applicationScrollUnit;
+    if (unit <= 0) return;
+    final currentLineOffset = offset ~/ unit;
 
     final delta = currentLineOffset - lastLineOffset;
 
@@ -224,8 +277,18 @@ class _TerminalScrollGestureHandlerState
     lastLineOffset = currentLineOffset;
   }
 
+  /// Re-measures the travel already scrolled in the unit of a new device, so
+  /// switching between wheel and finger never replays the whole offset.
+  void _adoptPointerKind(PointerDeviceKind kind) {
+    if (kind == lastPointerKind) return;
+    lastPointerKind = kind;
+    final unit = _applicationScrollUnit;
+    lastLineOffset = unit <= 0 ? 0 : lastScrollPixels ~/ unit;
+  }
+
   void _onPointerSignal(PointerSignalEvent event) {
     lastPointerPosition = event.localPosition;
+    _adoptPointerKind(event.kind);
     if (event is! PointerScrollEvent) return;
 
     final delta = event.scrollDelta;
@@ -256,12 +319,10 @@ class _TerminalScrollGestureHandlerState
       return widget.child;
     }
 
-    final scrollbackBehavior = ScrollConfiguration.of(context).copyWith(
-      physics: const NeverScrollableScrollPhysics(),
-    );
-    final applicationScrollBehavior = ScrollConfiguration.of(context).copyWith(
-      pointerAxisModifiers: const <LogicalKeyboardKey>{},
-    );
+    final scrollbackBehavior = ScrollConfiguration.of(context)
+        .copyWith(physics: const NeverScrollableScrollPhysics());
+    final applicationScrollBehavior = ScrollConfiguration.of(context)
+        .copyWith(pointerAxisModifiers: const <LogicalKeyboardKey>{});
     return ScrollConfiguration(
       behavior: applicationScrollBehavior,
       child: InfiniteScrollView(
@@ -271,6 +332,7 @@ class _TerminalScrollGestureHandlerState
           onPointerSignal: _onPointerSignal,
           onPointerDown: (event) {
             lastPointerPosition = event.localPosition;
+            _adoptPointerKind(event.kind);
           },
           child: ScrollConfiguration(
             behavior: scrollbackBehavior,

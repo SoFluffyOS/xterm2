@@ -48,6 +48,7 @@ class TerminalStyle {
     this.fontFamily = _kDefaultFontFamily,
     this.fontFamilyFallback = _kDefaultFontFamilyFallback,
     this.drawBoldTextWithBrightColors = true,
+    this.fontWeight,
   });
 
   factory TerminalStyle.fromTextStyle(TextStyle textStyle) {
@@ -60,6 +61,7 @@ class TerminalStyle {
       fontFamilyFallback:
           textStyle.fontFamilyFallback ?? _kDefaultFontFamilyFallback,
       drawBoldTextWithBrightColors: true,
+      fontWeight: textStyle.fontWeight?.value,
     );
   }
 
@@ -72,6 +74,8 @@ class TerminalStyle {
   final List<String> fontFamilyFallback;
 
   final bool drawBoldTextWithBrightColors;
+
+  final int? fontWeight;
 
   TextStyle toTextStyle({
     Color? color,
@@ -106,10 +110,10 @@ class TerminalStyle {
       fontFamilyFallback: fontFamilyFallback,
       color: color,
       backgroundColor: backgroundColor,
-      fontWeight: switch (bold) {
-        true => FontWeight.bold,
-        false => FontWeight.normal,
-      },
+      fontWeight: fontWeight == null
+          ? (bold ? FontWeight.bold : FontWeight.normal)
+          : FontWeight.values[
+              ((fontWeight! + (bold ? 200 : 0)) / 100).round().clamp(1, 9) - 1],
       fontStyle: switch (italic) {
         true => FontStyle.italic,
         false => FontStyle.normal,
@@ -127,9 +131,11 @@ class TerminalStyle {
     String? fontFamily,
     List<String>? fontFamilyFallback,
     bool? drawBoldTextWithBrightColors,
+    int? fontWeight,
   }) {
     return TerminalStyle(
       fontSize: fontSize ?? this.fontSize,
+      fontWeight: fontWeight ?? this.fontWeight,
       height: height ?? this.height,
       fontFamily: fontFamily ?? this.fontFamily,
       fontFamilyFallback: fontFamilyFallback ?? this.fontFamilyFallback,
@@ -142,7 +148,8 @@ class TerminalStyle {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! TerminalStyle) return false;
-    if (fontSize != other.fontSize ||
+    if (fontWeight != other.fontWeight ||
+        fontSize != other.fontSize ||
         height != other.height ||
         fontFamily != other.fontFamily ||
         drawBoldTextWithBrightColors != other.drawBoldTextWithBrightColors ||
@@ -164,5 +171,6 @@ class TerminalStyle {
         fontFamily,
         drawBoldTextWithBrightColors,
         Object.hashAll(fontFamilyFallback),
+        fontWeight,
       );
 }

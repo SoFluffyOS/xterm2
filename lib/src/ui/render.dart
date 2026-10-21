@@ -4,18 +4,8 @@ import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm2/src/core/buffer/buffer.dart';
-import 'package:xterm2/src/core/buffer/cell_offset.dart';
-import 'package:xterm2/src/core/buffer/range.dart';
-import 'package:xterm2/src/core/buffer/range_line.dart';
-import 'package:xterm2/src/core/buffer/segment.dart';
-import 'package:xterm2/src/core/cell.dart';
-import 'package:xterm2/src/core/mouse/button.dart';
-import 'package:xterm2/src/core/mouse/button_state.dart';
-import 'package:xterm2/src/core/mouse/modifiers.dart';
-import 'package:xterm2/src/terminal.dart';
+import 'package:xterm2_core/xterm2_core.dart';
 import 'package:xterm2/src/ui/controller.dart';
-import 'package:xterm2/src/ui/cursor_type.dart';
 import 'package:xterm2/src/ui/painter.dart';
 import 'package:xterm2/src/ui/selection_mode.dart';
 import 'package:xterm2/src/ui/terminal_size.dart';
@@ -37,6 +27,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalTheme theme,
     required FocusNode focusNode,
     required TerminalCursorType cursorType,
+    bool? cursorBlink,
     required bool alwaysShowCursor,
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
@@ -49,6 +40,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _backgroundOpacity = backgroundOpacity,
         _focusNode = focusNode,
         _cursorType = cursorType,
+        _cursorBlink = cursorBlink,
         _alwaysShowCursor = alwaysShowCursor,
         _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
@@ -178,6 +170,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _stickToBottom = true;
 
+  bool? _cursorBlink;
+  set cursorBlink(bool? value) {
+    if (_cursorBlink == value) return;
+    _cursorBlink = value;
+    _updateCursorBlinking(force: true);
+    markNeedsPaint();
+  }
+
   Timer? _cursorBlinkTimer;
 
   Timer? _cursorBlinkTimeout;
@@ -205,12 +205,35 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   var _lastTerminalHeight = 0;
 
+  var _lastCursorY = 0;
+
   var _lastForceScrollToBottomGeneration = 0;
+
+  var _lastScreenClearGeneration = 0;
+
+  var _lastEvictedLineCount = 0;
 
   Buffer? _lastTerminalBuffer;
 
+  /// Offset from the top of the buffer the reader chose when they scrolled
+  /// away from the bottom. Layout returns to it whenever the buffer collapses
+  /// and regrows underneath (an application clearing and reprinting its
+  /// transcript), which plain clamping would turn into a jump to the top.
+  var _anchorPixels = 0.0;
+
+  Timer? _clearFollowTimer;
+
+  /// How long a screen clear may stay empty before the viewport follows it to
+  /// the bottom. A clear-and-reprint refills the buffer well inside this.
+  static const clearFollowGrace = Duration(milliseconds: 300);
+
   void _onScroll() {
-    _stickToBottom = _scrollOffset >= _maxScrollExtent;
+    _stickToBottom = _scrollOffset >= _stickyScrollOffset;
+    if (!_stickToBottom) {
+      _anchorPixels = _scrollOffset;
+    }
+    // The reader picked a place after the clear; that decision stands.
+    _cancelClearFollow();
     markNeedsLayout();
     _notifyEditableRect();
   }
@@ -222,20 +245,32 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     _updateCursorBlinking();
-    final bufferChanged = !identical(_terminal.buffer, _lastTerminalBuffer);
+    final buffer = _terminal.buffer;
+    final bufferChanged = !identical(buffer, _lastTerminalBuffer);
     if (bufferChanged && _controller.selection != null) {
       _controller.clearSelection();
     }
-    final forceScrollToBottom =
-        _terminal.buffer.forceScrollToBottomGeneration !=
-            _lastForceScrollToBottomGeneration;
+    final forceScrollToBottom = buffer.forceScrollToBottomGeneration !=
+        _lastForceScrollToBottomGeneration;
+    var anchorMoved = false;
     if (forceScrollToBottom) {
       _stickToBottom = true;
+      _cancelClearFollow();
+    } else if (!bufferChanged && !_stickToBottom) {
+      anchorMoved = _followEvictedLines(buffer);
+      if (buffer.screenClearGeneration != _lastScreenClearGeneration) {
+        _scheduleClearFollow();
+      }
     }
     final needsLayout = forceScrollToBottom ||
-        _terminal.buffer.lines.length != _lastTerminalLineCount ||
+        anchorMoved ||
+        buffer.lines.length != _lastTerminalLineCount ||
         _terminal.viewWidth != _lastTerminalWidth ||
-        _terminal.viewHeight != _lastTerminalHeight;
+        _terminal.viewHeight != _lastTerminalHeight ||
+        // A view taller than its terminal follows the cursor, not the end.
+        (!_autoResize &&
+            _stickToBottom &&
+            _terminal.buffer.absoluteCursorY != _lastCursorY);
     _recordTerminalLayoutState();
     if (needsLayout) {
       markNeedsLayout();
@@ -245,13 +280,51 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _notifyEditableRect();
   }
 
+  /// A full buffer drops its oldest line for every new one, which moves all
+  /// content up a line; the anchor moves with the text it points at.
+  bool _followEvictedLines(Buffer buffer) {
+    final evicted = buffer.lines.evictedCount - _lastEvictedLineCount;
+    if (evicted <= 0) return false;
+    final moved = max(0.0, _anchorPixels - evicted * lineHeight);
+    if (moved == _anchorPixels) return false;
+    _anchorPixels = moved;
+    return true;
+  }
+
+  /// An erase leaves the reader where they are for [clearFollowGrace]. If the
+  /// application refills the buffer in that time it reprinted, and layout has
+  /// already put the same text back under the anchor; if it stays empty the
+  /// screen really was cleared and the viewport follows it down.
+  void _scheduleClearFollow() {
+    if (_terminal.buffer.linesPushedSinceScreenClear > 0) {
+      _cancelClearFollow();
+      return;
+    }
+    _clearFollowTimer?.cancel();
+    _clearFollowTimer = Timer(clearFollowGrace, () {
+      _clearFollowTimer = null;
+      if (!attached || _stickToBottom) return;
+      if (_terminal.buffer.linesPushedSinceScreenClear > 0) return;
+      _stickToBottom = true;
+      markNeedsLayout();
+    });
+  }
+
+  void _cancelClearFollow() {
+    _clearFollowTimer?.cancel();
+    _clearFollowTimer = null;
+  }
+
   void _recordTerminalLayoutState() {
-    _lastTerminalBuffer = _terminal.buffer;
-    _lastTerminalLineCount = _terminal.buffer.lines.length;
+    final buffer = _terminal.buffer;
+    _lastTerminalBuffer = buffer;
+    _lastTerminalLineCount = buffer.lines.length;
     _lastTerminalWidth = _terminal.viewWidth;
     _lastTerminalHeight = _terminal.viewHeight;
-    _lastForceScrollToBottomGeneration =
-        _terminal.buffer.forceScrollToBottomGeneration;
+    _lastCursorY = buffer.absoluteCursorY;
+    _lastForceScrollToBottomGeneration = buffer.forceScrollToBottomGeneration;
+    _lastScreenClearGeneration = buffer.screenClearGeneration;
+    _lastEvictedLineCount = buffer.lines.evictedCount;
   }
 
   void _onControllerUpdate() {
@@ -276,6 +349,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void detach() {
     _stopCursorBlinking();
     _stopTextBlinking();
+    _cancelClearFollow();
     _offset.removeListener(_onScroll);
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
@@ -292,7 +366,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   }
 
   void _updateCursorBlinking({bool force = false}) {
-    final enabled = _terminal.cursorBlinkMode && _focusNode.hasFocus;
+    final enabled =
+        (_cursorBlink ?? _terminal.cursorBlinkMode) && _focusNode.hasFocus;
     final blinkTimerActive = _cursorBlinkTimer != null;
     if (!force &&
         enabled == _cursorBlinkWasEnabled &&
@@ -371,8 +446,33 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _updateScrollOffset();
 
     if (_stickToBottom) {
-      _offset.correctBy(_maxScrollExtent - _scrollOffset);
+      _offset.correctBy(_stickyScrollOffset - _scrollOffset);
+      return;
     }
+    // Clamping alone keeps the pixel count, not the text: after a clear and
+    // reprint the buffer shrank and regrew, and the reader would land at the
+    // top instead of on the lines they were reading.
+    final target = _anchorPixels.clamp(0.0, _maxScrollExtent);
+    if (target != _scrollOffset) {
+      _offset.correctBy(target - _scrollOffset);
+    }
+  }
+
+  /// Where a view that follows the output scrolls to: the end. A terminal
+  /// sized by someone else can be taller than the view, with empty rows
+  /// below the cursor; the view scrolls only far enough to show the
+  /// cursor's row.
+  double get _stickyScrollOffset {
+    final cellHeight = _painter.cellSize.height;
+    final screenTop =
+        (_terminal.buffer.lines.length - _terminal.viewHeight) * cellHeight;
+    // The whole screen fits, or the view sizes the terminal.
+    if (_autoResize || screenTop >= _maxScrollExtent) return _maxScrollExtent;
+    final cursorBottom = (_terminal.buffer.absoluteCursorY + 1) * cellHeight;
+    return (cursorBottom - _viewportHeight).clamp(
+      max(screenTop, 0.0),
+      _maxScrollExtent,
+    );
   }
 
   /// Total height of the terminal in pixels. Includes scrollback buffer.
@@ -640,7 +740,9 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   bool get _shouldShowCursor {
     if (_alwaysShowCursor || _isComposingText) return true;
     if (!_terminal.cursorVisibleMode) return false;
-    if (!_terminal.cursorBlinkMode || !_focusNode.hasFocus) return true;
+    if (!(_cursorBlink ?? _terminal.cursorBlinkMode) || !_focusNode.hasFocus) {
+      return true;
+    }
     return _cursorBlinkVisible;
   }
 

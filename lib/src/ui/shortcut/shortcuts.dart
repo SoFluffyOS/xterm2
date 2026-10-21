@@ -95,3 +95,19 @@ final _defaultAppleShortcuts = {
     TerminalPromptNavigationTarget.next,
   ),
 };
+
+/// Clipboard shortcuts for embedders that provide their own navigation and search.
+Map<ShortcutActivator, Intent> get clipboardTerminalShortcuts {
+  final apple = defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+  return {
+    SingleActivator(LogicalKeyboardKey.keyC,
+        control: !apple,
+        meta: apple,
+        shift: !apple): CopySelectionTextIntent.copy,
+    SingleActivator(LogicalKeyboardKey.keyV, control: !apple, meta: apple):
+        const PasteTextIntent(SelectionChangedCause.keyboard),
+    SingleActivator(LogicalKeyboardKey.keyA, control: !apple, meta: apple):
+        const SelectAllTextIntent(SelectionChangedCause.keyboard),
+  };
+}
