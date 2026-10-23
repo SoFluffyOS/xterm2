@@ -612,6 +612,7 @@ class Buffer {
   /// cursor.
   void eraseDisplayToCursor({bool respectProtected = false}) {
     eraseLineToCursor(respectProtected: respectProtected);
+    currentLine.isWrapped = false;
 
     for (var i = 0; i < _cursorY; i++) {
       final line = lines[i + scrollBack];
@@ -645,7 +646,7 @@ class Buffer {
   /// cursor position.
   void eraseLineFromCursor({bool respectProtected = false}) {
     _cancelPendingWrap();
-    currentLine.isWrapped = false;
+    _unwrapNextLine();
     currentLine.eraseRange(
       _cursorX,
       viewWidth,
@@ -658,7 +659,6 @@ class Buffer {
   /// cursor.
   void eraseLineToCursor({bool respectProtected = false}) {
     _cancelPendingWrap();
-    currentLine.isWrapped = false;
     currentLine.eraseRange(
       0,
       _cursorX + 1,
@@ -670,13 +670,21 @@ class Buffer {
   /// Erases the line at the current cursor position.
   void eraseLine({bool respectProtected = false}) {
     _cancelPendingWrap();
-    currentLine.isWrapped = false;
+    _unwrapNextLine();
     currentLine.eraseRange(
       0,
       viewWidth,
       terminal.cursor,
       respectProtected: respectProtected,
     );
+  }
+
+  /// Ends the current line at this row: erasing its end no longer flows into
+  /// the next row. Whether this row continues the one above is kept, so a
+  /// shell redrawing a wrapped command row by row keeps it one line.
+  void _unwrapNextLine() {
+    final nextLine = absoluteCursorY + 1;
+    if (nextLine < lines.length) lines[nextLine].isWrapped = false;
   }
 
   /// Erases [count] cells starting at the cursor position.

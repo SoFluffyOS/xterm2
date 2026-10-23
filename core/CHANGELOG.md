@@ -1,5 +1,9 @@
 ## Unreleased
 
+* Keep a soft-wrapped row joined to the row above when the line is erased
+  from it (`EL`), as xterm does: erasing ends the line at that row instead.
+  A long command zsh redraws row by row no longer copies with a line break in
+  the middle.
 * Report mouse motion once per cell, as the pointer crosses into it, instead
   of on every pointer event inside the same cell.
 

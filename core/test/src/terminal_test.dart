@@ -383,6 +383,41 @@ void main() {
     expect(terminal.buffer.lines[3].isWrapped, isTrue);
   });
 
+  test('Terminal keeps a wrapped command whole when zsh redraws a row', () {
+    final terminal = Terminal()..resize(10, 4);
+
+    // zsh wraps with a space, then redraws the continuation row.
+    terminal.write('\$ echo abc \r\x1b[Kd\rdef');
+    final range = BufferRangeLine(CellOffset(0, 0), CellOffset(10, 1));
+
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.getText(range, true), '\$ echo abcdef');
+  });
+
+  test('Terminal erase in line ends the line at the erased row', () {
+    final terminal = Terminal()..resize(4, 4);
+
+    terminal.write('abcdefghij');
+    terminal.write('\x1b[2;3H\x1b[1K');
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.lines[2].isWrapped, isTrue);
+
+    terminal.write('\x1b[K');
+    expect(terminal.buffer.lines[1].isWrapped, isTrue);
+    expect(terminal.buffer.lines[2].isWrapped, isFalse);
+
+    terminal.write('\x1b[1;1H\x1b[2K');
+    expect(terminal.buffer.lines[1].isWrapped, isFalse);
+  });
+
+  test('Terminal erase above the cursor ends the line before it', () {
+    final terminal = Terminal()..resize(4, 4);
+
+    terminal.write('abcdefgh\x1b[2;2H\x1b[1J');
+
+    expect(terminal.buffer.lines[1].isWrapped, isFalse);
+  });
+
   test('Terminal restores origin mode with saved cursor', () {
     final terminal = Terminal()..resize(8, 4);
 
