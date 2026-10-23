@@ -1143,12 +1143,18 @@ class Terminal
       motion: motion,
       modifiers: modifiers,
     ));
-    if (output != null) {
-      onOutput?.call(output);
-      return true;
-    }
-    return false;
+    if (output == null) return false;
+    // Motion is reported once per cell, as the pointer crosses into it.
+    final isRepeatedMotion = motion && output == _lastMotionReport;
+    _lastMotionReport = switch (motion) {
+      true => output,
+      false => null,
+    };
+    if (!isRepeatedMotion) onOutput?.call(output);
+    return true;
   }
+
+  String? _lastMotionReport;
 
   /// Resize the terminal screen. [newWidth] and [newHeight] should be greater
   /// than 0. Main-buffer text is reflowed when [reflowEnabled] is true.

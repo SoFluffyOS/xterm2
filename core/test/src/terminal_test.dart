@@ -1297,6 +1297,34 @@ void main() {
       expect(output, ['\x1b[<32;2;3M', '\x1b[<35;3;4M']);
     });
 
+    test('reports motion once per cell', () {
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      terminal.write('\x1b[?1002h\x1b[?1006h');
+
+      void drag(int x, {bool motion = true}) => terminal.mouseInput(
+            TerminalMouseButton.left,
+            TerminalMouseButtonState.down,
+            CellOffset(x, 0),
+            motion: motion,
+          );
+
+      drag(0, motion: false);
+      drag(1);
+      drag(1);
+      drag(2);
+      drag(2, motion: false);
+      drag(2);
+
+      expect(output, [
+        '\x1b[<0;1;1M',
+        '\x1b[<32;2;1M',
+        '\x1b[<32;3;1M',
+        '\x1b[<0;3;1M',
+        '\x1b[<32;3;1M',
+      ]);
+    });
+
     test('can handle mouse events', () {
       final output = <String>[];
 
