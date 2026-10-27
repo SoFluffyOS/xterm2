@@ -45,6 +45,7 @@ class TerminalPainter {
     required TerminalTheme theme,
     required TerminalStyle textStyle,
     required TextScaler textScaler,
+    this.cellForegroundFilter,
     int paragraphCacheSize = _defaultParagraphCacheSize,
   })  : _textStyle = textStyle,
         _theme = theme,
@@ -140,6 +141,8 @@ class TerminalPainter {
 
     return Size(width, height);
   }
+
+  TerminalCellForegroundFilter? cellForegroundFilter;
 
   /// The size of each character in the terminal.
   Size get cellSize => _cellSize;
@@ -427,6 +430,11 @@ class TerminalPainter {
         if (charWidth == 2) {
           i++;
         }
+        continue;
+      }
+
+      if (cellForegroundFilter?.call(line, i) == false) {
+        if (charWidth == 2) i++;
         continue;
       }
 

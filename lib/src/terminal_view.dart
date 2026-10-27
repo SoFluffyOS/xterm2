@@ -14,6 +14,7 @@ import 'package:xterm2/src/ui/keyboard_listener.dart';
 import 'package:xterm2/src/ui/keyboard_visibility.dart';
 import 'package:xterm2/src/ui/kitty_modifier_key_filter.dart';
 import 'package:xterm2/src/ui/palette_builder.dart';
+import 'package:xterm2/src/ui/paint_extension.dart';
 import 'package:xterm2/src/ui/render.dart';
 import 'package:xterm2/src/ui/scroll_handler.dart';
 import 'package:xterm2/src/ui/shortcut/actions.dart';
@@ -113,6 +114,7 @@ class TerminalView extends StatefulWidget {
     this.keyboardAppearance = Brightness.dark,
     this.cursorType = TerminalCursorType.block,
     this.alwaysShowCursor = false,
+    this.paintExtension,
     this.deleteDetection = false,
     this.shortcuts,
     this.onKeyEvent,
@@ -216,6 +218,9 @@ class TerminalView extends StatefulWidget {
   /// Whether to always show the cursor. This is useful for debugging.
   /// [false] by default.
   final bool alwaysShowCursor;
+
+  /// Application-owned graphics painted within the terminal viewport.
+  final TerminalPaintExtension? paintExtension;
 
   /// Workaround to detect delete key for platforms and IMEs that does not
   /// emit hardware delete event. Prefered on mobile platforms. [false] by
@@ -474,6 +479,7 @@ class TerminalViewState extends State<TerminalView> {
           cursorType: widget.cursorType,
           cursorBlink: widget.cursorBlink,
           alwaysShowCursor: widget.alwaysShowCursor,
+          paintExtension: widget.paintExtension,
           activeHyperlinkId: _activeHyperlinkId,
           onEditableRect: _onEditableRect,
           composingText: _composingText,
@@ -916,6 +922,7 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.cursorType,
     this.cursorBlink,
     required this.alwaysShowCursor,
+    this.paintExtension,
     this.activeHyperlinkId,
     this.onEditableRect,
     this.composingText,
@@ -947,6 +954,8 @@ class _TerminalView extends LeafRenderObjectWidget {
 
   final bool alwaysShowCursor;
 
+  final TerminalPaintExtension? paintExtension;
+
   final int? activeHyperlinkId;
 
   final EditableRectCallback? onEditableRect;
@@ -969,6 +978,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       cursorType: cursorType,
       cursorBlink: cursorBlink,
       alwaysShowCursor: alwaysShowCursor,
+      paintExtension: paintExtension,
       activeHyperlinkId: activeHyperlinkId,
       onEditableRect: onEditableRect,
       composingText: composingText,
@@ -991,6 +1001,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..cursorType = cursorType
       ..cursorBlink = cursorBlink
       ..alwaysShowCursor = alwaysShowCursor
+      ..paintExtension = paintExtension
       ..activeHyperlinkId = activeHyperlinkId
       ..onEditableRect = onEditableRect
       ..composingText = composingText;

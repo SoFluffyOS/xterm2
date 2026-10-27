@@ -102,6 +102,36 @@ terminal.write('Hello, world!');
 
 **Done!**
 
+## Custom painting
+
+Use `TerminalView.paintExtension` for application-owned graphics aligned with
+terminal cells. For example, draw a marker behind the first visible cell:
+
+```dart
+TerminalView(
+  terminal,
+  paintExtension: TerminalPaintExtension(
+    beforeCellForegrounds: (frame) {
+      frame.canvas.drawRect(
+        frame.cellOffset(0, frame.firstRow) & frame.cellSize,
+        Paint()..color = const Color(0x408080ff),
+      );
+    },
+  ),
+)
+```
+
+`beforeCellBackgrounds`, `beforeCellForegrounds` and `afterCellForegrounds`
+control paint order. Each callback has isolated canvas state and is clipped to
+`frame.viewport`; `cellOffset` uses buffer row coordinates and accounts for
+scrolling, padding and text scaling. The foreground callback runs before the
+selection/search overlays; the after callback can cover text and the focused
+block cursor. `cellForegroundFilter` optionally hides cell foregrounds,
+including selection/search recoloring, while keeping backgrounds and cursor
+geometry. Supply `repaint` with an application-owned `Listenable` to redraw
+without rebuilding the widget. Graphics decoding and protocol handling belong
+to the application. Omitting the extension preserves normal rendering.
+
 ## More examples
 
 - Write a simple terminal in ~100 lines of code:
