@@ -123,6 +123,37 @@ void main() {
     ]);
   });
 
+  testWidgets('TerminalView gives an OSC 52 query no clipboard by default', (
+    tester,
+  ) async {
+    // Whatever the program prints may ask: a file shown with cat, a log
+    // followed over ssh. Reading the clipboard is the host's choice.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': 'secret'}
+          : null,
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    terminal.write('\x1b]52;c;?\x07');
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(output.join(), isNot(contains('c2VjcmV0')));
+    expect(terminal.onClipboardQuery, isNull);
+  });
+
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
