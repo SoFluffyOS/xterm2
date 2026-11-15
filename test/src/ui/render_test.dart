@@ -7,6 +7,38 @@ import 'package:xterm2/xterm.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('a resize that ends synchronized output lays out once',
+      (tester) async {
+    // An application in the middle of a synchronized frame (mode 2026), as
+    // Claude Code draws, when the window is resized: the resize ends the
+    // frame and the terminal notifies inside the view's own layout.
+    final terminal = Terminal();
+    Widget at(double width) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              height: 200,
+              child: TerminalView(terminal),
+            ),
+          ),
+        );
+    await tester.pumpWidget(at(400));
+    final before = terminal.viewWidth;
+    terminal.write('\x1b[?2026hhalf a frame');
+
+    await tester.pumpWidget(at(300));
+
+    expect(tester.takeException(), isNull);
+    expect(terminal.viewWidth, lessThan(before));
+    expect(
+      tester.binding.hasScheduledFrame,
+      isFalse,
+      reason: 'the layout that resized the terminal was the one it needed',
+    );
+  });
+
   test('bottom-follow scrollback growth schedules layout', () {
     final offset = _TestViewportOffset();
     final setup = _createRenderTerminal(offset: offset);
