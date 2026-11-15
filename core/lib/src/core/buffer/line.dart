@@ -214,7 +214,12 @@ class BufferLine with IndexedItem {
     for (var offset = 0; offset < count; offset++) {
       final cellOffset = (start + offset) * _cellSize;
       final codeUnit = text.codeUnitAt(textStart + offset);
-      assert(codeUnit >= 0x20 && codeUnit <= 0x7e);
+      // Any character one cell wide that is a whole UTF-16 code unit, the run
+      // Buffer.writeNarrow hands over.
+      assert(codeUnit >= 0x20 && codeUnit <= 0x7e ||
+          codeUnit >= 0xa0 &&
+              (codeUnit < 0xd800 || codeUnit > 0xdfff) &&
+              unicodeV11.wcwidth(codeUnit) == 1);
       _data[cellOffset + _cellForeground] = foreground;
       _data[cellOffset + _cellBackground] = background;
       _data[cellOffset + _cellAttributes] = attributes;
