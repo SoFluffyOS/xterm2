@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -130,6 +131,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   bool get _shouldSendTapEvent =>
       !widget.readOnly &&
       !_bypassesMouseReportingWithShift &&
+      !_holdsHyperlinkModifier &&
       widget.terminalController.shouldSendPointerInput(PointerInput.tap);
 
   void _onPointerDown(PointerDownEvent event) {
@@ -246,6 +248,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     };
     if (widget.readOnly ||
         _bypassesMouseReportingWithShift ||
+        (_holdsHyperlinkModifier && input == PointerInput.drag) ||
         !widget.terminalController.shouldSendPointerInput(input)) {
       return;
     }
@@ -412,6 +415,18 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       _withheldPrimaryPress = null;
     }
     renderTerminal.selectLine(details.localPosition);
+  }
+
+  /// Whether the key that turns a click into a hyperlink click is held, the
+  /// same one TerminalView reads for onHyperlinkTap. Such a click opens the
+  /// link on release, so its press, drag and release are not reported; a
+  /// move without a button still is, for an application that underlines the
+  /// link under the mouse itself.
+  bool get _holdsHyperlinkModifier {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.macOS => HardwareKeyboard.instance.isMetaPressed,
+      _ => HardwareKeyboard.instance.isControlPressed,
+    };
   }
 
   bool get _applicationHandlesTap {

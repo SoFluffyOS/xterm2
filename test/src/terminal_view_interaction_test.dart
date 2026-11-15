@@ -52,6 +52,115 @@ void main() {
     expect(tapCount, 0);
   });
 
+  testWidgets(
+    'a hyperlink click under mouse tracking opens the link, unreported',
+    (tester) async {
+      final output = <String>[];
+      final links = <String>[];
+      final terminal = Terminal(
+        platform: TerminalTargetPlatform.macos,
+        onOutput: output.add,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              autofocus: true,
+              onHyperlinkTap: links.add,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      terminal.write(
+        '\x1b[?1000h\x1b[?1006h'
+        '\x1b]8;;https://example.com/a\x1b\\link\x1b]8;;\x1b\\',
+      );
+      output.clear();
+      final cell =
+          tester.getTopLeft(find.byType(TerminalView)) + const Offset(4, 6);
+
+      await tester.tapAt(cell, kind: PointerDeviceKind.mouse);
+      await tester.pump(kDoubleTapTimeout);
+      expect(output.join(), contains('\x1b[<0;1;1M'));
+      expect(links, isEmpty);
+      output.clear();
+
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+      await tester.tapAt(cell, kind: PointerDeviceKind.mouse);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.sendKeyUpEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+
+      expect(links, ['https://example.com/a']);
+      expect(output.join(), isEmpty);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
+
+  testWidgets(
+    'motion under the hyperlink modifier is reported, a drag is not',
+    (tester) async {
+      // An application that underlines the link under the mouse itself
+      // follows the mouse off it; the drag belongs to the link click.
+      final output = <String>[];
+      final terminal = Terminal(
+        platform: TerminalTargetPlatform.macos,
+        onOutput: output.add,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              autofocus: true,
+              controller: TerminalController(
+                pointerInputs: const PointerInputs.all(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      terminal.write(
+        '\x1b[?1003h\x1b[?1006h'
+        '\x1b]8;;https://example.com/a\x1b\\link\x1b]8;;\x1b\\',
+      );
+      final origin = tester.getTopLeft(find.byType(TerminalView));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: origin + const Offset(4, 6));
+      await tester.pump();
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+      output.clear();
+
+      await mouse.moveTo(origin + const Offset(204, 46));
+      await tester.pump();
+      expect(output.join(), contains('\x1b[<35;'));
+      output.clear();
+
+      await mouse.down(origin + const Offset(204, 46));
+      await mouse.moveTo(origin + const Offset(244, 46));
+      await mouse.up();
+      await tester.pump(kDoubleTapTimeout);
+      await tester.sendKeyUpEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+      expect(output.join(), isEmpty);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
+
   testWidgets('tracked double clicks release both button presses', (
     tester,
   ) async {
