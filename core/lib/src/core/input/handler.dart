@@ -135,6 +135,9 @@ class ModifyOtherKeysInputHandler implements TerminalInputHandler {
   String? call(TerminalKeyboardEvent event) {
     if (event.type == TerminalKeyEventType.release) return null;
     if (event.state.modifyOtherKeysMode != 2) return null;
+    // An application that raised kitty flags reads kitty's encoding, and the
+    // kitty handler before this one has already said all it means to.
+    if (event.state.kittyKeyboardMode != 0) return null;
 
     final codepoint = _codepoint(event);
     if (codepoint == null) return null;
@@ -178,7 +181,9 @@ class ModifyOtherKeysInputHandler implements TerminalInputHandler {
   }
 
   bool _shouldModify(TerminalKeyboardEvent event, int codepoint) {
-    if (codepoint >= 0x40 && codepoint <= 0x7f) return true;
+    // As in xterm, a key without Control or Alt is its own character and
+    // Shift only picks which one; Shift-Space alone is encoded, since a plain
+    // space cannot carry the Shift.
     if (event.ctrl || event.alt) return true;
     return event.shift && codepoint == 0x20;
   }
