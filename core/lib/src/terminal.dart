@@ -2615,6 +2615,9 @@ class Terminal
 
   @override
   void sendCellSize() {
+    // Before the first layout the cell has no size in pixels, and an
+    // application told 0x0 keeps it; saying nothing lets it ask again.
+    if (_cellPixelWidth == 0 || _cellPixelHeight == 0) return;
     onOutput?.call('\x1b[6;$_cellPixelHeight;${_cellPixelWidth}t');
   }
 

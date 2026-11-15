@@ -3847,6 +3847,20 @@ void main() {
     ]);
   });
 
+  test('Terminal answers no cell size query before it knows the cell', () {
+    // Before the first layout the cell has no size in pixels; an application
+    // told 0x0 keeps it, one told nothing asks again.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+
+    terminal.write('\x1b[16t');
+    expect(output, isEmpty);
+
+    terminal.resize(80, 24, 8, 16);
+    terminal.write('\x1b[16t');
+    expect(output, ['\x1b[6;16;8t']);
+  });
+
   test('Terminal ignores XTWINOPS size queries with extra params', () {
     final output = <String>[];
     final terminal = Terminal(onOutput: output.add)..resize(80, 24, 9, 18);
