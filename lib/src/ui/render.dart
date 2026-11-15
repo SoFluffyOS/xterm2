@@ -361,6 +361,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void dispose() {
     _stopCursorBlinking();
     _stopTextBlinking();
+    _wholeFrame?.picture.dispose();
+    _wholeFrame = null;
     _painter.dispose();
     super.dispose();
   }
@@ -784,13 +786,35 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final canvas = context.canvas;
     canvas.save();
     canvas.clipRect(offset & size);
-    _paint(context, offset);
+    canvas.translate(offset.dx, offset.dy);
+    canvas.drawPicture(_frame());
     canvas.restore();
     context.setWillChangeHint();
   }
 
-  void _paint(PaintingContext context, Offset offset) {
-    final canvas = context.canvas;
+  // Under synchronized output (mode 2026) the buffer holds a frame the
+  // program is still writing, and a paint asked for before the update began
+  // would show half of it. Every paint is kept, and until the update ends the
+  // last whole one is drawn again.
+  ({Picture picture, Size size, Terminal terminal})? _wholeFrame;
+
+  Picture _frame() {
+    final whole = _wholeFrame;
+    if (whole != null &&
+        _terminal.synchronizedUpdateMode &&
+        whole.size == size &&
+        identical(whole.terminal, _terminal)) {
+      return whole.picture;
+    }
+    final recorder = PictureRecorder();
+    _paint(Canvas(recorder), Offset.zero);
+    whole?.picture.dispose();
+    final picture = recorder.endRecording();
+    _wholeFrame = (picture: picture, size: size, terminal: _terminal);
+    return picture;
+  }
+
+  void _paint(Canvas canvas, Offset offset) {
     _updatePainterColorState();
 
     final backgroundOverride = _painter.backgroundColorOverride;
