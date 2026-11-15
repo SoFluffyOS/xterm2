@@ -41,6 +41,35 @@ const _lightTheme = TerminalTheme(
   searchHitForeground: Color(0xff000000),
 );
 
+/// A theme of the same colors as [theme], built as a new object.
+TerminalTheme _copyOf(TerminalTheme theme) {
+  return TerminalTheme(
+    cursor: theme.cursor,
+    selection: theme.selection,
+    foreground: theme.foreground,
+    background: theme.background,
+    black: theme.black,
+    red: theme.red,
+    green: theme.green,
+    yellow: theme.yellow,
+    blue: theme.blue,
+    magenta: theme.magenta,
+    cyan: theme.cyan,
+    white: theme.white,
+    brightBlack: theme.brightBlack,
+    brightRed: theme.brightRed,
+    brightGreen: theme.brightGreen,
+    brightYellow: theme.brightYellow,
+    brightBlue: theme.brightBlue,
+    brightMagenta: theme.brightMagenta,
+    brightCyan: theme.brightCyan,
+    brightWhite: theme.brightWhite,
+    searchHitBackground: theme.searchHitBackground,
+    searchHitBackgroundCurrent: theme.searchHitBackgroundCurrent,
+    searchHitForeground: theme.searchHitForeground,
+  );
+}
+
 void main() {
   testWidgets('terminal writes avoid layout when geometry is unchanged', (
     tester,
@@ -121,6 +150,30 @@ void main() {
       '\x1b[?997;1n',
       '\x1b[?997;2n',
     ]);
+  });
+
+  testWidgets('TerminalView reports no change for a theme of the same colors', (
+    tester,
+  ) async {
+    // A host that builds its theme in build() hands the view a new object on
+    // every rebuild; only a theme with other colors is a change of scheme.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    Future<void> pumpWith(TerminalTheme theme) {
+      return tester.pumpWidget(
+        MaterialApp(home: TerminalView(terminal, theme: theme)),
+      );
+    }
+
+    await pumpWith(_copyOf(_lightTheme));
+    terminal.write('\x1b[?2031h');
+    output.clear();
+
+    await pumpWith(_copyOf(_lightTheme));
+    expect(output, isEmpty);
+
+    await pumpWith(TerminalThemes.whiteOnBlack);
+    expect(output, ['\x1b[?997;1n']);
   });
 
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
