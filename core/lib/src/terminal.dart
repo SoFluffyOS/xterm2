@@ -342,7 +342,9 @@ class Terminal
 
   /// Called when the application requests clipboard contents through OSC 52.
   ///
-  /// Return null to deny the request. The result may be asynchronous.
+  /// Return null to deny the request. The result may be asynchronous. Unset,
+  /// the query is not answered; TerminalView sets none, since any output the
+  /// program prints may ask and the answer goes back to it.
   FutureOr<String?> Function(String selector)? onClipboardQuery;
 
   /// Function that is called when the terminal emits data to the underlying

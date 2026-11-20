@@ -281,8 +281,6 @@ class TerminalViewState extends State<TerminalView> {
 
   late final void Function(String, String) _clipboardStore = _storeClipboard;
 
-  late final Future<String?> Function(String) _clipboardQuery = _queryClipboard;
-
   RenderTerminal get renderTerminal {
     final context = _viewportKey.currentContext;
     if (context == null) {
@@ -392,29 +390,23 @@ class TerminalViewState extends State<TerminalView> {
     }
   }
 
+  // An OSC 52 query is not answered from the clipboard by default: any output
+  // the program prints may ask, a file shown with cat included, and the answer
+  // goes back to the program. A host that wants to answer sets
+  // Terminal.onClipboardQuery itself.
   void _installClipboardHandlers(Terminal terminal) {
     terminal.onClipboardStore ??= _clipboardStore;
-    terminal.onClipboardQuery ??= _clipboardQuery;
   }
 
   void _removeClipboardHandlers(Terminal terminal) {
     if (terminal.onClipboardStore == _clipboardStore) {
       terminal.onClipboardStore = null;
     }
-    if (terminal.onClipboardQuery == _clipboardQuery) {
-      terminal.onClipboardQuery = null;
-    }
   }
 
   void _storeClipboard(String selector, String text) {
     if (!_focusNode.hasFocus) return;
     unawaited(Clipboard.setData(ClipboardData(text: text)));
-  }
-
-  Future<String?> _queryClipboard(String selector) async {
-    if (!_focusNode.hasFocus) return null;
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    return data?.text;
   }
 
   int? _resolveColorQuery(int code, int? index) {
