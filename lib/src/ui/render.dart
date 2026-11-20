@@ -3,6 +3,7 @@ import 'dart:math' show max, min;
 import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm2_core/xterm2_core.dart';
 import 'package:xterm2/src/ui/controller.dart';
@@ -243,6 +244,17 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     markNeedsPaint();
   }
 
+  /// Whether [performLayout] is running. Its resize of the terminal ends
+  /// synchronized output (mode 2026) when the application is in the middle of
+  /// a frame, and the terminal notifies at once, inside the layout: the change
+  /// is the one this layout is making, and asking for another would dirty a
+  /// render object while it is being laid out.
+  var _layingOut = false;
+
+  /// Whether the editable rect is to be reported after the frame: inside a
+  /// layout the cursor's place on screen is not known yet.
+  var _editableRectAfterFrame = false;
+
   void _onTerminalChange() {
     _updateCursorBlinking();
     final buffer = _terminal.buffer;
@@ -272,12 +284,28 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
             _stickToBottom &&
             _terminal.buffer.absoluteCursorY != _lastCursorY);
     _recordTerminalLayoutState();
+    if (_layingOut) {
+      // The layout under way reads the state just recorded and lays the lines
+      // out after it; what was painted before is stale.
+      markNeedsPaint();
+      _notifyEditableRectAfterFrame();
+      return;
+    }
     if (needsLayout) {
       markNeedsLayout();
     } else {
       markNeedsPaint();
     }
     _notifyEditableRect();
+  }
+
+  void _notifyEditableRectAfterFrame() {
+    if (_editableRectAfterFrame) return;
+    _editableRectAfterFrame = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _editableRectAfterFrame = false;
+      if (attached) _notifyEditableRect();
+    });
   }
 
   /// A full buffer drops its oldest line for every new one, which moves all
@@ -440,7 +468,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void performLayout() {
     size = constraints.biggest;
 
-    _updateViewportSize();
+    _layingOut = true;
+    try {
+      _updateViewportSize();
+    } finally {
+      _layingOut = false;
+    }
     _recordTerminalLayoutState();
 
     _updateScrollOffset();
