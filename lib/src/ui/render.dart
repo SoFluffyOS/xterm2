@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:xterm2_core/xterm2_core.dart';
 import 'package:xterm2/src/ui/controller.dart';
 import 'package:xterm2/src/ui/painter.dart';
+import 'package:xterm2/src/ui/paint_extension.dart';
 import 'package:xterm2/src/ui/selection_mode.dart';
 import 'package:xterm2/src/ui/terminal_size.dart';
 import 'package:xterm2/src/ui/terminal_text_style.dart';
@@ -30,6 +31,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalCursorType cursorType,
     bool? cursorBlink,
     required bool alwaysShowCursor,
+    TerminalPaintExtension? paintExtension,
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
     String? composingText,
@@ -43,6 +45,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _cursorType = cursorType,
         _cursorBlink = cursorBlink,
         _alwaysShowCursor = alwaysShowCursor,
+        _paintExtension = paintExtension,
         _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
         _composingText = composingText,
@@ -50,6 +53,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
           theme: theme,
           textStyle: textStyle,
           textScaler: textScaler,
+          cellForegroundFilter: paintExtension?.cellForegroundFilter,
         );
 
   Terminal _terminal;
@@ -162,6 +166,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   set composingText(String? value) {
     if (value == _composingText) return;
     _composingText = value;
+    markNeedsPaint();
+  }
+
+  TerminalPaintExtension? _paintExtension;
+  set paintExtension(TerminalPaintExtension? value) {
+    if (identical(value, _paintExtension)) return;
+    if (attached) _paintExtension?.repaint?.removeListener(markNeedsPaint);
+    _paintExtension = value;
+    _painter.cellForegroundFilter = value?.cellForegroundFilter;
+    if (attached) _paintExtension?.repaint?.addListener(markNeedsPaint);
     markNeedsPaint();
   }
 
@@ -370,6 +384,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _terminal.addListener(_onTerminalChange);
     _controller.addListener(_onControllerUpdate);
     _focusNode.addListener(_onFocusChange);
+    _paintExtension?.repaint?.addListener(markNeedsPaint);
     _updateCursorBlinking(force: true);
   }
 
@@ -382,6 +397,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
     _focusNode.removeListener(_onFocusChange);
+    _paintExtension?.repaint?.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -861,6 +877,27 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       charHeight,
     );
 
+    final extension = _paintExtension;
+    final frame = extension == null
+        ? null
+        : TerminalPaintContext(
+            canvas: canvas,
+            viewport: Rect.fromLTWH(
+              offset.dx + _padding.left,
+              offset.dy + _padding.top,
+              max(size.width - _padding.horizontal, 0),
+              _viewportHeight,
+            ),
+            firstRow: effectFirstLine,
+            endRow: effectLastLine + 1,
+            cellSize: _painter.cellSize,
+            terminal: _terminal,
+            controller: _controller,
+            paintOffset: offset,
+            bufferOffset: Offset(_padding.left, _lineOffset),
+          );
+    _paintExtensionCallback(extension?.beforeCellBackgrounds, frame);
+
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
       _painter.paintLineBackgrounds(
         canvas,
@@ -871,6 +908,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         lines[i],
       );
     }
+
+    _paintExtensionCallback(extension?.beforeCellForegrounds, frame);
 
     if (_terminal.cursorLineHighlightMode &&
         _terminal.buffer.absoluteCursorY >= effectFirstLine &&
@@ -1000,6 +1039,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       effectLastLine,
     );
 
+    _paintExtensionCallback(extension?.afterCellForegrounds, frame);
+
     if (shouldPaintCursor) {
       if (_isComposingText) {
         _paintComposingText(canvas, offset, cursorOffset);
@@ -1017,6 +1058,22 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
     }
     canvas.restore();
+  }
+
+  void _paintExtensionCallback(
+    TerminalPaintCallback? callback,
+    TerminalPaintContext? frame,
+  ) {
+    if (callback == null || frame == null) return;
+    final canvas = frame.canvas;
+    final saveCount = canvas.getSaveCount();
+    canvas.save();
+    try {
+      canvas.clipRect(frame.viewport);
+      callback(frame);
+    } finally {
+      canvas.restoreToCount(saveCount);
+    }
   }
 
   void _updatePainterColorState() {
