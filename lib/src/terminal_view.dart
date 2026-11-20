@@ -706,6 +706,10 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onComposing(String? text) {
+    if (!mounted || text == _composingText) {
+      return;
+    }
+
     setState(() => _composingText = text);
   }
 
@@ -777,10 +781,23 @@ class TerminalViewState extends State<TerminalView> {
     // A key that only types its character is the input method's to type:
     // it may compose it with the keys around it first, as Korean, Japanese
     // and Chinese input do. Other handlers stay out of it.
+    // Keys with Option, Control, Command or AltGr, and a held ASCII key's
+    // repeats, stay on the terminal's own path.
     final typesItsCharacter = event.character == text &&
         (output == text || insertsFallback) &&
         eventType != TerminalKeyEventType.release;
-    if (typesItsCharacter && _isPrintable(text) && _composesTypedText) {
+    final hasOtherModifiers = hardwareKeyboard.isControlPressed ||
+        hardwareKeyboard.isAltPressed ||
+        hardwareKeyboard.isMetaPressed ||
+        altGraphActive;
+    final repeatsAscii = eventType == TerminalKeyEventType.repeat &&
+        text != null &&
+        text.codeUnits.every((unit) => unit < 0x80);
+    if (typesItsCharacter &&
+        !hasOtherModifiers &&
+        !repeatsAscii &&
+        _isPrintable(text) &&
+        _composesTypedText) {
       return KeyEventResult.skipRemainingHandlers;
     }
 
@@ -800,10 +817,9 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   /// Whether keys left unhandled go on to the system's input method, which
-  /// types them through the text input connection: on desktop systems,
-  /// and in their browsers.
+  /// types them through the text input connection: on desktop systems.
   bool get _composesTypedText {
-    if (!hasInputConnection) {
+    if (kIsWeb || !hasInputConnection) {
       return false;
     }
 
