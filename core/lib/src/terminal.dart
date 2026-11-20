@@ -761,6 +761,10 @@ class Terminal
   @override
   bool get graphemeClusterMode => _graphemeClusterMode;
 
+  /// Whether the program is in the middle of a synchronized update (mode
+  /// 2026): until it ends one, [buffer] does not hold a whole frame.
+  bool get synchronizedUpdateMode => _synchronizedUpdateMode;
+
   @override
   int get kittyKeyboardMode => _kittyKeyboardMode;
 

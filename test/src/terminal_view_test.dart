@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -150,6 +151,47 @@ void main() {
       '\x1b[?997;1n',
       '\x1b[?997;2n',
     ]);
+  });
+
+  testWidgets('a paint under synchronized output shows the last whole frame', (
+    tester,
+  ) async {
+    final shot = GlobalKey();
+    final terminal = Terminal();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RepaintBoundary(key: shot, child: TerminalView(terminal)),
+        ),
+      ),
+    );
+    await tester.pump();
+    Future<List<int>> picture() async {
+      final boundary =
+          shot.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final bytes = await tester.runAsync(() async {
+        final image = await boundary.toImage();
+        final data = await image.toByteData();
+        image.dispose();
+        return data!.buffer.asUint8List();
+      });
+      return bytes!;
+    }
+
+    const frameA = '\x1b[H\x1b[2JAAAAAAAA';
+    terminal.write(frameA);
+    await tester.pump();
+    final whole = await picture();
+    // The first write asks for a paint; the second begins frame B before the
+    // paint comes, as a program that opens each redraw with mode 2026 does.
+    terminal.write(frameA);
+    terminal.write('\x1b[?2026h\x1b[H\x1b[2JBB');
+    await tester.pump();
+    expect(await picture(), whole, reason: 'frame A, not half of frame B');
+
+    // A program that never ends the update is drawn as it is after 150 ms.
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(await picture(), isNot(whole));
   });
 
   testWidgets('TerminalView reports no change for a theme of the same colors', (
