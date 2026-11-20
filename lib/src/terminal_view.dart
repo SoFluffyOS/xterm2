@@ -14,6 +14,7 @@ import 'package:xterm2/src/ui/keyboard_listener.dart';
 import 'package:xterm2/src/ui/keyboard_visibility.dart';
 import 'package:xterm2/src/ui/kitty_modifier_key_filter.dart';
 import 'package:xterm2/src/ui/palette_builder.dart';
+import 'package:xterm2/src/ui/paint_extension.dart';
 import 'package:xterm2/src/ui/render.dart';
 import 'package:xterm2/src/ui/scroll_handler.dart';
 import 'package:xterm2/src/ui/shortcut/actions.dart';
@@ -113,6 +114,7 @@ class TerminalView extends StatefulWidget {
     this.keyboardAppearance = Brightness.dark,
     this.cursorType = TerminalCursorType.block,
     this.alwaysShowCursor = false,
+    this.paintExtension,
     this.deleteDetection = false,
     this.shortcuts,
     this.onKeyEvent,
@@ -217,6 +219,9 @@ class TerminalView extends StatefulWidget {
   /// [false] by default.
   final bool alwaysShowCursor;
 
+  /// Application-owned graphics painted within the terminal viewport.
+  final TerminalPaintExtension? paintExtension;
+
   /// Workaround to detect delete key for platforms and IMEs that does not
   /// emit hardware delete event. Prefered on mobile platforms. [false] by
   /// default.
@@ -280,8 +285,6 @@ class TerminalViewState extends State<TerminalView> {
   late final int? Function(int, int?) _colorQuery = _resolveColorQuery;
 
   late final void Function(String, String) _clipboardStore = _storeClipboard;
-
-  late final Future<String?> Function(String) _clipboardQuery = _queryClipboard;
 
   RenderTerminal get renderTerminal {
     final context = _viewportKey.currentContext;
@@ -392,29 +395,23 @@ class TerminalViewState extends State<TerminalView> {
     }
   }
 
+  // An OSC 52 query is not answered from the clipboard by default: any output
+  // the program prints may ask, a file shown with cat included, and the answer
+  // goes back to the program. A host that wants to answer sets
+  // Terminal.onClipboardQuery itself.
   void _installClipboardHandlers(Terminal terminal) {
     terminal.onClipboardStore ??= _clipboardStore;
-    terminal.onClipboardQuery ??= _clipboardQuery;
   }
 
   void _removeClipboardHandlers(Terminal terminal) {
     if (terminal.onClipboardStore == _clipboardStore) {
       terminal.onClipboardStore = null;
     }
-    if (terminal.onClipboardQuery == _clipboardQuery) {
-      terminal.onClipboardQuery = null;
-    }
   }
 
   void _storeClipboard(String selector, String text) {
     if (!_focusNode.hasFocus) return;
     unawaited(Clipboard.setData(ClipboardData(text: text)));
-  }
-
-  Future<String?> _queryClipboard(String selector) async {
-    if (!_focusNode.hasFocus) return null;
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    return data?.text;
   }
 
   int? _resolveColorQuery(int code, int? index) {
@@ -474,6 +471,7 @@ class TerminalViewState extends State<TerminalView> {
           cursorType: widget.cursorType,
           cursorBlink: widget.cursorBlink,
           alwaysShowCursor: widget.alwaysShowCursor,
+          paintExtension: widget.paintExtension,
           activeHyperlinkId: _activeHyperlinkId,
           onEditableRect: _onEditableRect,
           composingText: _composingText,
@@ -525,6 +523,7 @@ class TerminalViewState extends State<TerminalView> {
           }
         },
         onKeyEvent: _handleKeyEvent,
+        onSelector: _onSelector,
         readOnly: widget.readOnly,
         child: child,
       );
@@ -705,6 +704,10 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   void _onComposing(String? text) {
+    if (!mounted || text == _composingText) {
+      return;
+    }
+
     setState(() => _composingText = text);
   }
 
@@ -751,7 +754,7 @@ class TerminalViewState extends State<TerminalView> {
     final lockModes = hardwareKeyboard.lockModesEnabled;
     final altGraphActive = _isAltGraphActive(event, hardwareKeyboard);
 
-    final handled = widget.terminal.keyInput(
+    final output = widget.terminal.keyOutput(
       terminalKey,
       ctrl: hardwareKeyboard.isControlPressed && !altGraphActive,
       alt: hardwareKeyboard.isAltPressed && !altGraphActive,
@@ -765,24 +768,99 @@ class TerminalViewState extends State<TerminalView> {
         _ => text,
       },
     );
+    final insertsFallback = output == null &&
+        text != null &&
+        _shouldInsertTextFallback(
+          text,
+          eventType,
+          altGraphActive: altGraphActive,
+        );
 
-    if (handled) {
+    // A key that only types its character is the input method's to type:
+    // it may compose it with the keys around it first, as Korean, Japanese
+    // and Chinese input do. Other handlers stay out of it.
+    // Keys with Option, Control, Command or AltGr, and a held ASCII key's
+    // repeats, stay on the terminal's own path.
+    final typesItsCharacter = event.character == text &&
+        (output == text || insertsFallback) &&
+        eventType != TerminalKeyEventType.release;
+    final hasOtherModifiers = hardwareKeyboard.isControlPressed ||
+        hardwareKeyboard.isAltPressed ||
+        hardwareKeyboard.isMetaPressed ||
+        altGraphActive;
+    final repeatsAscii = eventType == TerminalKeyEventType.repeat &&
+        text != null &&
+        text.codeUnits.every((unit) => unit < 0x80);
+    if (typesItsCharacter &&
+        !hasOtherModifiers &&
+        !repeatsAscii &&
+        _isPrintable(text) &&
+        _composesTypedText) {
+      return KeyEventResult.skipRemainingHandlers;
+    }
+
+    if (output != null) {
+      widget.terminal.onOutput?.call(output);
       _scrollToBottom();
       return KeyEventResult.handled;
     }
 
-    if (text case final fallbackText?
-        when _shouldInsertTextFallback(
-          fallbackText,
-          eventType,
-          altGraphActive: altGraphActive,
-        )) {
-      widget.terminal.textInput(fallbackText);
+    if (insertsFallback) {
+      widget.terminal.textInput(text);
       _scrollToBottom();
       return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
+  }
+
+  /// Whether keys left unhandled go on to the system's input method, which
+  /// types them through the text input connection: on desktop systems.
+  bool get _composesTypedText {
+    if (kIsWeb || !hasInputConnection) {
+      return false;
+    }
+
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux =>
+        true,
+      _ => false,
+    };
+  }
+
+  bool _isPrintable(String? text) {
+    if (text == null || text.isEmpty) {
+      return false;
+    }
+
+    final unit = text.codeUnitAt(0);
+    return unit >= 0x20 && unit != 0x7F;
+  }
+
+  /// What macOS asks for when a key ended a composition and still has its
+  /// own job to do: the input method took the key itself.
+  static const _selectorKeys = {
+    'moveLeft:': TerminalKey.arrowLeft,
+    'moveRight:': TerminalKey.arrowRight,
+    'moveUp:': TerminalKey.arrowUp,
+    'moveDown:': TerminalKey.arrowDown,
+    'deleteBackward:': TerminalKey.backspace,
+    'deleteForward:': TerminalKey.delete,
+    'insertTab:': TerminalKey.tab,
+    'cancelOperation:': TerminalKey.escape,
+  };
+
+  void _onSelector(String selector) {
+    final key = _selectorKeys[selector];
+    if (key == null) {
+      return;
+    }
+
+    if (widget.terminal.keyInput(key)) {
+      _scrollToBottom();
+    }
   }
 
   bool _shouldInsertTextFallback(
@@ -916,6 +994,7 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.cursorType,
     this.cursorBlink,
     required this.alwaysShowCursor,
+    this.paintExtension,
     this.activeHyperlinkId,
     this.onEditableRect,
     this.composingText,
@@ -947,6 +1026,8 @@ class _TerminalView extends LeafRenderObjectWidget {
 
   final bool alwaysShowCursor;
 
+  final TerminalPaintExtension? paintExtension;
+
   final int? activeHyperlinkId;
 
   final EditableRectCallback? onEditableRect;
@@ -969,6 +1050,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       cursorType: cursorType,
       cursorBlink: cursorBlink,
       alwaysShowCursor: alwaysShowCursor,
+      paintExtension: paintExtension,
       activeHyperlinkId: activeHyperlinkId,
       onEditableRect: onEditableRect,
       composingText: composingText,
@@ -991,6 +1073,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..cursorType = cursorType
       ..cursorBlink = cursorBlink
       ..alwaysShowCursor = alwaysShowCursor
+      ..paintExtension = paintExtension
       ..activeHyperlinkId = activeHyperlinkId
       ..onEditableRect = onEditableRect
       ..composingText = composingText;

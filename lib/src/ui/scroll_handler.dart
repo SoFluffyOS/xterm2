@@ -334,6 +334,12 @@ class _TerminalScrollGestureHandlerState
             lastPointerPosition = event.localPosition;
             _adoptPointerKind(event.kind);
           },
+          // A trackpad scrolls by pan-zoom and sends no pointer signal: without
+          // this, its reports go to wherever the last press was, or to the
+          // top-left cell in a view no one has pressed yet.
+          onPointerPanZoomStart: (event) {
+            lastPointerPosition = event.localPosition;
+          },
           child: ScrollConfiguration(
             behavior: scrollbackBehavior,
             child: widget.child,

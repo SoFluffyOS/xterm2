@@ -177,6 +177,52 @@ class Buffer {
     }
   }
 
+  /// Writes the characters of [text] from [start] to [end], each one cell wide
+  /// and a whole UTF-16 code unit: what the parser's fast path hands over.
+  //
+  // Under grapheme clustering (mode 2027, on by default) writeChar asks the
+  // characters package of every letter outside ASCII whether it joins the
+  // cell before, and that, not the parser, is what made Cyrillic slow. A letter that cannot join what came before fills its cell
+  // as ASCII does; any other goes through writeChar, a Devanagari vowel sign
+  // to its consonant.
+  void writeNarrow(String text, int start, int end) {
+    if (!terminal.graphemeClusterMode) {
+      writeAscii(text, start, end);
+      return;
+    }
+    var fastStart = start;
+    var afterPlainLetter = false;
+    for (var index = start; index < end; index++) {
+      final codeUnit = text.codeUnitAt(index);
+      if (codeUnit <= 0x7e ||
+          afterPlainLetter && _startsItsOwnGrapheme(codeUnit)) {
+        afterPlainLetter = true;
+        continue;
+      }
+      writeAscii(text, fastStart, index);
+      writeChar(codeUnit);
+      fastStart = index + 1;
+      afterPlainLetter = _startsItsOwnGrapheme(codeUnit);
+    }
+    writeAscii(text, fastStart, end);
+  }
+
+  /// Whether [codeUnit] starts a grapheme of its own when it follows ASCII or
+  /// another such letter: Latin, Greek and Cyrillic letters, the dashes and
+  /// quotes of General Punctuation, box drawing and blocks. Their grapheme
+  /// cluster break property is Other and none is a pictograph or an Indic
+  /// consonant, so only a Prepend before them could join them, and neither
+  /// ASCII nor one of them is that.
+  static bool _startsItsOwnGrapheme(int codeUnit) {
+    return switch (codeUnit) {
+      0xA9 || 0xAD || 0xAE => false,
+      >= 0xA0 && <= 0x2FF => true,
+      >= 0x370 && <= 0x482 || >= 0x48A && <= 0x52F => true,
+      >= 0x2010 && <= 0x2027 || >= 0x2500 && <= 0x259F => true,
+      _ => false,
+    };
+  }
+
   /// Writes a single character to the _terminal. Escape sequences or special
   /// characters are not interpreted and directly added to the buffer.
   ///

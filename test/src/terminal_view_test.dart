@@ -42,6 +42,35 @@ const _lightTheme = TerminalTheme(
   searchHitForeground: Color(0xff000000),
 );
 
+/// A theme of the same colors as [theme], built as a new object.
+TerminalTheme _copyOf(TerminalTheme theme) {
+  return TerminalTheme(
+    cursor: theme.cursor,
+    selection: theme.selection,
+    foreground: theme.foreground,
+    background: theme.background,
+    black: theme.black,
+    red: theme.red,
+    green: theme.green,
+    yellow: theme.yellow,
+    blue: theme.blue,
+    magenta: theme.magenta,
+    cyan: theme.cyan,
+    white: theme.white,
+    brightBlack: theme.brightBlack,
+    brightRed: theme.brightRed,
+    brightGreen: theme.brightGreen,
+    brightYellow: theme.brightYellow,
+    brightBlue: theme.brightBlue,
+    brightMagenta: theme.brightMagenta,
+    brightCyan: theme.brightCyan,
+    brightWhite: theme.brightWhite,
+    searchHitBackground: theme.searchHitBackground,
+    searchHitBackgroundCurrent: theme.searchHitBackgroundCurrent,
+    searchHitForeground: theme.searchHitForeground,
+  );
+}
+
 void main() {
   testWidgets('terminal writes avoid layout when geometry is unchanged', (
     tester,
@@ -163,6 +192,61 @@ void main() {
     // A program that never ends the update is drawn as it is after 150 ms.
     await tester.pump(const Duration(milliseconds: 200));
     expect(await picture(), isNot(whole));
+  });
+
+  testWidgets('TerminalView reports no change for a theme of the same colors', (
+    tester,
+  ) async {
+    // A host that builds its theme in build() hands the view a new object on
+    // every rebuild; only a theme with other colors is a change of scheme.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    Future<void> pumpWith(TerminalTheme theme) {
+      return tester.pumpWidget(
+        MaterialApp(home: TerminalView(terminal, theme: theme)),
+      );
+    }
+
+    await pumpWith(_copyOf(_lightTheme));
+    terminal.write('\x1b[?2031h');
+    output.clear();
+
+    await pumpWith(_copyOf(_lightTheme));
+    expect(output, isEmpty);
+
+    await pumpWith(TerminalThemes.whiteOnBlack);
+    expect(output, ['\x1b[?997;1n']);
+  });
+
+  testWidgets('TerminalView gives an OSC 52 query no clipboard by default', (
+    tester,
+  ) async {
+    // Whatever the program prints may ask: a file shown with cat, a log
+    // followed over ssh. Reading the clipboard is the host's choice.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': 'secret'}
+          : null,
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    terminal.write('\x1b]52;c;?\x07');
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(output.join(), isNot(contains('c2VjcmV0')));
+    expect(terminal.onClipboardQuery, isNull);
   });
 
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
@@ -946,6 +1030,44 @@ void main() {
       }
 
       expect(output, ['\x1b[<65;1;1M']);
+    });
+
+    testWidgets('reports a trackpad scroll at the cell under the pointer', (
+      tester,
+    ) async {
+      // A trackpad scrolls by pan-zoom events and sends no pointer signal,
+      // so nothing told the view where the pointer was before the first
+      // press: the reports went to the top-left cell.
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cell = state.renderTerminal.cellSize;
+      final position = state.renderTerminal.localToGlobal(
+        Offset(cell.width * 10.5, cell.height * 4.5),
+      );
+      final pad = TestPointer(1, PointerDeviceKind.trackpad);
+      await tester.sendEventToBinding(pad.panZoomStart(position));
+      for (var i = 1; i <= 4; i++) {
+        await tester.sendEventToBinding(
+          pad.panZoomUpdate(position, pan: Offset(0, cell.height * i)),
+        );
+        await tester.pump();
+      }
+      await tester.sendEventToBinding(pad.panZoomEnd());
+      await tester.pump();
+
+      expect(output, isNotEmpty);
+      expect(output.toSet(), {'\x1b[<64;11;5M'});
     });
 
     testWidgets('reports horizontal wheel input to applications', (

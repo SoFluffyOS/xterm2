@@ -54,4 +54,62 @@ class TerminalTheme {
   final Color searchHitBackground;
   final Color searchHitBackgroundCurrent;
   final Color searchHitForeground;
+
+  /// Two themes are equal when every color is, so a theme built anew on each
+  /// rebuild is not taken for a change of color scheme.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TerminalTheme &&
+        other.cursor == cursor &&
+        other.selection == selection &&
+        other.foreground == foreground &&
+        other.background == background &&
+        other.black == black &&
+        other.red == red &&
+        other.green == green &&
+        other.yellow == yellow &&
+        other.blue == blue &&
+        other.magenta == magenta &&
+        other.cyan == cyan &&
+        other.white == white &&
+        other.brightBlack == brightBlack &&
+        other.brightRed == brightRed &&
+        other.brightGreen == brightGreen &&
+        other.brightYellow == brightYellow &&
+        other.brightBlue == brightBlue &&
+        other.brightMagenta == brightMagenta &&
+        other.brightCyan == brightCyan &&
+        other.brightWhite == brightWhite &&
+        other.searchHitBackground == searchHitBackground &&
+        other.searchHitBackgroundCurrent == searchHitBackgroundCurrent &&
+        other.searchHitForeground == searchHitForeground;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        cursor,
+        selection,
+        foreground,
+        background,
+        black,
+        red,
+        green,
+        yellow,
+        blue,
+        magenta,
+        cyan,
+        white,
+        brightBlack,
+        brightRed,
+        brightGreen,
+        brightYellow,
+        brightBlue,
+        brightMagenta,
+        brightCyan,
+        brightWhite,
+        searchHitBackground,
+        searchHitBackgroundCurrent,
+        searchHitForeground,
+      ]);
 }

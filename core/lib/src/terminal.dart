@@ -228,7 +228,7 @@ final class TerminalSemanticPromptState {
 /// understand.
 class Terminal
     with Observable
-    implements TerminalState, EscapeHandler, EscapeTextHandler {
+    implements TerminalState, EscapeHandler, EscapeNarrowTextHandler {
   static const _maxHyperlinks = 4096;
   static const _maxHyperlinkId =
       CellAttr.hyperlinkMask >> CellAttr.hyperlinkShift;
@@ -342,7 +342,9 @@ class Terminal
 
   /// Called when the application requests clipboard contents through OSC 52.
   ///
-  /// Return null to deny the request. The result may be asynchronous.
+  /// Return null to deny the request. The result may be asynchronous. Unset,
+  /// the query is not answered; TerminalView sets none, since any output the
+  /// program prints may ask and the answer goes back to it.
   FutureOr<String?> Function(String selector)? onClipboardQuery;
 
   /// Function that is called when the terminal emits data to the underlying
@@ -872,9 +874,44 @@ class Terminal
     TerminalKeyEventType type = TerminalKeyEventType.press,
     String? text,
   }) {
-    if (_isDisposed) return false;
-    if (_keyboardActionMode) return false;
-    final output = inputHandler?.call(
+    final output = keyOutput(
+      key,
+      shift: shift,
+      alt: alt,
+      ctrl: ctrl,
+      superKey: superKey,
+      capsLock: capsLock,
+      numLock: numLock,
+      type: type,
+      text: text,
+    );
+
+    if (output != null) {
+      onOutput?.call(output);
+      return true;
+    }
+
+    return false;
+  }
+
+  /// What [keyInput] would send for this key, without sending it: null when
+  /// the terminal has nothing to send for it. Lets a view tell a key that
+  /// only types its [text] from one the running program asked to hear
+  /// about as a key.
+  String? keyOutput(
+    TerminalKey key, {
+    bool shift = false,
+    bool alt = false,
+    bool ctrl = false,
+    bool superKey = false,
+    bool capsLock = false,
+    bool numLock = false,
+    TerminalKeyEventType type = TerminalKeyEventType.press,
+    String? text,
+  }) {
+    if (_isDisposed) return null;
+    if (_keyboardActionMode) return null;
+    return inputHandler?.call(
       TerminalKeyboardEvent(
         key: key,
         shift: shift,
@@ -890,13 +927,6 @@ class Terminal
         text: text,
       ),
     );
-
-    if (output != null) {
-      onOutput?.call(output);
-      return true;
-    }
-
-    return false;
   }
 
   /// Similary to [keyInput], but takes a character as input instead of a
@@ -1265,6 +1295,14 @@ class Terminal
     if (start >= end) return;
     _captureITerm2ClipboardTextRange(text, start, end);
     _buffer.writeAscii(text, start, end);
+    _precedingCodepoint = text.codeUnitAt(end - 1);
+  }
+
+  @override
+  void writeNarrowText(String text, int start, int end) {
+    if (start >= end) return;
+    _captureITerm2ClipboardTextRange(text, start, end);
+    _buffer.writeNarrow(text, start, end);
     _precedingCodepoint = text.codeUnitAt(end - 1);
   }
 
@@ -2619,6 +2657,9 @@ class Terminal
 
   @override
   void sendCellSize() {
+    // Before the first layout the cell has no size in pixels, and an
+    // application told 0x0 keeps it; saying nothing lets it ask again.
+    if (_cellPixelWidth == 0 || _cellPixelHeight == 0) return;
     onOutput?.call('\x1b[6;$_cellPixelHeight;${_cellPixelWidth}t');
   }
 
