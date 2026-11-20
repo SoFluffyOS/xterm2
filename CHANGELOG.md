@@ -1,3 +1,30 @@
+## [5.5.0] - 2026-11-20
+
+* **Behavior change:** `TerminalView` no longer answers OSC 52 clipboard
+  queries from the system clipboard. Any output may ask, a file shown with
+  `cat` included, and the answer goes back to the program. Set
+  `Terminal.onClipboardQuery` to answer them yourself. Clipboard writes still
+  work.
+* Type through the system's input method on desktop, so Korean, Japanese and
+  Chinese compose instead of sending each key's own character. Keys with
+  Control, Alt, Command or AltGr, and a held ASCII key's repeats, still go
+  through the key path. A composition is dropped when the view loses focus.
+* Add `TerminalView.paintExtension`, to paint below cell backgrounds, between
+  backgrounds and text, or above text, and to hide a cell's text.
+* Draw the last whole frame while a program is in a synchronized update (mode
+  2026), instead of half of the next one. Programs that redraw often under
+  it, such as Claude Code, no longer flicker.
+* Resize a view in the middle of a synchronized update without a layout error.
+* Open a hyperlink clicked with Command (macOS) or Control under mouse
+  tracking, instead of reporting the click. Any other click is still reported.
+* Report a trackpad scroll at the cell under the pointer, not at the last
+  click.
+* Compare `TerminalTheme`s by their colors, so a theme built anew on each
+  rebuild no longer reports a change of color scheme (mode 2031).
+* Parse Cyrillic, Greek, Latin letters with accents and box drawing about 14
+  times faster.
+* See `xterm2_core` 1.1.0 for the model's changes.
+
 ## [5.4.0] - 2026-10-21
 
 * Move the terminal model (state machine, buffers, escape-sequence parsing and
