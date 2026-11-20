@@ -77,6 +77,45 @@ void main() {
     await tester.pump();
 
     expect(output.join(), '한글');
+  }, variant: desktop);
+
+  testWidgets(
+      'a syllable is sent once when the next starts before the '
+      'input method hears the text was cleared', (tester) async {
+    final output = await pumpTerminal(tester);
+
+    // macOS Korean, typing gksrmf then Space: each commit and the next
+    // syllable's start come as two updates from one key.
+    for (final update in [
+      platform('ㅎ', composing: 1),
+      platform('하', composing: 1),
+      platform('한', composing: 1),
+      platform('한'),
+      platform('한ㄱ', composing: 1),
+      platform('한그', composing: 1),
+      platform('한글', composing: 1),
+      platform('한글'),
+      platform('한글 '),
+    ]) {
+      tester.testTextInput.updateEditingValue(update);
+      await tester.pump();
+    }
+
+    expect(output.join(), '한글 ');
+  }, variant: desktop);
+
+  testWidgets('the text is cleared once the terminal handles a key itself', (
+    tester,
+  ) async {
+    final output = await pumpTerminal(tester);
+    tester.testTextInput.updateEditingValue(platform('한', composing: 1));
+    tester.testTextInput.updateEditingValue(platform('한'));
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(output, ['한', '\r']);
     expect(tester.testTextInput.editingState?['text'], '');
   }, variant: desktop);
 

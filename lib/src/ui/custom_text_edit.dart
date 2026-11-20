@@ -146,11 +146,15 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
   }
 
   KeyEventResult _onKeyEvent(FocusNode focusNode, KeyEvent event) {
-    if (_currentEditingState.composing.isCollapsed) {
-      return widget.onKeyEvent(focusNode, event);
+    if (!_currentEditingState.composing.isCollapsed) {
+      return KeyEventResult.skipRemainingHandlers;
     }
 
-    return KeyEventResult.skipRemainingHandlers;
+    final result = widget.onKeyEvent(focusNode, event);
+    if (result == KeyEventResult.handled) {
+      _resetEditingState();
+    }
+    return result;
   }
 
   void _openOrCloseInputConnectionIfNeeded() {
@@ -228,6 +232,11 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
   /// instead of waiting for the whole word.
   late var _insertedLength = _initEditingState.text.length;
 
+  /// The editing state's text is cleared past this length, when nothing is
+  /// being composed, so it doesn't grow without end between keys the
+  /// terminal handles itself.
+  static const _maximumEditingLength = 4096;
+
   @override
   void updateEditingValue(TextEditingValue value) {
     _currentEditingState = value;
@@ -244,15 +253,29 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
 
     if (_currentEditingState.text.length < _initEditingState.text.length) {
       widget.onDelete();
-    } else {
-      _insertCommitted(_currentEditingState.text);
+      _resetEditingState();
+      return;
     }
 
-    // Reset editing state if composing is done
-    if (_currentEditingState.text != _initEditingState.text) {
-      _insertedLength = _initEditingState.text.length;
-      _connection!.setEditingState(_initEditingState);
+    _insertCommitted(_currentEditingState.text);
+
+    // Clearing the text after each commit would race the input method: a
+    // Korean one commits a syllable and starts the next as two updates, and
+    // a clear arriving between them sends the syllable twice and drops the
+    // next one's first letter. It is cleared when the input method is idle.
+    if (_currentEditingState.text.length > _maximumEditingLength) {
+      _resetEditingState();
     }
+  }
+
+  void _resetEditingState() {
+    if (_currentEditingState.text == _initEditingState.text) {
+      return;
+    }
+
+    _currentEditingState = _initEditingState;
+    _insertedLength = _initEditingState.text.length;
+    _connection?.setEditingState(_initEditingState);
   }
 
   void _insertCommitted(String committed) {
@@ -273,6 +296,7 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     }
 
     widget.onSelector?.call(selectorName);
+    _resetEditingState();
   }
 
   @override
