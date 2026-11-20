@@ -35,6 +35,12 @@ class EscapeParser {
 
   EscapeParser(this.handler, {this.allowKittyClipboard = true});
 
+  /// [handler] when it takes runs of narrow text outside ASCII, asked once.
+  late final EscapeNarrowTextHandler? _narrowHandler = switch (handler) {
+    final EscapeNarrowTextHandler narrowHandler => narrowHandler,
+    _ => null,
+  };
+
   bool _isByteValue(int value) {
     return value >= 0 && value <= 0xff;
   }
@@ -117,13 +123,24 @@ class EscapeParser {
       }
 
       if (handler case final EscapeTextHandler textHandler) {
-        final runLength = _queue.printableAsciiRunLength;
+        // A run that starts outside ASCII, a Cyrillic line or a box drawn with
+        // its dashes, goes in one piece too to a handler that takes it; else
+        // every such letter goes down the slow path, one writeChar at a time.
+        final narrowHandler = _narrowHandler;
+        final runLength = _queue.printableRunLength(
+          narrow: narrowHandler != null,
+        );
         if (runLength > 0) {
           tokenBegin = _queue.totalConsumed;
           final data = _queue.currentBlock;
           final start = _queue.currentCodeUnitOffset;
+          final outsideAscii = _queue.runStartsOutsideAscii;
           _queue.consumeAsciiCodeUnits(runLength);
-          textHandler.writeText(data, start, start + runLength);
+          if (narrowHandler != null && outsideAscii) {
+            narrowHandler.writeNarrowText(data, start, start + runLength);
+          } else {
+            textHandler.writeText(data, start, start + runLength);
+          }
           continue;
         }
       }

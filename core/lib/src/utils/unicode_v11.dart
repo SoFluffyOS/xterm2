@@ -574,10 +574,14 @@ bool bisearch(int ucs, List<List<int>> data) {
   return false;
 }
 
+/// The width table the terminal lays out cells with.
 class UnicodeV11 {
   // The historical class name is retained for API compatibility.
+  /// The Unicode version the table follows.
   final version = '17.0';
 
+  /// The cells [codePoint] takes in the terminal: 0 for a combining mark or
+  /// a control, 2 for a wide character, else 1.
   int wcwidth(int codePoint) {
     if (codePoint < 32) return 0;
     if (codePoint < 127) return 1;
@@ -588,4 +592,6 @@ class UnicodeV11 {
   }
 }
 
+/// The width table the terminal lays out cells with, for a host that measures
+/// text beside it.
 final unicodeV11 = UnicodeV11();

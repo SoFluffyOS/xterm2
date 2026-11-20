@@ -29,3 +29,5 @@ export 'package:xterm2_core/src/core/state.dart';
 export 'package:xterm2_core/src/terminal.dart';
 export 'package:xterm2_core/src/terminal_search.dart';
 export 'package:xterm2_core/src/utils/lookup_table.dart';
+export 'package:xterm2_core/src/utils/unicode_v11.dart'
+    show UnicodeV11, unicodeV11;

@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:xterm2_core/src/utils/unicode_v11.dart';
+
 class ByteConsumer {
   final _queue = ListQueue<_StringBlock>();
 
@@ -113,6 +115,50 @@ class ByteConsumer {
       offset++;
     }
     return offset - _currentOffset;
+  }
+
+  /// Whether the run [printableRunLength] last measured starts outside ASCII.
+  bool get runStartsOutsideAscii => _runStartsOutsideAscii;
+
+  var _runStartsOutsideAscii = false;
+
+  /// The length of the printable run at the current offset, so that
+  /// [consumeAsciiCodeUnits] can take it: printable ASCII, as
+  /// [printableAsciiRunLength] counts it, or, with [narrow] and a run that
+  /// starts outside ASCII, every character one cell wide, ASCII or not, each a
+  /// whole UTF-16 code unit.
+  int printableRunLength({required bool narrow}) {
+    _advancePastConsumedBlocks();
+    final data = _queue.first.data;
+    final begin = _currentOffset;
+    var offset = begin;
+    while (offset < data.length) {
+      final codeUnit = data.codeUnitAt(offset);
+      if (codeUnit < 0x20 || codeUnit > 0x7e) break;
+      offset++;
+    }
+    _runStartsOutsideAscii = false;
+    if (offset > begin ||
+        !narrow ||
+        offset == data.length ||
+        data.codeUnitAt(offset) < 0xa0) {
+      return offset - begin;
+    }
+    while (offset < data.length) {
+      final codeUnit = data.codeUnitAt(offset);
+      if (codeUnit >= 0x20 && codeUnit <= 0x7e) {
+        offset++;
+        continue;
+      }
+      if (codeUnit < 0xa0 ||
+          codeUnit >= 0xd800 && codeUnit <= 0xdfff ||
+          unicodeV11.wcwidth(codeUnit) != 1) {
+        break;
+      }
+      offset++;
+    }
+    _runStartsOutsideAscii = offset > begin;
+    return offset - begin;
   }
 
   void consumeAsciiCodeUnits(int count) {

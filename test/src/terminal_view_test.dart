@@ -176,6 +176,37 @@ void main() {
     expect(output, ['\x1b[?997;1n']);
   });
 
+  testWidgets('TerminalView gives an OSC 52 query no clipboard by default', (
+    tester,
+  ) async {
+    // Whatever the program prints may ask: a file shown with cat, a log
+    // followed over ssh. Reading the clipboard is the host's choice.
+    final output = <String>[];
+    final terminal = Terminal(onOutput: output.add);
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async => call.method == 'Clipboard.getData'
+          ? <String, Object?>{'text': 'secret'}
+          : null,
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    terminal.write('\x1b]52;c;?\x07');
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(output.join(), isNot(contains('c2VjcmV0')));
+    expect(terminal.onClipboardQuery, isNull);
+  });
+
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
@@ -957,6 +988,44 @@ void main() {
       }
 
       expect(output, ['\x1b[<65;1;1M']);
+    });
+
+    testWidgets('reports a trackpad scroll at the cell under the pointer', (
+      tester,
+    ) async {
+      // A trackpad scrolls by pan-zoom events and sends no pointer signal,
+      // so nothing told the view where the pointer was before the first
+      // press: the reports went to the top-left cell.
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+      terminal.write('\x1b[?1049h\x1b[?1000h\x1b[?1006h');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal),
+          ),
+        ),
+      );
+
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cell = state.renderTerminal.cellSize;
+      final position = state.renderTerminal.localToGlobal(
+        Offset(cell.width * 10.5, cell.height * 4.5),
+      );
+      final pad = TestPointer(1, PointerDeviceKind.trackpad);
+      await tester.sendEventToBinding(pad.panZoomStart(position));
+      for (var i = 1; i <= 4; i++) {
+        await tester.sendEventToBinding(
+          pad.panZoomUpdate(position, pan: Offset(0, cell.height * i)),
+        );
+        await tester.pump();
+      }
+      await tester.sendEventToBinding(pad.panZoomEnd());
+      await tester.pump();
+
+      expect(output, isNotEmpty);
+      expect(output.toSet(), {'\x1b[<64;11;5M'});
     });
 
     testWidgets('reports horizontal wheel input to applications', (
