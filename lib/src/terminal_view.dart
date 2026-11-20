@@ -525,6 +525,7 @@ class TerminalViewState extends State<TerminalView> {
           }
         },
         onKeyEvent: _handleKeyEvent,
+        onSelector: _onSelector,
         readOnly: widget.readOnly,
         child: child,
       );
@@ -751,7 +752,7 @@ class TerminalViewState extends State<TerminalView> {
     final lockModes = hardwareKeyboard.lockModesEnabled;
     final altGraphActive = _isAltGraphActive(event, hardwareKeyboard);
 
-    final handled = widget.terminal.keyInput(
+    final output = widget.terminal.keyOutput(
       terminalKey,
       ctrl: hardwareKeyboard.isControlPressed && !altGraphActive,
       alt: hardwareKeyboard.isAltPressed && !altGraphActive,
@@ -765,24 +766,87 @@ class TerminalViewState extends State<TerminalView> {
         _ => text,
       },
     );
+    final insertsFallback = output == null &&
+        text != null &&
+        _shouldInsertTextFallback(
+          text,
+          eventType,
+          altGraphActive: altGraphActive,
+        );
 
-    if (handled) {
+    // A key that only types its character is the input method's to type:
+    // it may compose it with the keys around it first, as Korean, Japanese
+    // and Chinese input do. Other handlers stay out of it.
+    final typesItsCharacter = event.character == text &&
+        (output == text || insertsFallback) &&
+        eventType != TerminalKeyEventType.release;
+    if (typesItsCharacter && _isPrintable(text) && _composesTypedText) {
+      return KeyEventResult.skipRemainingHandlers;
+    }
+
+    if (output != null) {
+      widget.terminal.onOutput?.call(output);
       _scrollToBottom();
       return KeyEventResult.handled;
     }
 
-    if (text case final fallbackText?
-        when _shouldInsertTextFallback(
-          fallbackText,
-          eventType,
-          altGraphActive: altGraphActive,
-        )) {
-      widget.terminal.textInput(fallbackText);
+    if (insertsFallback) {
+      widget.terminal.textInput(text);
       _scrollToBottom();
       return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
+  }
+
+  /// Whether keys left unhandled go on to the system's input method, which
+  /// types them through the text input connection: on desktop systems,
+  /// and in their browsers.
+  bool get _composesTypedText {
+    if (!hasInputConnection) {
+      return false;
+    }
+
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux =>
+        true,
+      _ => false,
+    };
+  }
+
+  bool _isPrintable(String? text) {
+    if (text == null || text.isEmpty) {
+      return false;
+    }
+
+    final unit = text.codeUnitAt(0);
+    return unit >= 0x20 && unit != 0x7F;
+  }
+
+  /// What macOS asks for when a key ended a composition and still has its
+  /// own job to do: the input method took the key itself.
+  static const _selectorKeys = {
+    'moveLeft:': TerminalKey.arrowLeft,
+    'moveRight:': TerminalKey.arrowRight,
+    'moveUp:': TerminalKey.arrowUp,
+    'moveDown:': TerminalKey.arrowDown,
+    'deleteBackward:': TerminalKey.backspace,
+    'deleteForward:': TerminalKey.delete,
+    'insertTab:': TerminalKey.tab,
+    'cancelOperation:': TerminalKey.escape,
+  };
+
+  void _onSelector(String selector) {
+    final key = _selectorKeys[selector];
+    if (key == null) {
+      return;
+    }
+
+    if (widget.terminal.keyInput(key)) {
+      _scrollToBottom();
+    }
   }
 
   bool _shouldInsertTextFallback(

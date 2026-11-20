@@ -868,9 +868,44 @@ class Terminal
     TerminalKeyEventType type = TerminalKeyEventType.press,
     String? text,
   }) {
-    if (_isDisposed) return false;
-    if (_keyboardActionMode) return false;
-    final output = inputHandler?.call(
+    final output = keyOutput(
+      key,
+      shift: shift,
+      alt: alt,
+      ctrl: ctrl,
+      superKey: superKey,
+      capsLock: capsLock,
+      numLock: numLock,
+      type: type,
+      text: text,
+    );
+
+    if (output != null) {
+      onOutput?.call(output);
+      return true;
+    }
+
+    return false;
+  }
+
+  /// What [keyInput] would send for this key, without sending it: null when
+  /// the terminal has nothing to send for it. Lets a view tell a key that
+  /// only types its [text] from one the running program asked to hear
+  /// about as a key.
+  String? keyOutput(
+    TerminalKey key, {
+    bool shift = false,
+    bool alt = false,
+    bool ctrl = false,
+    bool superKey = false,
+    bool capsLock = false,
+    bool numLock = false,
+    TerminalKeyEventType type = TerminalKeyEventType.press,
+    String? text,
+  }) {
+    if (_isDisposed) return null;
+    if (_keyboardActionMode) return null;
+    return inputHandler?.call(
       TerminalKeyboardEvent(
         key: key,
         shift: shift,
@@ -886,13 +921,6 @@ class Terminal
         text: text,
       ),
     );
-
-    if (output != null) {
-      onOutput?.call(output);
-      return true;
-    }
-
-    return false;
   }
 
   /// Similary to [keyInput], but takes a character as input instead of a

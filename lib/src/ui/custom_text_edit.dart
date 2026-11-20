@@ -11,6 +11,7 @@ class CustomTextEdit extends StatefulWidget {
     required this.onComposing,
     required this.onAction,
     required this.onKeyEvent,
+    this.onSelector,
     required this.focusNode,
     this.autofocus = false,
     this.readOnly = false,
@@ -37,6 +38,10 @@ class CustomTextEdit extends StatefulWidget {
   final void Function(TextInputAction) onAction;
 
   final KeyEventResult Function(FocusNode, KeyEvent) onKeyEvent;
+
+  /// A macOS editing command, such as `moveLeft:`: what a key still has to
+  /// do after it ended a composition, as the key itself never arrives.
+  final void Function(String selector)? onSelector;
 
   final FocusNode focusNode;
 
@@ -182,6 +187,8 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
 
       // setEditableRect(Rect.zero, Rect.zero);
 
+      _currentEditingState = _initEditingState;
+      _insertedLength = _initEditingState.text.length;
       _connection!.setEditingState(_initEditingState);
     }
   }
@@ -215,15 +222,21 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     return null;
   }
 
+  /// How much of the editing state's text has been inserted already. An
+  /// input method that commits one syllable as it starts the next, as
+  /// Korean does, keeps composing: what it committed is inserted at once
+  /// instead of waiting for the whole word.
+  late var _insertedLength = _initEditingState.text.length;
+
   @override
   void updateEditingValue(TextEditingValue value) {
     _currentEditingState = value;
 
-    // Get input after composing is done
-    if (!_currentEditingState.composing.isCollapsed) {
+    final composing = _currentEditingState.composing;
+    if (!composing.isCollapsed) {
       final text = _currentEditingState.text;
-      final composingText = _currentEditingState.composing.textInside(text);
-      widget.onComposing(composingText);
+      _insertCommitted(text.substring(0, composing.start));
+      widget.onComposing(composing.textInside(text));
       return;
     }
 
@@ -232,18 +245,34 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     if (_currentEditingState.text.length < _initEditingState.text.length) {
       widget.onDelete();
     } else {
-      final textDelta = _currentEditingState.text.substring(
-        _initEditingState.text.length,
-      );
-
-      widget.onInsert(textDelta);
+      _insertCommitted(_currentEditingState.text);
     }
 
     // Reset editing state if composing is done
-    if (_currentEditingState.composing.isCollapsed &&
-        _currentEditingState.text != _initEditingState.text) {
+    if (_currentEditingState.text != _initEditingState.text) {
+      _insertedLength = _initEditingState.text.length;
       _connection!.setEditingState(_initEditingState);
     }
+  }
+
+  void _insertCommitted(String committed) {
+    if (committed.length <= _insertedLength) {
+      return;
+    }
+
+    final text = committed.substring(_insertedLength);
+    _insertedLength = committed.length;
+    widget.onInsert(text);
+  }
+
+  @override
+  void performSelector(String selectorName) {
+    // A key pressed while composing is the input method's.
+    if (!_currentEditingState.composing.isCollapsed) {
+      return;
+    }
+
+    widget.onSelector?.call(selectorName);
   }
 
   @override
