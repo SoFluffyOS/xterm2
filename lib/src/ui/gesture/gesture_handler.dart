@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -78,6 +79,12 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   var _hostOwnsPrimaryDrag = false;
 
+  /// Whether the gesture under way is a hyperlink click: a primary press with
+  /// the hyperlink modifier held, over a link, in a view that opens links.
+  /// Decided at the press and kept until the next one, as the tap callbacks
+  /// that open the link run after the release.
+  var _isHyperlinkClick = false;
+
   final Map<int, int> _pressedMouseButtons = {};
 
   final Map<int, int> _reportedMouseButtons = {};
@@ -130,9 +137,11 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   bool get _shouldSendTapEvent =>
       !widget.readOnly &&
       !_bypassesMouseReportingWithShift &&
+      !_isHyperlinkClick &&
       widget.terminalController.shouldSendPointerInput(PointerInput.tap);
 
   void _onPointerDown(PointerDownEvent event) {
+    _isHyperlinkClick = _pressesHyperlink(event);
     if (event.kind != PointerDeviceKind.mouse) return;
 
     final previousButtons = _pressedMouseButtons[event.pointer] ?? 0;
@@ -198,16 +207,13 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   void _onPointerCancel(PointerCancelEvent event) {
+    _isHyperlinkClick = false;
     if (event.kind != PointerDeviceKind.mouse) return;
 
     _withheldPrimaryPress = null;
     _pressedMouseButtons.remove(event.pointer);
     final reportedButtons = _reportedMouseButtons[event.pointer] ?? 0;
-    _releaseMouseButtons(
-      event.pointer,
-      reportedButtons,
-      event.localPosition,
-    );
+    _releaseMouseButtons(event.pointer, reportedButtons, event.localPosition);
   }
 
   void _updatePressedMouseButtons(int pointer, int buttons) {
@@ -246,6 +252,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     };
     if (widget.readOnly ||
         _bypassesMouseReportingWithShift ||
+        (_isHyperlinkClick && input == PointerInput.drag) ||
         !widget.terminalController.shouldSendPointerInput(input)) {
       return;
     }
@@ -412,6 +419,27 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       _withheldPrimaryPress = null;
     }
     renderTerminal.selectLine(details.localPosition);
+  }
+
+  /// Whether [event] starts a hyperlink click: the primary button, with the
+  /// key TerminalView reads for onHyperlinkTap held, over a link, in a view
+  /// that opens links. Such a click opens the link on release, so its press,
+  /// drag and release are not reported; any other press is, a Control-click
+  /// beside a link included, and a move without a button always is, for an
+  /// application that underlines the link under the mouse itself.
+  bool _pressesHyperlink(PointerDownEvent event) {
+    if (event.buttons & kPrimaryMouseButton == 0) return false;
+    if (!_holdsHyperlinkModifier) return false;
+    if (widget.terminalView.widget.onHyperlinkTap == null) return false;
+    final cell = renderTerminal.getCellOffset(event.localPosition);
+    return widget.terminalView.widget.terminal.hyperlinkAt(cell) != null;
+  }
+
+  bool get _holdsHyperlinkModifier {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.macOS => HardwareKeyboard.instance.isMetaPressed,
+      _ => HardwareKeyboard.instance.isControlPressed,
+    };
   }
 
   bool get _applicationHandlesTap {
