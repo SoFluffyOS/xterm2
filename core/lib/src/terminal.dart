@@ -228,7 +228,7 @@ final class TerminalSemanticPromptState {
 /// understand.
 class Terminal
     with Observable
-    implements TerminalState, EscapeHandler, EscapeTextHandler {
+    implements TerminalState, EscapeHandler, EscapeNarrowTextHandler {
   static const _maxHyperlinks = 4096;
   static const _maxHyperlinkId =
       CellAttr.hyperlinkMask >> CellAttr.hyperlinkShift;
@@ -1291,6 +1291,14 @@ class Terminal
     if (start >= end) return;
     _captureITerm2ClipboardTextRange(text, start, end);
     _buffer.writeAscii(text, start, end);
+    _precedingCodepoint = text.codeUnitAt(end - 1);
+  }
+
+  @override
+  void writeNarrowText(String text, int start, int end) {
+    if (start >= end) return;
+    _captureITerm2ClipboardTextRange(text, start, end);
+    _buffer.writeNarrow(text, start, end);
     _precedingCodepoint = text.codeUnitAt(end - 1);
   }
 

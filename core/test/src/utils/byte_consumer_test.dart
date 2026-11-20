@@ -109,6 +109,24 @@ void main() {
     expect(_consumeAll(consumer), 'a😀b😁c'.runes);
   });
 
+  test('measures a narrow run only where it starts outside ASCII', () {
+    final consumer = ByteConsumer()..add('ab жж́ 漢\x1b');
+
+    expect(consumer.printableRunLength(narrow: true), 3);
+    expect(consumer.runStartsOutsideAscii, isFalse);
+    consumer.consumeAsciiCodeUnits(3);
+
+    expect(consumer.printableRunLength(narrow: false), 0);
+    expect(consumer.printableRunLength(narrow: true), 2);
+    expect(consumer.runStartsOutsideAscii, isTrue);
+    consumer.consumeAsciiCodeUnits(2);
+
+    expect(consumer.printableRunLength(narrow: true), 0);
+    consumer.consume();
+    expect(consumer.printableRunLength(narrow: true), 1);
+    expect(consumer.runStartsOutsideAscii, isFalse);
+  });
+
   test('consumes printable ASCII runs without crossing controls or blocks', () {
     final consumer = ByteConsumer()
       ..add('abc\x1b')
