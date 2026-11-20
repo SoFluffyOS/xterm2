@@ -120,6 +120,7 @@ void main() {
             body: TerminalView(
               terminal,
               autofocus: true,
+              onHyperlinkTap: (_) {},
               controller: TerminalController(
                 pointerInputs: const PointerInputs.all(),
               ),
@@ -148,7 +149,10 @@ void main() {
       expect(output.join(), contains('\x1b[<35;'));
       output.clear();
 
-      await mouse.down(origin + const Offset(204, 46));
+      await mouse.moveTo(origin + const Offset(4, 6));
+      await tester.pump();
+      output.clear();
+      await mouse.down(origin + const Offset(4, 6));
       await mouse.moveTo(origin + const Offset(244, 46));
       await mouse.up();
       await tester.pump(kDoubleTapTimeout);
@@ -160,6 +164,92 @@ void main() {
     },
     variant: TargetPlatformVariant.only(TargetPlatform.macOS),
   );
+
+  group('a click with the hyperlink modifier is the application\'s', () {
+    Future<List<String>> pumpTracked(
+      WidgetTester tester, {
+      void Function(String)? onHyperlinkTap,
+    }) async {
+      final output = <String>[];
+      final terminal = Terminal(
+        platform: TerminalTargetPlatform.macos,
+        onOutput: output.add,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(
+              terminal,
+              autofocus: true,
+              onHyperlinkTap: onHyperlinkTap,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      terminal.write(
+        '\x1b[?1000h\x1b[?1006h'
+        '\x1b]8;;https://example.com/a\x1b\\link\x1b]8;;\x1b\\ plain text',
+      );
+      output.clear();
+      return output;
+    }
+
+    Future<void> commandClick(
+      WidgetTester tester,
+      Offset at, {
+      int buttons = kPrimaryButton,
+    }) async {
+      await tester.sendKeyDownEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+      await tester.tapAt(at, kind: PointerDeviceKind.mouse, buttons: buttons);
+      await tester.pump(kDoubleTapTimeout);
+      await tester.sendKeyUpEvent(
+        LogicalKeyboardKey.metaLeft,
+        platform: 'macos',
+      );
+    }
+
+    testWidgets('beside a link', (tester) async {
+      final links = <String>[];
+      final output = await pumpTracked(tester, onHyperlinkTap: links.add);
+      final state = tester.state<TerminalViewState>(find.byType(TerminalView));
+      final cell = state.renderTerminal.cellSize;
+      final plainText = state.renderTerminal.localToGlobal(
+        Offset(cell.width * 8.5, cell.height * 0.5),
+      );
+
+      await commandClick(tester, plainText);
+
+      expect(links, isEmpty);
+      expect(output.join(), contains('\x1b[<0;9;1M'));
+      expect(output.join(), contains('\x1b[<0;9;1m'));
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+    testWidgets('on a link, in a view that opens no links', (tester) async {
+      final output = await pumpTracked(tester);
+      final link =
+          tester.getTopLeft(find.byType(TerminalView)) + const Offset(4, 6);
+
+      await commandClick(tester, link);
+
+      expect(output.join(), contains('\x1b[<0;1;1M'));
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+    testWidgets('with the secondary button on a link', (tester) async {
+      final links = <String>[];
+      final output = await pumpTracked(tester, onHyperlinkTap: links.add);
+      final link =
+          tester.getTopLeft(find.byType(TerminalView)) + const Offset(4, 6);
+
+      await commandClick(tester, link, buttons: kSecondaryButton);
+
+      expect(links, isEmpty);
+      expect(output.join(), contains('\x1b[<2;1;1M'));
+    }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+  });
 
   testWidgets('tracked double clicks release both button presses', (
     tester,
