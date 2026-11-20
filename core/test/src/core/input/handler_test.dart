@@ -651,6 +651,38 @@ void main() {
       expect(output, ['\x1b[27;6;72~', '\x1b[27;3;56~', '\x08']);
     });
 
+    test(
+        'leaves a key without Control or Alt to its character under '
+        'modifyOtherKeys mode 2', () {
+      // As xterm does: Shift only picks which character a key is, so a plain
+      // or a shifted letter is left to text input; Shift-Space alone carries
+      // its modifier, since a space cannot.
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[>4;2m');
+      expect(terminal.keyInput(TerminalKey.keyA, text: 'a'), isFalse);
+      expect(
+        terminal.keyInput(TerminalKey.keyA, shift: true, text: 'A'),
+        isFalse,
+      );
+      terminal.keyInput(TerminalKey.space, shift: true, text: ' ');
+
+      expect(output, ['\x1b[27;2;32~']);
+    });
+
+    test('puts modifyOtherKeys aside once kitty flags are raised', () {
+      // An application that pushed kitty flags reads kitty's encoding; with
+      // flag 4 alone every key stays legacy, Control-A included.
+      final output = <String>[];
+      final terminal = Terminal(onOutput: output.add);
+
+      terminal.write('\x1b[>4;2m\x1b[>4u');
+      terminal.keyInput(TerminalKey.keyA, ctrl: true, text: 'a');
+
+      expect(output, ['\x01']);
+    });
+
     test('encodes every legacy arrow-key modifier combination', () {
       final output = <String>[];
       final terminal = Terminal(
