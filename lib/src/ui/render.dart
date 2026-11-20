@@ -3,10 +3,12 @@ import 'dart:math' show max, min;
 import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xterm2_core/xterm2_core.dart';
 import 'package:xterm2/src/ui/controller.dart';
 import 'package:xterm2/src/ui/painter.dart';
+import 'package:xterm2/src/ui/paint_extension.dart';
 import 'package:xterm2/src/ui/selection_mode.dart';
 import 'package:xterm2/src/ui/terminal_size.dart';
 import 'package:xterm2/src/ui/terminal_text_style.dart';
@@ -29,6 +31,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalCursorType cursorType,
     bool? cursorBlink,
     required bool alwaysShowCursor,
+    TerminalPaintExtension? paintExtension,
     int? activeHyperlinkId,
     EditableRectCallback? onEditableRect,
     String? composingText,
@@ -42,6 +45,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         _cursorType = cursorType,
         _cursorBlink = cursorBlink,
         _alwaysShowCursor = alwaysShowCursor,
+        _paintExtension = paintExtension,
         _activeHyperlinkId = activeHyperlinkId,
         _onEditableRect = onEditableRect,
         _composingText = composingText,
@@ -49,6 +53,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
           theme: theme,
           textStyle: textStyle,
           textScaler: textScaler,
+          cellForegroundFilter: paintExtension?.cellForegroundFilter,
         );
 
   Terminal _terminal;
@@ -164,6 +169,16 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     markNeedsPaint();
   }
 
+  TerminalPaintExtension? _paintExtension;
+  set paintExtension(TerminalPaintExtension? value) {
+    if (identical(value, _paintExtension)) return;
+    if (attached) _paintExtension?.repaint?.removeListener(markNeedsPaint);
+    _paintExtension = value;
+    _painter.cellForegroundFilter = value?.cellForegroundFilter;
+    if (attached) _paintExtension?.repaint?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
   TerminalSize? _viewportSize;
 
   final TerminalPainter _painter;
@@ -243,6 +258,17 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     markNeedsPaint();
   }
 
+  /// Whether [performLayout] is running. Its resize of the terminal ends
+  /// synchronized output (mode 2026) when the application is in the middle of
+  /// a frame, and the terminal notifies at once, inside the layout: the change
+  /// is the one this layout is making, and asking for another would dirty a
+  /// render object while it is being laid out.
+  var _layingOut = false;
+
+  /// Whether the editable rect is to be reported after the frame: inside a
+  /// layout the cursor's place on screen is not known yet.
+  var _editableRectAfterFrame = false;
+
   void _onTerminalChange() {
     _updateCursorBlinking();
     final buffer = _terminal.buffer;
@@ -272,12 +298,28 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
             _stickToBottom &&
             _terminal.buffer.absoluteCursorY != _lastCursorY);
     _recordTerminalLayoutState();
+    if (_layingOut) {
+      // The layout under way reads the state just recorded and lays the lines
+      // out after it; what was painted before is stale.
+      markNeedsPaint();
+      _notifyEditableRectAfterFrame();
+      return;
+    }
     if (needsLayout) {
       markNeedsLayout();
     } else {
       markNeedsPaint();
     }
     _notifyEditableRect();
+  }
+
+  void _notifyEditableRectAfterFrame() {
+    if (_editableRectAfterFrame) return;
+    _editableRectAfterFrame = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _editableRectAfterFrame = false;
+      if (attached) _notifyEditableRect();
+    });
   }
 
   /// A full buffer drops its oldest line for every new one, which moves all
@@ -342,6 +384,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _terminal.addListener(_onTerminalChange);
     _controller.addListener(_onControllerUpdate);
     _focusNode.addListener(_onFocusChange);
+    _paintExtension?.repaint?.addListener(markNeedsPaint);
     _updateCursorBlinking(force: true);
   }
 
@@ -354,6 +397,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     _terminal.removeListener(_onTerminalChange);
     _controller.removeListener(_onControllerUpdate);
     _focusNode.removeListener(_onFocusChange);
+    _paintExtension?.repaint?.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -361,6 +405,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void dispose() {
     _stopCursorBlinking();
     _stopTextBlinking();
+    _wholeFrame?.picture.dispose();
+    _wholeFrame = null;
     _painter.dispose();
     super.dispose();
   }
@@ -440,7 +486,12 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void performLayout() {
     size = constraints.biggest;
 
-    _updateViewportSize();
+    _layingOut = true;
+    try {
+      _updateViewportSize();
+    } finally {
+      _layingOut = false;
+    }
     _recordTerminalLayoutState();
 
     _updateScrollOffset();
@@ -784,13 +835,35 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final canvas = context.canvas;
     canvas.save();
     canvas.clipRect(offset & size);
-    _paint(context, offset);
+    canvas.translate(offset.dx, offset.dy);
+    canvas.drawPicture(_frame());
     canvas.restore();
     context.setWillChangeHint();
   }
 
-  void _paint(PaintingContext context, Offset offset) {
-    final canvas = context.canvas;
+  // Under synchronized output (mode 2026) the buffer holds a frame the
+  // program is still writing, and a paint asked for before the update began
+  // would show half of it. Every paint is kept, and until the update ends the
+  // last whole one is drawn again.
+  ({Picture picture, Size size, Terminal terminal})? _wholeFrame;
+
+  Picture _frame() {
+    final whole = _wholeFrame;
+    if (whole != null &&
+        _terminal.synchronizedUpdateMode &&
+        whole.size == size &&
+        identical(whole.terminal, _terminal)) {
+      return whole.picture;
+    }
+    final recorder = PictureRecorder();
+    _paint(Canvas(recorder), Offset.zero);
+    whole?.picture.dispose();
+    final picture = recorder.endRecording();
+    _wholeFrame = (picture: picture, size: size, terminal: _terminal);
+    return picture;
+  }
+
+  void _paint(Canvas canvas, Offset offset) {
     _updatePainterColorState();
 
     final backgroundOverride = _painter.backgroundColorOverride;
@@ -828,6 +901,27 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       charHeight,
     );
 
+    final extension = _paintExtension;
+    final frame = extension == null
+        ? null
+        : TerminalPaintContext(
+            canvas: canvas,
+            viewport: Rect.fromLTWH(
+              offset.dx + _padding.left,
+              offset.dy + _padding.top,
+              max(size.width - _padding.horizontal, 0),
+              _viewportHeight,
+            ),
+            firstRow: effectFirstLine,
+            endRow: effectLastLine + 1,
+            cellSize: _painter.cellSize,
+            terminal: _terminal,
+            controller: _controller,
+            paintOffset: offset,
+            bufferOffset: Offset(_padding.left, _lineOffset),
+          );
+    _paintExtensionCallback(extension?.beforeCellBackgrounds, frame);
+
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
       _painter.paintLineBackgrounds(
         canvas,
@@ -838,6 +932,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         lines[i],
       );
     }
+
+    _paintExtensionCallback(extension?.beforeCellForegrounds, frame);
 
     if (_terminal.cursorLineHighlightMode &&
         _terminal.buffer.absoluteCursorY >= effectFirstLine &&
@@ -967,6 +1063,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       effectLastLine,
     );
 
+    _paintExtensionCallback(extension?.afterCellForegrounds, frame);
+
     if (shouldPaintCursor) {
       if (_isComposingText) {
         _paintComposingText(canvas, offset, cursorOffset);
@@ -984,6 +1082,22 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
     }
     canvas.restore();
+  }
+
+  void _paintExtensionCallback(
+    TerminalPaintCallback? callback,
+    TerminalPaintContext? frame,
+  ) {
+    if (callback == null || frame == null) return;
+    final canvas = frame.canvas;
+    final saveCount = canvas.getSaveCount();
+    canvas.save();
+    try {
+      canvas.clipRect(frame.viewport);
+      callback(frame);
+    } finally {
+      canvas.restoreToCount(saveCount);
+    }
   }
 
   void _updatePainterColorState() {

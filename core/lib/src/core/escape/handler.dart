@@ -526,3 +526,12 @@ abstract class EscapeHandler {
 abstract interface class EscapeTextHandler {
   void writeText(String text, int start, int end);
 }
+
+/// A text handler that also takes runs of characters one cell wide outside
+/// ASCII in one go, as it takes printable ASCII in [writeText].
+abstract interface class EscapeNarrowTextHandler implements EscapeTextHandler {
+  /// Writes the characters of [text] from [start] to [end]: each one cell
+  /// wide and a whole UTF-16 code unit, ASCII or not, the first one outside
+  /// ASCII.
+  void writeNarrowText(String text, int start, int end);
+}
