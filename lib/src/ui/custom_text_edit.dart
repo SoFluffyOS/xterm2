@@ -63,8 +63,10 @@ class CustomTextEdit extends StatefulWidget {
   CustomTextEditState createState() => CustomTextEditState();
 }
 
-class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
+class CustomTextEditState extends State<CustomTextEdit> {
   TextInputConnection? _connection;
+
+  _TerminalTextInputClient? _client;
 
   @override
   void initState() {
@@ -188,7 +190,9 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
         enableIMEPersonalizedLearning: false,
       );
 
-      _connection = TextInput.attach(this, config);
+      final client = _TerminalTextInputClient(this);
+      _client = client;
+      _connection = TextInput.attach(client, config);
 
       _connection!.show();
 
@@ -205,6 +209,15 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
       _connection!.close();
       _connection = null;
     }
+    _releaseClient();
+  }
+
+  /// Cuts the client from this state: Flutter's [TextInput] keeps the last
+  /// client after its connection closes, and it must not keep the
+  /// terminal, its buffer and what's around it alive.
+  void _releaseClient() {
+    _client?.detach();
+    _client = null;
   }
 
   TextEditingValue get _initEditingState => widget.deleteDetection
@@ -218,16 +231,6 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
         );
 
   late var _currentEditingState = _initEditingState.copyWith();
-
-  @override
-  TextEditingValue? get currentTextEditingValue {
-    return _currentEditingState;
-  }
-
-  @override
-  AutofillScope? get currentAutofillScope {
-    return null;
-  }
 
   /// The committed text sent to the terminal since the editing text was
   /// last cleared.
@@ -266,8 +269,7 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     };
   }
 
-  @override
-  void updateEditingValue(TextEditingValue value) {
+  void _updateEditingValue(TextEditingValue value) {
     _currentEditingState = value;
 
     if (!_keepsEditingText) {
@@ -368,8 +370,7 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     _currentEditingState = _initEditingState;
   }
 
-  @override
-  void performSelector(String selectorName) {
+  void _performSelector(String selectorName) {
     // A key pressed while composing is the input method's.
     if (!_currentEditingState.composing.isCollapsed) {
       return;
@@ -379,46 +380,74 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     _resetEditingState();
   }
 
-  @override
-  void performAction(TextInputAction action) {
+  void _performAction(TextInputAction action) {
     widget.onAction(action);
     if (_keepsEditingText) {
       _resetEditingState();
     }
   }
 
-  @override
-  void updateFloatingCursor(RawFloatingCursorPoint point) {
-    // print('updateFloatingCursor $point');
+  void _connectionClosed() {
+    _discardComposing();
+    _connection = null;
+    _releaseClient();
+  }
+}
+
+/// Hands what the platform's text input does to a [CustomTextEditState],
+/// until [detach]: after that every call does nothing and it holds
+/// nothing of the terminal.
+class _TerminalTextInputClient with TextInputClient {
+  _TerminalTextInputClient(this._state);
+
+  CustomTextEditState? _state;
+
+  void detach() {
+    _state = null;
   }
 
   @override
-  void showAutocorrectionPromptRect(int start, int end) {
-    // print('showAutocorrectionPromptRect');
+  TextEditingValue? get currentTextEditingValue =>
+      _state?._currentEditingState ?? TextEditingValue.empty;
+
+  @override
+  AutofillScope? get currentAutofillScope => null;
+
+  @override
+  void updateEditingValue(TextEditingValue value) {
+    _state?._updateEditingValue(value);
+  }
+
+  @override
+  void performSelector(String selectorName) {
+    _state?._performSelector(selectorName);
+  }
+
+  @override
+  void performAction(TextInputAction action) {
+    _state?._performAction(action);
   }
 
   @override
   void connectionClosed() {
-    _discardComposing();
+    _state?._connectionClosed();
   }
 
   @override
-  void performPrivateCommand(String action, Map<String, dynamic> data) {
-    // print('performPrivateCommand $action');
-  }
+  void updateFloatingCursor(RawFloatingCursorPoint point) {}
 
   @override
-  void insertTextPlaceholder(Size size) {
-    // print('insertTextPlaceholder');
-  }
+  void showAutocorrectionPromptRect(int start, int end) {}
 
   @override
-  void removeTextPlaceholder() {
-    // print('removeTextPlaceholder');
-  }
+  void performPrivateCommand(String action, Map<String, dynamic> data) {}
 
   @override
-  void showToolbar() {
-    // print('showToolbar');
-  }
+  void insertTextPlaceholder(Size size) {}
+
+  @override
+  void removeTextPlaceholder() {}
+
+  @override
+  void showToolbar() {}
 }
