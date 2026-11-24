@@ -1,3 +1,11 @@
+## [Unreleased]
+
+* Let a closed terminal go. Flutter keeps the last text input client after
+  its connection closes, and that was the view's state, so a closed terminal
+  and its buffer stayed in memory until another field took input. Each
+  connection now gets its own small client, cut when the view loses focus or
+  is disposed. `CustomTextEditState` no longer implements `TextInputClient`.
+
 ## [5.5.0] - 2026-11-20
 
 * **Behavior change:** `TerminalView` no longer answers OSC 52 clipboard
