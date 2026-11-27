@@ -16,16 +16,12 @@ class CustomTextEdit extends StatefulWidget {
     this.autofocus = false,
     this.readOnly = false,
     // this.initEditingState = TextEditingValue.empty,
-    int? viewId,
+    this.viewId,
     this.inputType = TextInputType.text,
     this.inputAction = TextInputAction.newline,
     this.keyboardAppearance = Brightness.light,
     this.deleteDetection = false,
-  }) : viewId = viewId ?? PlatformDispatcher.instance.implicitView?.viewId {
-    if (this.viewId == null) {
-      throw Exception('Cannot open input connection without a valid viewId.');
-    }
-  }
+  });
 
   final Widget child;
 
@@ -57,6 +53,8 @@ class CustomTextEdit extends StatefulWidget {
 
   final bool deleteDetection;
 
+  /// The view text input goes to; null for the one this widget is drawn
+  /// in, which may be another window's than the app's first.
   final int? viewId;
 
   @override
@@ -72,6 +70,25 @@ class CustomTextEditState extends State<CustomTextEdit> {
   void initState() {
     widget.focusNode.addListener(_onFocusChange);
     super.initState();
+  }
+
+  /// The view the open connection was made for.
+  int? _connectedViewId;
+
+  int? get _viewId =>
+      widget.viewId ??
+      View.maybeOf(context)?.viewId ??
+      PlatformDispatcher.instance.implicitView?.viewId;
+
+  /// Moved into another view, such as another window, with the keyboard:
+  /// text input follows it there.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (hasInputConnection && _connectedViewId != _viewId) {
+      _closeInputConnectionIfNeeded();
+      _openInputConnection();
+    }
   }
 
   @override
@@ -180,8 +197,14 @@ class CustomTextEditState extends State<CustomTextEdit> {
     if (hasInputConnection) {
       _connection!.show();
     } else {
+      final viewId = _viewId;
+      if (viewId == null) {
+        return;
+      }
+
+      _connectedViewId = viewId;
       final config = TextInputConfiguration(
-        viewId: widget.viewId,
+        viewId: viewId,
         inputType: widget.inputType,
         inputAction: widget.inputAction,
         keyboardAppearance: widget.keyboardAppearance,
